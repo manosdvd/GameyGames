@@ -366,6 +366,7 @@
 
             // Init
             const initGame = () => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
                 const newBoard = [];
                 for (let r = 0; r < ROWS; r++) {
                     const row = [];

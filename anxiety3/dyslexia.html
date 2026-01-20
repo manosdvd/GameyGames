@@ -26,7 +26,7 @@
             height: 100vh;
             display: flex;
             justify-content: center;
-            items-center;
+            align-items: center;
         }
 
         .scanlines {
@@ -334,6 +334,7 @@
             };
 
             const initGame = () => {
+                if (audioCtx.current && audioCtx.current.state === 'suspended') audioCtx.current.resume();
                 setBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(null)));
                 setPreviewRow(Array(8).fill(null));
                 setPreviewIndex(0);
