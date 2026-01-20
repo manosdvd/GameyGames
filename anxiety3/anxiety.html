@@ -660,17 +660,34 @@
         if (activeTool) { detonateBomb(r, c); return; }
 
         const blk = board[r][c];
-        if (!blk) { setSelectedBlock(null); return; }
-        if (!selectedBlock) { setSelectedBlock({ r, c }); playTone(500, 'sine', 0.05, 0.1); triggerHaptic(10); }
-        else {
+
+        // If selecting first block, must be a block
+        if (!selectedBlock) {
+          if (!blk) return; // Cannot start selection with empty space
+          setSelectedBlock({ r, c });
+          playTone(500, 'sine', 0.05, 0.1);
+          triggerHaptic(10);
+        } else {
+          // If second click
           if (selectedBlock.r === r && selectedBlock.c === c) { setSelectedBlock(null); return; }
+
           const nb = board.map(rw => [...rw]);
-          const b1 = nb[selectedBlock.r][selectedBlock.c];
-          const b2 = nb[r][c];
-          nb[selectedBlock.r][selectedBlock.c] = { ...b2, row: selectedBlock.r, col: selectedBlock.c };
-          nb[r][c] = { ...b1, row: r, col: c };
+          const b1 = nb[selectedBlock.r][selectedBlock.c]; // Source
+          const b2 = nb[r][c]; // Target (can be null)
+
+          // Perform Swap
+          if (b2) {
+            nb[selectedBlock.r][selectedBlock.c] = { ...b2, row: selectedBlock.r, col: selectedBlock.c };
+            nb[r][c] = { ...b1, row: r, col: c };
+          } else {
+            // Moving into empty space
+            nb[selectedBlock.r][selectedBlock.c] = null;
+            nb[r][c] = { ...b1, row: r, col: c };
+          }
+
           playSwapSound(); triggerHaptic(30);
 
+          // Check matches after swap
           const res = checkMatches(nb);
           if (res.matched) {
             setBoard(res.board);
