@@ -51,7 +51,7 @@ export default function QuoteDisplay({
                     if (!isLetter(char)) {
                         return (
                             <div key={`punct-${currentIdx}`} className="flex flex-col justify-end w-3 sm:w-6 h-14 sm:h-20 pb-2 items-center shrink min-w-0">
-                                <span className="text-lg sm:text-3xl text-slate-800 font-bold">{char}</span>
+                                <span className="text-lg sm:text-3xl text-slate-800 dark:text-slate-200 font-bold block">{char}</span>
                             </div>
                         );
                     }
