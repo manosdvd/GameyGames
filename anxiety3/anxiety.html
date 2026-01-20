@@ -178,11 +178,19 @@
       grid-template-columns: repeat(8, 1fr);
       grid-template-rows: repeat(10, 1fr);
       gap: 4px;
-      /* Fix: Force height to fill container and let aspect ratio set width */
+      /* Default: Fit height (Landscape/Desktop) */
       height: 100%;
       width: auto;
       aspect-ratio: 4/5;
       margin: 0 auto;
+    }
+
+    /* If screen is narrower than the game (Mobile/Portrait) */
+    @media (max-aspect-ratio: 4/5) {
+      .grid-container {
+        width: 100%;
+        height: auto;
+      }
     }
 
 
