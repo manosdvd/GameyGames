@@ -2,7 +2,7 @@
     "name": "game-hub",
     "private": true,
     "scripts": {
-        "build": "mkdir -p dist && cp index.html style.css main.js dist/ && cd cryptograms && npm install && npm run build && mkdir -p ../dist/cryptograms && cp -r dist/* ../dist/cryptograms/ && cd ../anxiety3 && npm install && npm run build && mkdir -p ../dist/anxiety3 && cp -r dist/* ../dist/anxiety3/ && cd .. && mkdir -p dist/hexenergy && cp -r hexenergy/* dist/hexenergy/"
+        "build": "node build.js"
     },
     "devDependencies": {}
 }

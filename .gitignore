@@ -5,3 +5,5 @@ dist
 Thumbs.db
 .vscode
 .idea
+cryptograms/src/data/quotescsv.csv
+cryptograms/src/data/quotes_all.csv

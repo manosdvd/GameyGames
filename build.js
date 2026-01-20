@@ -1,0 +1,60 @@
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+// Helper to run commands
+const run = (cmd, cwd) => {
+    console.log(`> Running: ${cmd} in ${cwd || '.'}`);
+    execSync(cmd, { stdio: 'inherit', cwd: cwd || process.cwd() });
+};
+
+// Helper for recursive copy
+const copyRecursiveWithLog = (src, dest) => {
+    console.log(`> Copying ${src} to ${dest}`);
+    if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest, { recursive: true });
+    }
+    fs.cpSync(src, dest, { recursive: true });
+};
+
+// Main Build Process
+try {
+    const distDir = path.join(__dirname, 'dist');
+
+    // 1. Clean dist
+    if (fs.existsSync(distDir)) {
+        console.log('> Cleaning dist directory...');
+        fs.rmSync(distDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(distDir);
+
+    // 2. Build Root Assets
+    console.log('> Copying root assets...');
+    ['index.html', 'style.css', 'main.js'].forEach(file => {
+        if (fs.existsSync(file)) {
+            fs.copyFileSync(file, path.join(distDir, file));
+        }
+    });
+
+    // 3. Build Cryptograms
+    console.log('> Building Cryptograms...');
+    const cryptoDir = path.join(__dirname, 'cryptograms');
+    run('npm install && npm run build', cryptoDir);
+    copyRecursiveWithLog(path.join(cryptoDir, 'dist'), path.join(distDir, 'cryptograms'));
+
+    // 4. Build Anxiety3
+    console.log('> Building Anxiety3...');
+    const anxietyDir = path.join(__dirname, 'anxiety3');
+    run('npm install && npm run build', anxietyDir);
+    copyRecursiveWithLog(path.join(anxietyDir, 'dist'), path.join(distDir, 'anxiety3'));
+
+    // 5. Build HexEnergy (Static)
+    console.log('> Building HexEnergy...');
+    copyRecursiveWithLog(path.join(__dirname, 'hexenergy'), path.join(distDir, 'hexenergy'));
+
+    console.log('\n✅ Build verification passed! Output is in /dist');
+
+} catch (error) {
+    console.error('\n❌ Build Failed:', error.message);
+    process.exit(1);
+}
