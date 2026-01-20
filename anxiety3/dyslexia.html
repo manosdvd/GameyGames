@@ -353,7 +353,17 @@
                     }
                 } catch (e) { console.warn("Fullscreen denied", e); }
 
-                setBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(null)));
+                const newBoard = [];
+                for (let r = 0; r < ROWS; r++) {
+                    const row = [];
+                    for (let c = 0; c < COLS; c++) {
+                        if (r >= ROWS - 5) {
+                            row.push(generateBlock(r, c));
+                        } else row.push(null);
+                    }
+                    newBoard.push(row);
+                }
+                setBoard(newBoard);
                 setPreviewRow(Array(8).fill(null));
                 setPreviewIndex(0);
                 setScore(0);
