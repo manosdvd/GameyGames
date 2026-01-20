@@ -239,7 +239,7 @@
             const [shake, setShake] = useState(false);
 
             // Settings
-            const [settings, setSettings] = useState({ sound: true, haptics: true, crt: true, colorBlind: false });
+            const [settings, setSettings] = useState({ sound: true, haptics: true, crt: true, colorBlind: false, inputPos: 'top' });
             const [startLevel, setStartLevel] = useState(1);
 
             // Dictionary
@@ -554,6 +554,7 @@
             const toggleHaptics = () => setSettings(s => ({ ...s, haptics: !s.haptics }));
             const toggleCRT = () => setSettings(s => ({ ...s, crt: !s.crt }));
             const toggleColorBlind = () => setSettings(s => ({ ...s, colorBlind: !s.colorBlind }));
+            const toggleInputPos = () => setSettings(s => ({ ...s, inputPos: s.inputPos === 'top' ? 'bottom' : 'top' }));
 
             const adjustStartLevel = (delta) => {
                 setStartLevel(prev => Math.max(1, Math.min(15, prev + delta)));
@@ -602,30 +603,16 @@
                                 )}
                             </div>
                         </div>
-                        {/* Word Input Area (Moved to Top) */}
-                        <div className="flex-none bg-gray-900 border-b border-gray-800 flex flex-col px-2 py-2 z-20 mb-2">
-                            <div className="flex-1 bg-black/50 rounded border border-gray-700 flex items-center justify-center mb-2 relative overflow-hidden h-12">
-                                <span className={`text-2xl font-mono font-bold tracking-widest ${currentWord.length >= 3 ? 'text-white' : 'text-gray-500'}`}>
-                                    {currentWordStr || "TAP LETTERS"}
-                                </span>
+                        {/* Word Input Area (Top Mode) */}
+                        {settings.inputPos === 'top' && (
+                            <div className="flex-none bg-gray-900 border-b border-gray-800 flex flex-col px-2 py-2 z-20 mb-2">
+                                <div className="flex-1 bg-black/50 rounded border border-gray-700 flex items-center justify-center relative overflow-hidden h-16 transition-all">
+                                    <span className={`text-4xl font-mono font-bold tracking-widest ${currentWord.length >= 3 ? 'text-white' : 'text-gray-500'}`}>
+                                        {currentWordStr || "TAP LETTERS"}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="flex gap-2 h-10">
-                                <button
-                                    onClick={clearWord}
-                                    disabled={currentWord.length === 0}
-                                    className="flex-1 bg-red-900/50 border border-red-700 text-red-200 rounded flex items-center justify-center disabled:opacity-30 active:bg-red-800"
-                                >
-                                    <IconX />
-                                </button>
-                                <button
-                                    onClick={submitWord}
-                                    disabled={currentWord.length < 3}
-                                    className="flex-[3] bg-green-700 border border-green-500 text-white rounded flex items-center justify-center font-bold disabled:opacity-30 disabled:bg-gray-800 disabled:border-gray-700 active:bg-green-600"
-                                >
-                                    <IconCheck /> SUBMIT
-                                </button>
-                            </div>
-                        </div>
+                        )}
 
                         <div className="flex w-full h-8 md:h-10 bg-black/50 p-1 rounded border border-gray-700 relative overflow-hidden">
                             <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 ${previewIndex > 5 ? 'bg-red-900/30 pulse-red' : 'opacity-0'}`}></div>
@@ -704,7 +691,32 @@
                         </div>
                     </div>
 
-                    {/* Word Input Area (Removed from Bottom) */}
+                    {/* Word Input Area (All Controls Bottom) */}
+                    <div className="flex-none bg-gray-900 border-t-2 border-gray-800 flex flex-col px-4 py-3 z-20">
+                        {settings.inputPos === 'bottom' && (
+                            <div className="flex-1 bg-black/50 rounded border border-gray-700 flex items-center justify-center mb-2 relative overflow-hidden h-12">
+                                <span className={`text-2xl font-mono font-bold tracking-widest ${currentWord.length >= 3 ? 'text-white' : 'text-gray-500'}`}>
+                                    {currentWordStr || "TAP LETTERS"}
+                                </span>
+                            </div>
+                        )}
+                        <div className="flex gap-2 h-12">
+                            <button
+                                onClick={clearWord}
+                                disabled={currentWord.length === 0}
+                                className="flex-1 bg-red-900/50 border border-red-700 text-red-200 rounded flex items-center justify-center disabled:opacity-30 active:bg-red-800 hover:bg-red-900"
+                            >
+                                <IconX />
+                            </button>
+                            <button
+                                onClick={submitWord}
+                                disabled={currentWord.length < 3}
+                                className="flex-[3] bg-green-700 border border-green-500 text-white rounded flex items-center justify-center font-bold text-xl disabled:opacity-30 disabled:bg-gray-800 disabled:border-gray-700 active:bg-green-600 hover:bg-green-600"
+                            >
+                                <IconCheck /> SUBMIT
+                            </button>
+                        </div>
+                    </div>
 
                     {/* Pause Menu */}
                     {isPaused && !gameOver && (
@@ -748,6 +760,10 @@
                             ) : (
                                 <>
                                     <div className="w-full max-w-xs bg-gray-800 rounded p-4 border border-gray-700 mb-8">
+                                        <div className="text-gray-400 text-sm mb-2 text-center font-bold">SETTINGS</div>
+                                        <div className="space-y-2 mb-4">
+                                            <SettingBtn label="INPUT POS" active={settings.inputPos === 'top'} onClick={toggleInputPos} icon={IconMonitor} />
+                                        </div>
                                         <div className="text-gray-400 text-sm mb-2 text-center font-bold">SELECT START LEVEL</div>
                                         <div className="flex items-center justify-between">
                                             <button onClick={() => adjustStartLevel(-1)} className="p-2 bg-gray-700 rounded text-white hover:bg-gray-600"><IconMinus /></button>
