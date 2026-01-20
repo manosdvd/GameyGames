@@ -560,10 +560,10 @@
                 setStartLevel(prev => Math.max(1, Math.min(15, prev + delta)));
             };
 
-            const SettingBtn = ({ label, active, onClick, icon: Icon }) => (
+            const SettingBtn = ({ label, active, onClick, icon: Icon, valueLabel }) => (
                 <button onClick={onClick} className={`flex items-center justify-between w-full p-3 mb-2 rounded border ${active ? 'bg-blue-900/50 border-blue-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400'}`}>
                     <div className="flex items-center gap-2"><Icon /> <span>{label}</span></div>
-                    <span className="font-bold">{active ? 'ON' : 'OFF'}</span>
+                    <span className="font-bold">{valueLabel || (active ? 'ON' : 'OFF')}</span>
                 </button>
             );
 
@@ -762,7 +762,7 @@
                                     <div className="w-full max-w-xs bg-gray-800 rounded p-4 border border-gray-700 mb-8">
                                         <div className="text-gray-400 text-sm mb-2 text-center font-bold">SETTINGS</div>
                                         <div className="space-y-2 mb-4">
-                                            <SettingBtn label="INPUT POS" active={settings.inputPos === 'top'} onClick={toggleInputPos} icon={IconMonitor} />
+                                            <SettingBtn label="INPUT POS" active={settings.inputPos === 'top'} onClick={toggleInputPos} icon={IconMonitor} valueLabel={settings.inputPos === 'top' ? 'TOP' : 'BOTTOM'} />
                                         </div>
                                         <div className="text-gray-400 text-sm mb-2 text-center font-bold">SELECT START LEVEL</div>
                                         <div className="flex items-center justify-between">

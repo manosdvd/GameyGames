@@ -73,12 +73,21 @@
         .grid-container {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(10, 1fr);
+            grid-template-rows: repeat(12, 1fr);
             gap: 2px;
-            max-width: 100%;
-            max-height: 100%;
-            aspect-ratio: 4/5;
-            margin: auto;
+            /* Default: Fit height (Landscape/Desktop) */
+            height: 100%;
+            width: auto;
+            aspect-ratio: 2/3;
+            margin: 0 auto;
+        }
+
+        /* Responsive: Fit width (Mobile/Portrait) */
+        @media (max-aspect-ratio: 2/3) {
+            .grid-container {
+                width: 100%;
+                height: auto;
+            }
         }
 
         .particle {
@@ -282,7 +291,7 @@
 
         const App = () => {
             // Settings
-            const [settings, setSettings] = useState({ sound: true, haptics: true, crt: true, colorBlind: false });
+            const [settings, setSettings] = useState({ sound: true, haptics: true, crt: true, colorBlind: false, inputPos: 'top' });
             const [isPaused, setIsPaused] = useState(false);
 
             // Game State
@@ -628,6 +637,32 @@
                         });
 
                     } else {
+                        // Check for Order of Operations confusion
+                        // Calculate strictly Left-to-Right
+                        try {
+                            // Extract numbers and operators
+                            // This is a simplified L-to-R parser
+                            const tokens = eqStr.match(/(\d+|\+|\-|\*|\/|\(|\))/g);
+                            if (tokens && !eqStr.includes('(')) { // Only do simple L2R check if no parens involved for simplicity
+                                let l2rVal = parseFloat(tokens[0]);
+                                for (let i = 1; i < tokens.length; i += 2) {
+                                    const op = tokens[i];
+                                    const nextVal = parseFloat(tokens[i + 1]);
+                                    if (op === '+') l2rVal += nextVal;
+                                    else if (op === '-') l2rVal -= nextVal;
+                                    else if (op === '*') l2rVal *= nextVal;
+                                    else if (op === '/') l2rVal /= nextVal;
+                                }
+
+                                if (Math.abs(l2rVal - targetNumber) < 0.001) {
+                                    playErrorSound();
+                                    setShake(true); setTimeout(() => setShake(false), 300);
+                                    showFloatingText(currentEquation[currentEquation.length - 1].row, currentEquation[currentEquation.length - 1].col, "ORDER OF OPS!", '#eab308');
+                                    return;
+                                }
+                            }
+                        } catch (err) { /* ignore L2R errors */ }
+
                         playErrorSound();
                         setShake(true); setTimeout(() => setShake(false), 300);
                         showFloatingText(currentEquation[currentEquation.length - 1].row, currentEquation[currentEquation.length - 1].col, `= ${Math.round(result * 100) / 100}`, '#ef4444');
@@ -645,15 +680,16 @@
             const toggleHaptics = () => setSettings(s => ({ ...s, haptics: !s.haptics }));
             const toggleCRT = () => setSettings(s => ({ ...s, crt: !s.crt }));
             const toggleColorBlind = () => setSettings(s => ({ ...s, colorBlind: !s.colorBlind }));
+            const toggleInputPos = () => setSettings(s => ({ ...s, inputPos: s.inputPos === 'top' ? 'bottom' : 'top' }));
 
             const adjustStartLevel = (delta) => {
                 setStartLevel(prev => Math.max(1, Math.min(15, prev + delta)));
             };
 
-            const SettingBtn = ({ label, active, onClick, icon: Icon }) => (
+            const SettingBtn = ({ label, active, onClick, icon: Icon, valueLabel }) => (
                 <button onClick={onClick} className={`flex items-center justify-between w-full p-3 mb-2 rounded border ${active ? 'bg-yellow-900/50 border-yellow-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400'}`}>
                     <div className="flex items-center gap-2"><Icon /> <span>{label}</span></div>
-                    <span className="font-bold">{active ? 'ON' : 'OFF'}</span>
+                    <span className="font-bold">{valueLabel || (active ? 'ON' : 'OFF')}</span>
                 </button>
             );
 
@@ -737,10 +773,12 @@
                             <span className="text-3xl font-black text-white tracking-widest">{targetNumber}</span>
                         </div>
 
-                        {/* Current Equation Display */}
-                        <div className="mb-2">
-                            {renderCurrentEquation()}
-                        </div>
+                        {/* Current Equation Display (Top Mode) */}
+                        {settings.inputPos === 'top' && (
+                            <div className="mb-2 transition-all">
+                                {renderCurrentEquation()}
+                            </div>
+                        )}
 
                         <div className="flex w-full h-8 md:h-10 bg-black/50 p-1 rounded border border-gray-700 relative overflow-hidden">
                             <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 ${previewIndex > 5 ? 'bg-red-900/30 pulse-red' : 'opacity-0'}`}></div>
