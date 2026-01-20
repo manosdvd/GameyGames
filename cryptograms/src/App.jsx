@@ -430,6 +430,39 @@ export default function App() {
         setCheckMode(false);
     };
 
+    const [hasStarted, setHasStarted] = useState(false);
+
+    const handleStart = () => {
+        setHasStarted(true);
+        try {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            }
+        } catch (e) {
+            console.warn("Fullscreen denied:", e);
+        }
+    };
+
+    if (!hasStarted) {
+        return (
+            <div className="h-screen w-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center p-4 z-50 fixed inset-0">
+                <div className="text-center max-w-md">
+                    <h1 className="text-4xl font-black text-slate-800 dark:text-white mb-6 tracking-tight">CRYPTOGRAMS</h1>
+                    <p className="text-slate-500 dark:text-slate-400 mb-8">Decipher the quotes. Unlock the wisdom.</p>
+                    <button
+                        onClick={handleStart}
+                        className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 active:scale-95"
+                    >
+                        START GAME
+                    </button>
+                    <p className="mt-8 text-xs text-slate-400">Tap to enter full screen</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div
             className="h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans selection:bg-blue-200 dark:selection:bg-blue-900 flex flex-col overflow-hidden"
@@ -536,7 +569,7 @@ export default function App() {
             {!solved && !loading && (
                 <>
                     <div
-                        className="flex-none bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 w-full"
+                        className="flex-none bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 w-full pb-12"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <GameControls

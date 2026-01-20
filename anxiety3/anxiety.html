@@ -363,6 +363,15 @@
       // Init
       const initGame = () => {
         if (audioCtx.state === 'suspended') audioCtx.resume();
+        // Full screen trigger
+        try {
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+          } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen();
+          }
+        } catch (e) { console.warn("Fullscreen denied", e); }
+
         const newBoard = [];
         for (let r = 0; r < ROWS; r++) {
           const row = [];
