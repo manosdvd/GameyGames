@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hex Energy</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --hex-bg: rgba(255, 255, 255, 0.03);
+            --color-off: #555;
+            --color-track: #111;
+            --color-fluid: #00ffaa;
+            --color-core: #ffffff;
+            --ui-bg: rgba(20, 20, 20, 0.9);
+            --ui-border: rgba(0, 255, 170, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: #fff;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- UI Layers --- */
+        #top-ui {
+            position: absolute;
+            top: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #bottom-ui {
+            position: absolute;
+            bottom: 15px;
+            width: 95%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            z-index: 20;
+            pointer-events: auto;
+            flex-wrap: wrap;
+        }
+
+        .hud-pill {
+            background: var(--ui-bg);
+            border: 1px solid var(--ui-border);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            display: flex;
+            gap: 15px;
+            color: #888;
+        }
+
+        .hud-value {
+            color: var(--color-fluid);
+            transition: color 0.3s;
+        }
+
+        .control-btn {
+            background: var(--ui-bg);
+            border: 1px solid var(--ui-border);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            min-width: 70px;
+        }
+
+        .control-btn:hover {
+            background: var(--color-fluid);
+            color: #000;
+            box-shadow: 0 0 15px var(--color-fluid);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .hud-pill-small {
+            background: var(--ui-bg);
+            border: 1px solid var(--ui-border);
+            padding: 4px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+
+        .seed-input-container {
+            display: flex;
+            align-items: center;
+            background: var(--ui-bg);
+            border: 1px solid var(--ui-border);
+            border-radius: 8px;
+            padding: 4px 8px;
+        }
+
+        .seed-label {
+            font-size: 0.7rem;
+            color: #888;
+            margin-right: 6px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        #seed-input {
+            background: transparent;
+            border: none;
+            color: var(--color-fluid);
+            font-family: monospace;
+            font-size: 0.9rem;
+            width: 90px;
+            outline: none;
+        }
+
+        /* --- Game Board --- */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            /* Full height, layout calculates margins */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        #grid {
+            position: relative;
+            margin: auto;
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .hex-wrapper {
+            position: absolute;
+            cursor: pointer;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            transition: transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .hex-wrapper:active {
+            transform: scale(0.92);
+        }
+
+        .hex-inner {
+            width: 100%;
+            height: 100%;
+            background: var(--hex-bg);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            pointer-events: none;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .hex-inner.anchor {
+            background: rgba(0, 255, 170, 0.08);
+        }
+
+        .hex-inner svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            overflow: visible;
+        }
+
+        /* Pipes & Fluids */
+        .pipe-track {
+            fill: none;
+            stroke: var(--color-track);
+            stroke-width: 20;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .pipe-wire {
+            fill: none;
+            stroke: var(--color-off);
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.3s;
+        }
+
+        .fluid-segment {
+            fill: none;
+            stroke: var(--color-fluid);
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0;
+            transition: opacity 0.15s ease-out;
+        }
+
+        .fluid-segment.lit,
+        .fluid-center.lit {
+            opacity: 1;
+            filter: drop-shadow(0 0 4px var(--color-fluid));
+        }
+
+        .node-base {
+            fill: var(--color-off);
+            transition: fill 0.3s;
+        }
+
+        .fluid-center {
+            fill: var(--color-fluid);
+            opacity: 0;
+            transition: opacity 0.15s ease-out;
+        }
+
+        .hex-inner.anchor .node-base {
+            r: 9;
+            stroke: #000;
+            stroke-width: 3;
+        }
+
+        .fluid-center.anchor-lit {
+            r: 9;
+            opacity: 1;
+            filter: drop-shadow(0 0 12px var(--color-fluid));
+            animation: pulse-anchor 2s infinite;
+        }
+
+        @keyframes pulse-anchor {
+            0% {
+                opacity: 0.8;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+
+            100% {
+                opacity: 0.8;
+                transform: scale(1);
+            }
+        }
+
+
+
+        /* Victory Overlay */
+        #victory-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        #victory-screen.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .victory-text {
+            font-size: 3rem;
+            color: var(--color-fluid);
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: 4px;
+            text-shadow: 0 0 40px var(--color-fluid);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .next-btn {
+            background: transparent;
+            color: #fff;
+            border: 2px solid var(--color-fluid);
+            padding: 16px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(0, 255, 170, 0.1);
+        }
+
+        .next-btn:hover {
+            background: var(--color-fluid);
+            color: #000;
+            box-shadow: 0 0 50px var(--color-fluid);
+            transform: scale(1.05);
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        #bg-canvas {
+            z-index: 1;
+            opacity: 0.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="top-ui">
+        <div class="hud-pill">
+            <span id="level-lbl">Level 1</span>
+            <span id="status-lbl" class="hud-value">0% Lit</span>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <div id="grid"></div>
+    </div>
+
+    <div id="bottom-ui">
+        <button class="control-btn" onclick="undoLastMove()">Undo</button>
+        <button class="control-btn" onclick="resetPuzzle()">Reset</button>
+        <button class="control-btn" onclick="newPuzzle()">New</button>
+        <div class="hud-pill-small">
+            <span class="seed-label">Moves</span>
+            <span id="moves-lbl" class="hud-value">0</span>
+        </div>
+        <div class="hud-pill-small">
+            <span class="seed-label">Time</span>
+            <span id="time-lbl" class="hud-value">00:00</span>
+        </div>
+        <div class="seed-input-container">
+            <span class="seed-label">Seed</span>
+            <input type="text" id="seed-input" spellcheck="false" onchange="loadFromInput(this.value)">
+        </div>
+    </div>
+
+    <div id="victory-screen">
+        <div class="victory-text">Grid Stabilized</div>
+        <button class="next-btn" onclick="nextLevel()">Next Sector</button>
+    </div>
+
+    <canvas id="particles"></canvas>
+
+    <script>
+        // --- RNG (Mulberry32) ---
+        let rngState = 0;
+
+        function seedRNG(str) {
+            let h = 2166136261 >>> 0;
+            for (let i = 0; i < str.length; i++) {
+                h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+            }
+            rngState = h >>> 0;
+        }
+
+        function rand() {
+            let t = rngState += 0x6D2B79F5;
+            t = Math.imul(t ^ t >>> 15, t | 1);
+            t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        }
+
+        // --- Constants ---
+        const DIRS = [1, 2, 4, 8, 16, 32];
+
+        // --- State ---
+        let GRID_W = 4;
+        let GRID_H = 4;
+        let TILE_R = 40; // Calculated dynamically
+
+        let level = 1;
+        let grid = [];
+        let startNode = null;
+        let endNodes = [];
+        let isInputLocked = false;
+        let flowAnimationId = 0;
+        let currentSeedCode = "";
+
+        // Stats & Undo
+        let moves = 0;
+        let startTime = 0;
+        let timerInterval = null;
+        let moveHistory = [];
+
+        // --- DOM ---
+        const gridEl = document.getElementById('grid');
+        const statusEl = document.getElementById('status-lbl');
+        const levelEl = document.getElementById('level-lbl');
+        const victoryEl = document.getElementById('victory-screen');
+        const seedInput = document.getElementById('seed-input');
+        const movesEl = document.getElementById('moves-lbl');
+        const timeEl = document.getElementById('time-lbl');
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+
+        // --- Sound Manager ---
+        class SoundManager {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.enabled) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                this.ctx = new AudioContext();
+            }
+
+            playTone(freq, type, duration, vol = 0.1) {
+                if (!this.ctx) this.init();
+                if (!this.ctx || this.ctx.state === 'suspended') {
+                    if (this.ctx) this.ctx.resume();
+                }
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+                gain.gain.setValueAtTime(0, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(vol, this.ctx.currentTime + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            playClick() {
+                this.playTone(800, 'sine', 0.1, 0.1);
+                setTimeout(() => this.playTone(1200, 'triangle', 0.05, 0.05), 50);
+            }
+
+            playConnect() {
+                this.playTone(400, 'sine', 0.3, 0.1);
+                this.playTone(600, 'sine', 0.3, 0.05);
+            }
+
+            playVictory() {
+                const notes = [440, 554, 659, 880];
+                notes.forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 'sine', 0.8, 0.2), i * 100);
+                });
+            }
+        }
+
+        const audio = new SoundManager();
+
+        // --- Logic classes ---
+        class Tile {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseShape = 0;
+                this.rotation = 0;
+                this.isAnchor = false;
+                this.tempConns = 0;
+                this.wrapper = null;
+                this.inner = null;
+                this.domParts = {
+                    center: null,
+                    arms: [null, null, null, null, null, null]
+                };
+            }
+
+            getConnections() {
+                let s = this.baseShape;
+                let r = this.rotation;
+                let nc = 0;
+                for (let i = 0; i < 6; i++) {
+                    if (s & (1 << i)) {
+                        let shift = (i + r) % 6;
+                        if (shift < 0) shift += 6;
+                        nc |= (1 << shift);
+                    }
+                }
+                return nc;
+            }
+
+            setRotation(r) {
+                this.rotation = r;
+                this.updateTransform();
+            }
+
+            rotate() {
+                if (this.isAnchor) {
+                    this.inner.style.transform = `rotate(${this.rotation * 60}deg) scale(0.9)`;
+                    setTimeout(() => this.updateTransform(), 100);
+                    return;
+                }
+                this.rotation++;
+                this.updateTransform();
+            }
+
+            updateTransform() {
+                if (this.inner) {
+                    this.inner.style.transform = `rotate(${this.rotation * 60}deg)`;
+                }
+            }
+
+            setVisuals(mask) {
+                if (!this.domParts.center) return;
+                const toggle = (el, on) => {
+                    if (!el) return;
+                    if (on) el.classList.add('lit');
+                    else el.classList.remove('lit');
+                };
+                toggle(this.domParts.center, mask & 1);
+                if (this.isAnchor && (mask & 1)) this.domParts.center.classList.add('anchor-lit');
+                else this.domParts.center.classList.remove('anchor-lit');
+
+                for (let i = 0; i < 6; i++) {
+                    toggle(this.domParts.arms[i], mask & (1 << (i + 1)));
+                }
+            }
+        }
+
+        const NEIGHBOR_OFFSETS = [
+            [[0, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [-1, -1]],
+            [[1, -1], [1, 0], [1, 1], [0, 1], [-1, 0], [0, -1]]
+        ];
+
+        function getNeighborCoords(x, y, dirIndex) {
+            const parity = y & 1;
+            let [dx, dy] = NEIGHBOR_OFFSETS[parity][dirIndex];
+            return { x: x + dx, y: y + dy };
+        }
+
+        function getNeighbors(x, y) {
+            let res = [];
+            for (let i = 0; i < 6; i++) {
+                let c = getNeighborCoords(x, y, i);
+                if (c.x >= 0 && c.x < GRID_W && c.y >= 0 && c.y < GRID_H) {
+                    let oppIndex = (i + 3) % 6;
+                    res.push({
+                        t: grid[c.y][c.x],
+                        dir: (1 << i),
+                        opp: (1 << oppIndex),
+                        idx: i
+                    });
+                }
+            }
+            return res;
+        }
+
+        function getDegree(t) {
+            let d = 0;
+            for (let i = 0; i < 6; i++) if (t.tempConns & (1 << i)) d++;
+            return d;
+        }
+
+        // --- Control Logic ---
+        function resetPuzzle() {
+            if (currentSeedCode) loadGameFromSeed(currentSeedCode);
+        }
+
+        function newPuzzle() {
+            // Calculate dimensions based on level logic
+            // Level 1: 4x4
+            // Level 2: 4x5
+            // Level 3: 5x5... up to 12x12
+            let sizeIndex = level - 1;
+            let base = 4;
+            let w = base + Math.floor(sizeIndex / 2);
+            let h = base + Math.ceil(sizeIndex / 2);
+
+            // Cap at 12x12
+            if (w > 12) w = 12;
+            if (h > 12) h = 12;
+
+            const seedVal = Math.floor(Math.random() * 900000) + 100000;
+            const seedCode = `${w}x${h}:${seedVal}`;
+            loadGameFromSeed(seedCode);
+        }
+
+        function loadFromInput(val) {
+            if (val && val.includes(':')) {
+                loadGameFromSeed(val);
+            }
+        }
+
+        function loadGameFromSeed(seedCode) {
+            try {
+                let [dims, sVal] = seedCode.split(':');
+                let [w, h] = dims.split('x').map(Number);
+
+                if (!w || !h || !sVal) throw new Error("Invalid Seed");
+
+                GRID_W = w;
+                GRID_H = h;
+                currentSeedCode = seedCode;
+                seedInput.value = seedCode;
+
+                seedRNG(sVal);
+                generateLevel();
+
+                victoryEl.classList.remove('visible');
+                isInputLocked = false;
+            } catch (e) {
+                console.error("Seed Error", e);
+            }
+        }
+
+        // --- Generator ---
+        function generateLevel() {
+            grid = [];
+            gridEl.innerHTML = '';
+            endNodes = [];
+
+            // 1. Grid
+            for (let y = 0; y < GRID_H; y++) {
+                let row = [];
+                for (let x = 0; x < GRID_W; x++) row.push(new Tile(x, y));
+                grid.push(row);
+            }
+
+            // 2. Prim's
+            let visited = new Set();
+            let stack = [];
+            let startX = Math.floor(rand() * GRID_W);
+            let startY = Math.floor(rand() * GRID_H);
+
+            let first = grid[startY][startX];
+            stack.push(first);
+            visited.add(first);
+
+            while (stack.length > 0) {
+                let curr = stack[stack.length - 1];
+                let neighbors = getNeighbors(curr.x, curr.y).filter(n => !visited.has(n.t));
+
+                if (neighbors.length > 0) {
+                    let next = neighbors[Math.floor(rand() * neighbors.length)];
+                    curr.tempConns |= next.dir;
+                    next.t.tempConns |= next.opp;
+                    visited.add(next.t);
+                    stack.push(next.t);
+                } else {
+                    stack.pop();
+                }
+            }
+
+            // 3. Anchors
+            let leaves = [];
+            for (let row of grid) for (let t of row) if (getDegree(t) === 1) leaves.push(t);
+
+            if (leaves.length < 2) {
+                let all = grid.flat();
+                leaves = [all[0], all[all.length - 1]];
+            }
+
+            startNode = leaves.splice(Math.floor(rand() * leaves.length), 1)[0];
+            startNode.isAnchor = true;
+
+            let numSinks = Math.min(leaves.length, Math.floor(rand() * 2) + 2);
+            if (numSinks < 1) numSinks = 1;
+
+            for (let i = 0; i < numSinks; i++) {
+                if (leaves.length > 0) {
+                    let sink = leaves.splice(Math.floor(rand() * leaves.length), 1)[0];
+                    sink.isAnchor = true;
+                    endNodes.push(sink);
+                }
+            }
+            if (endNodes.length === 0) {
+                let t = grid[GRID_H - 1][GRID_W - 1];
+                if (t !== startNode) { t.isAnchor = true; endNodes.push(t); }
+            }
+
+            // 4. Dead End Verification & Healing
+            let healing = true;
+            while (healing) {
+                healing = false;
+                for (let row of grid) {
+                    for (let t of row) {
+                        if (t.isAnchor) continue;
+
+                        if (getDegree(t) <= 1) {
+                            let ns = getNeighbors(t.x, t.y);
+                            let valid = ns.filter(n => !(t.tempConns & n.dir));
+                            // Avoid connecting to anchors if possible
+                            let nonAnchor = valid.filter(n => !n.t.isAnchor);
+                            let candidates = nonAnchor.length > 0 ? nonAnchor : valid;
+
+                            if (candidates.length > 0) {
+                                let next = candidates[Math.floor(rand() * candidates.length)];
+                                t.tempConns |= next.dir;
+                                next.t.tempConns |= next.opp;
+                                healing = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 5. Finalize
+            for (let row of grid) {
+                for (let t of row) {
+                    t.baseShape = t.tempConns;
+                    delete t.tempConns;
+                }
+            }
+
+            // Order matters
+            createGridDOM();
+            updateLayout(); // Positions elements
+            scramble();
+            triggerFlowCalc();
+        }
+
+        // --- Dynamic Rendering ---
+        function updateLayout() {
+            // Calculate optimal tile radius to fit grid in available screen space
+            // UI space reservation: Top ~50px, Bottom ~80px
+            let safeW = window.innerWidth - 20;
+            let safeH = window.innerHeight - 130;
+
+            // Pointy Top Hex Geometry
+            // Width = sqrt(3) * R
+            // Height = 2 * R
+            // Grid Width (Odd-R) ~= (Cols + 0.5) * Width
+            // Grid Height ~= Height + (Rows - 1) * (1.5 * R)
+
+            let hexW_factor = 1.732; // sqrt(3)
+            let gridW_units = (GRID_W + 0.5) * hexW_factor;
+            let gridH_units = 2 + (GRID_H - 1) * 1.5;
+
+            // Calculate max radius allowed by width and height
+            let r_w = safeW / gridW_units;
+            let r_h = safeH / gridH_units;
+
+            // Take the smaller constraint
+            let R = Math.min(r_w, r_h);
+
+            // Clamp R to sensible values
+            if (R > 55) R = 55;
+            if (R < 18) R = 18; // Minimum size for touchability
+
+            TILE_R = R;
+
+            let pxW = gridW_units * R;
+            let pxH = gridH_units * R;
+
+            gridEl.style.width = `${pxW}px`;
+            gridEl.style.height = `${pxH}px`;
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Update positions of existing tiles
+            const W = 1.732 * TILE_R;
+            const H = 2 * TILE_R;
+            const VertDist = 1.5 * TILE_R;
+
+            for (let y = 0; y < GRID_H; y++) {
+                for (let x = 0; x < GRID_W; x++) {
+                    let t = grid[y][x];
+                    if (t && t.wrapper) {
+                        let left = x * W + ((y % 2) * (W / 2));
+                        let top = y * VertDist;
+                        t.wrapper.style.width = `${W}px`;
+                        t.wrapper.style.height = `${H}px`;
+                        t.wrapper.style.left = `${left}px`;
+                        t.wrapper.style.top = `${top}px`;
+                    }
+                }
+            }
+        }
+
+        function createGridDOM() {
+            gridEl.innerHTML = '';
+
+            const CX = 50;
+            const CY = 57.5;
+            const SVG_R = 45;
+            const ANGLES = [-60, 0, 60, 120, 180, 240];
+            const getEnd = (i) => ({
+                x: CX + SVG_R * Math.cos(ANGLES[i] * Math.PI / 180),
+                y: CY + SVG_R * Math.sin(ANGLES[i] * Math.PI / 180)
+            });
+
+            for (let y = 0; y < GRID_H; y++) {
+                for (let x = 0; x < GRID_W; x++) {
+                    let t = grid[y][x];
+
+                    let wrapper = document.createElement('div');
+                    wrapper.className = 'hex-wrapper';
+                    wrapper.onpointerdown = (e) => handleTap(t);
+
+                    let inner = document.createElement('div');
+                    inner.className = 'hex-inner';
+                    if (t.isAnchor) inner.classList.add('anchor');
+                    if (t.isAnchor) inner.classList.add('locked');
+
+                    const ns = "http://www.w3.org/2000/svg";
+                    const svg = document.createElementNS(ns, "svg");
+                    svg.setAttribute("viewBox", "0 0 100 115");
+
+                    // Static
+                    let dStatic = "";
+                    for (let i = 0; i < 6; i++) {
+                        if (t.baseShape & (1 << i)) {
+                            let pt = getEnd(i);
+                            dStatic += `M ${CX} ${CY} L ${pt.x} ${pt.y} `;
+                        }
+                    }
+
+                    const track = document.createElementNS(ns, "path");
+                    track.setAttribute("d", dStatic);
+                    track.setAttribute("class", "pipe-track");
+                    svg.appendChild(track);
+
+                    const wire = document.createElementNS(ns, "path");
+                    wire.setAttribute("d", dStatic);
+                    wire.setAttribute("class", "pipe-wire");
+                    svg.appendChild(wire);
+
+                    // Dynamic
+                    for (let i = 0; i < 6; i++) {
+                        if (t.baseShape & (1 << i)) {
+                            let pt = getEnd(i);
+                            const p = document.createElementNS(ns, "path");
+                            p.setAttribute("d", `M ${CX} ${CY} L ${pt.x} ${pt.y}`);
+                            p.setAttribute("class", `fluid-segment`);
+                            t.domParts.arms[i] = p;
+                            svg.appendChild(p);
+                        }
+                    }
+
+                    const center = document.createElementNS(ns, "circle");
+                    center.setAttribute("cx", CX); center.setAttribute("cy", CY);
+                    center.setAttribute("r", 7); center.setAttribute("class", "node-base");
+                    svg.appendChild(center);
+
+                    const fCenter = document.createElementNS(ns, "circle");
+                    fCenter.setAttribute("cx", CX); fCenter.setAttribute("cy", CY);
+                    fCenter.setAttribute("r", 7); fCenter.setAttribute("class", "fluid-center");
+                    svg.appendChild(fCenter);
+                    t.domParts.center = fCenter;
+
+                    inner.appendChild(svg);
+                    wrapper.appendChild(inner);
+                    gridEl.appendChild(wrapper);
+
+                    t.wrapper = wrapper;
+                    t.inner = inner;
+                    t.updateTransform();
+                }
+            }
+        }
+
+        function scramble() {
+            for (let row of grid) for (let t of row) {
+                if (!t.isAnchor) t.setRotation(Math.floor(rand() * 6));
+            }
+        }
+
+        function handleTap(tile) {
+            if (isInputLocked) return;
+            if (navigator.vibrate) navigator.vibrate(5);
+
+            // Record history before move? No, we record the tile coord so we can reverse it.
+            // Actually, we just need to know WHICH tile was rotated.
+            if (!tile.isAnchor) {
+                moveHistory.push({ x: tile.x, y: tile.y });
+                moves++;
+                movesEl.innerText = moves;
+                audio.playClick();
+            }
+
+            tile.rotate();
+            triggerFlowCalc();
+        }
+
+        function triggerFlowCalc() {
+            flowAnimationId++;
+            const currentFlowId = flowAnimationId;
+
+            let queue = [startNode];
+            let poweredSet = new Set([startNode]);
+            // Reusing maps is risky if we don't clear, but creating new is safer for logic correctness
+            // Optimization: Inline neighbor check to avoid object creation
+            let distMap = new Map(); distMap.set(startNode, 0);
+
+            let head = 0;
+            while (head < queue.length) {
+                let curr = queue[head++];
+                let cConns = curr.getConnections();
+                let dist = distMap.get(curr);
+
+                // Inline Neighbor Logic
+                const parity = curr.y & 1;
+                for (let i = 0; i < 6; i++) {
+                    // Check if current tile has connection in this direction first
+                    let dirMask = 1 << i;
+                    if (!(cConns & dirMask)) continue;
+
+                    let [dx, dy] = NEIGHBOR_OFFSETS[parity][i];
+                    let nx = curr.x + dx;
+                    let ny = curr.y + dy;
+
+                    if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                        let nTile = grid[ny][nx];
+                        let oppIndex = (i + 3) % 6;
+                        let oppMask = 1 << oppIndex;
+
+                        // Check neighbor connection back
+                        if (nTile.getConnections() & oppMask) {
+                            if (!poweredSet.has(nTile)) {
+                                poweredSet.add(nTile);
+                                distMap.set(nTile, dist + 1);
+                                queue.push(nTile);
+                                // Play connect sound occasionally or based on depth? 
+                                // Maybe just when a new significant connection happens?
+                                // For now, let's keep it simple.
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Visuals & Win Check
+            let totalSections = 0;
+            let litSections = 0;
+            let maxDist = 0;
+
+            for (let row of grid) {
+                for (let t of row) {
+                    let d = distMap.get(t) || 0;
+                    if (d > maxDist) maxDist = d;
+
+                    let deg = 0; for (let i = 0; i < 6; i++) if (t.baseShape & (1 << i)) deg++;
+                    totalSections += (deg + 1);
+
+                    if (!poweredSet.has(t)) {
+                        t.setVisuals(0);
+                        continue;
+                    }
+
+                    let mask = 1;
+                    litSections++;
+
+                    for (let i = 0; i < 6; i++) {
+                        if (t.baseShape & (1 << i)) {
+                            let worldIdx = (i + t.rotation) % 6;
+                            if (worldIdx < 0) worldIdx += 6;
+
+                            let c = getNeighborCoords(t.x, t.y, worldIdx);
+                            if (c.x >= 0 && c.x < GRID_W && c.y >= 0 && c.y < GRID_H) {
+                                let nTile = grid[c.y][c.x];
+                                if (poweredSet.has(nTile)) {
+                                    let oppShift = (worldIdx + 3) % 6; // worldIdx is 0-5, so this is safe
+                                    let oppMask = 1 << oppShift;
+                                    if (nTile.getConnections() & oppMask) {
+                                        mask |= (1 << (i + 1));
+                                        litSections++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    setTimeout(() => {
+                        if (flowAnimationId === currentFlowId) t.setVisuals(mask);
+                    }, d * 40);
+                }
+            }
+
+            setTimeout(() => {
+                if (flowAnimationId === currentFlowId) {
+                    let pct = totalSections > 0 ? Math.floor((litSections / totalSections) * 100) : 0;
+                    statusEl.innerText = `${pct}% Synced`;
+                    if (litSections === totalSections && totalSections > 0) victorySequence();
+                }
+            }, maxDist * 40 + 100);
+        }
+
+        function victorySequence() {
+            isInputLocked = true;
+            clearInterval(timerInterval);
+            audio.playVictory();
+
+            statusEl.innerText = "100% Synced";
+            statusEl.style.color = "#fff";
+
+            // Display potential score?
+            // Simple score: (Optimal Moves / Actual Moves) * 1000 - TimePenalty
+            // For now just show "Stabilized".
+
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 200]);
+            endNodes.forEach(sink => spawnParticles(sink));
+            setTimeout(() => victoryEl.classList.add('visible'), 800);
+        }
+
+        function nextLevel() {
+            level++;
+            levelEl.innerText = `LEVEL ${level}`;
+            newPuzzle();
+        }
+
+        let particles = [];
+        function spawnParticles(tile) {
+            if (!tile.wrapper) return;
+            let rect = tile.wrapper.getBoundingClientRect();
+            let cx = rect.left + rect.width / 2;
+            let cy = rect.top + rect.height / 2;
+
+            for (let i = 0; i < 50; i++) {
+                particles.push({
+                    x: cx, y: cy,
+                    vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15,
+                    life: 1, size: Math.random() * 5 + 2
+                });
+            }
+            if (!isAnimating) animateParticles();
+        }
+
+        let isAnimating = false;
+        function animateParticles() {
+            if (particles.length === 0) { isAnimating = false; return; }
+            isAnimating = true;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy;
+                p.vx *= 0.94; p.vy *= 0.94;
+                p.life -= 0.025;
+                ctx.fillStyle = `rgba(0, 255, 170, ${p.life})`;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+            requestAnimationFrame(animateParticles);
+        }
+
+        // --- Background Animation ---
+        const bgCanvas = document.getElementById('bg-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        let bgDrops = [];
+
+        function initBg() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            const columns = Math.ceil(bgCanvas.width / 20);
+            bgDrops = new Array(columns).fill(0).map(() => Math.random() * bgCanvas.height);
+        }
+
+        function drawBg() {
+            bgCtx.fillStyle = 'rgba(5, 5, 5, 0.05)';
+            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+            bgCtx.fillStyle = '#0f3';
+            bgCtx.font = '15px monospace';
+
+            for (let i = 0; i < bgDrops.length; i++) {
+                const text = String.fromCharCode(0x30A0 + Math.random() * 96);
+                const x = i * 20;
+                const y = bgDrops[i] * 20;
+
+                bgCtx.fillStyle = `rgba(0, 255, 170, ${Math.random() * 0.5})`;
+                bgCtx.fillText(text, x, y);
+
+                if (y > bgCanvas.height && Math.random() > 0.975) {
+                    bgDrops[i] = 0;
+                }
+                bgDrops[i]++;
+            }
+            requestAnimationFrame(drawBg);
+        }
+
+        window.onload = () => {
+            initBg();
+            drawBg();
+            newPuzzle(); // Init
+
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                if (resizeTimeout) cancelAnimationFrame(resizeTimeout);
+                resizeTimeout = requestAnimationFrame(() => {
+                    updateLayout();
+                    initBg();
+                });
+            });
+        };
+    </script>
+</body>
+
+</html>

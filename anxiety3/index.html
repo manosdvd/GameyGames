@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Neurodiversity Game Suite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto+Mono:wght@400;700&display=swap');
+
+    body {
+      background-color: #0f0f0f;
+      color: #ffffff;
+      font-family: 'Roboto Mono', monospace;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scanlines {
+      background: linear-gradient(to bottom,
+          rgba(255, 255, 255, 0),
+          rgba(255, 255, 255, 0) 50%,
+          rgba(0, 0, 0, 0.2) 50%,
+          rgba(0, 0, 0, 0.2));
+      background-size: 100% 4px;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    .menu-btn {
+      width: 100%;
+      max-width: 320px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      font-family: 'Black Ops One', cursive;
+      font-size: 1.5rem;
+      text-align: center;
+      border: 2px solid;
+      border-radius: 0.5rem;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .menu-btn:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px currentColor;
+    }
+
+    .menu-btn:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    .btn-anxiety {
+      color: #ef4444;
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .btn-anxiety:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-dyslexia {
+      color: #3b82f6;
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .btn-dyslexia:hover {
+      background: rgba(59, 130, 246, 0.2);
+    }
+
+    .btn-discalculia {
+      color: #eab308;
+      border-color: #eab308;
+      background: rgba(234, 179, 8, 0.1);
+    }
+
+    .btn-discalculia:hover {
+      background: rgba(234, 179, 8, 0.2);
+    }
+
+    .title {
+      font-family: 'Black Ops One', cursive;
+      font-size: 3rem;
+      margin-bottom: 3rem;
+      text-align: center;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      line-height: 1;
+    }
+
+    .subtitle {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 1rem;
+      color: #6b7280;
+      margin-top: -2.5rem;
+      margin-bottom: 3rem;
+      letter-spacing: 0.2em;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="scanlines"></div>
+
+  <h1 class="title">NEURO<br>SUITE</h1>
+  <div class="subtitle">SELECT MODULE</div>
+
+  <a href="anxiety.html" class="menu-btn btn-anxiety">
+    Anxiety
+  </a>
+
+  <a href="dyslexia.html" class="menu-btn btn-dyslexia">
+    Dyslexia
+  </a>
+
+  <a href="discalculia.html" class="menu-btn btn-discalculia">
+    Discalculia
+  </a>
+
+</body>
+
+</html>

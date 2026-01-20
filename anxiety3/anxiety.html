@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Anxiety - Match 3</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto+Mono:wght@400;700&display=swap');
+
+    html,
+    body,
+    #root {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      background-color: #0f0f0f;
+      color: #ffffff;
+      font-family: 'Roboto Mono', monospace;
+      touch-action: none;
+    }
+
+    .block {
+      transition: transform 0.1s linear, top 0.1s linear;
+    }
+
+    .shake {
+      animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
+    @keyframes shake {
+
+      10%,
+      90% {
+        transform: translate3d(-1px, 0, 0);
+      }
+
+      20%,
+      80% {
+        transform: translate3d(2px, 0, 0);
+      }
+
+      30%,
+      50%,
+      70% {
+        transform: translate3d(-4px, 0, 0);
+      }
+
+      40%,
+      60% {
+        transform: translate3d(4px, 0, 0);
+      }
+    }
+
+    .level-up-anim {
+      animation: levelUpScale 0.5s ease-out;
+    }
+
+    @keyframes levelUpScale {
+      0% {
+        transform: scale(1);
+        color: #fff;
+      }
+
+      50% {
+        transform: scale(1.5);
+        color: #fbbf24;
+      }
+
+      100% {
+        transform: scale(1);
+        color: #fff;
+      }
+    }
+
+    .pulse-red {
+      animation: pulse-red 1s infinite;
+    }
+
+    @keyframes pulse-red {
+      0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+      }
+
+      70% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+
+    /* CRT Scanline effect */
+    .scanlines {
+      background: linear-gradient(to bottom,
+          rgba(255, 255, 255, 0),
+          rgba(255, 255, 255, 0) 50%,
+          rgba(0, 0, 0, 0.2) 50%,
+          rgba(0, 0, 0, 0.2));
+      background-size: 100% 4px;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    /* Selection Indicator */
+    .selected-ring {
+      animation: spin 4s linear infinite;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Explosion Particles */
+    .particle {
+      position: absolute;
+      pointer-events: none;
+      animation: explode 0.6s ease-out forwards;
+    }
+
+    @keyframes explode {
+      0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translate(var(--tx), var(--ty)) scale(0);
+        opacity: 0;
+      }
+    }
+
+    /* Floating Score */
+    .floating-score {
+      position: absolute;
+      pointer-events: none;
+      animation: floatUp 1s ease-out forwards;
+      font-weight: bold;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+      z-index: 40;
+      white-space: nowrap;
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+      }
+
+      20% {
+        transform: translate(-50%, -120%) scale(1.2);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translate(-50%, -250%) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      gap: 4px;
+      /* Maintain aspect ratio and center */
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 4/5;
+      margin: 0 auto;
+      margin: 0 auto;
+    }
+
+    /* Powerup Styles */
+    .powerup-btn {
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .powerup-available {
+      border-color: #60A5FA;
+      background-color: rgba(30, 58, 138, 0.6);
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+    }
+
+    .powerup-active {
+      border-color: #FBBF24 !important;
+      background-color: rgba(251, 191, 36, 0.25) !important;
+      color: #FBBF24 !important;
+      box-shadow: 0 0 15px #FBBF24 !important;
+      transform: translateY(-2px);
+    }
+
+    .powerup-disabled {
+      border-color: #374151;
+      background-color: #1F2937;
+      color: #4B5563;
+      opacity: 0.5;
+    }
+
+    /* Difficulty Meter */
+    .diff-meter {
+      height: 4px;
+      background: #333;
+      margin-top: 10px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .diff-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2563eb, #ef4444);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // --- Icons ---
+    const IconRadius = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m22 12-4 0" /><path d="m6 12-4 0" /><path d="m12 6-4 0" /><path d="m12 22-4 0" /></svg>;
+    const IconCol = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></svg>;
+    const IconRow = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>;
+    const IconX = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+    const IconColor = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.74 5.74c.84.84 1.26 1.26 1.26 2.07 0 .81-.42 1.23-1.26 2.07L12 18.31l-5.74-5.74C5.42 11.73 5 11.31 5 10.5c0-.81.42-1.23 1.26-2.07L12 2.69z" /><path d="M12 22a7 7 0 0 0 7-7v-1.5" /><path d="M12 22a7 7 0 0 1-7-7v-1.5" /><path d="M12 22v-9" /></svg>;
+    const IconPause = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>;
+    const IconVolume = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>;
+    const IconVolumeOff = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23" /><path d="M9 9v6a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" /></svg>;
+    const IconZap = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+    const IconBack = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>;
+    const IconMonitor = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>;
+    const IconEye = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>;
+    const IconMinus = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+    const IconPlus = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+
+
+    // --- Color Blind Shapes ---
+    const ShapeSquare = () => <svg className="w-full h-full p-1.5 text-white opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>;
+    const ShapeTriangle = () => <svg className="w-full h-full p-1.5 text-white opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><path d="M12 3L21 21H3L12 3Z" /></svg>;
+    const ShapeCircle = () => <svg className="w-full h-full p-1.5 text-white opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><circle cx="12" cy="12" r="9" /></svg>;
+    const ShapeStar = () => <svg className="w-full h-full p-1.5 text-white opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
+    const ShapeDiamond = () => <svg className="w-full h-full p-1.5 text-white opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polygon points="12 2 22 12 12 22 2 12 12 2" /></svg>;
+    const ShapeCross = () => <svg className="w-full h-full p-1.5 text-white opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></svg>;
+
+    // --- Audio Context ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // --- Constants ---
+    const ROWS = 10;
+    const COLS = 8;
+    const COLORS = ['#DC2626', '#2563EB', '#16A34A', '#FACC15', '#7C3AED', '#06B6D4'];
+    const SHAPES = [ShapeSquare, ShapeTriangle, ShapeCircle, ShapeStar, ShapeDiamond, ShapeCross];
+
+    // --- Difficulty Logic ---
+    const getTickRateForLevel = (lvl) => {
+      // Tetris-like curve: 
+      // 1-4: Manageable (1200ms -> 600ms)
+      // 5: Threatening (400ms)
+      // 10: Expert (180ms)
+      // 15: Impossible (60ms)
+      if (lvl < 5) return 1200 - ((lvl - 1) * 200); // 1200, 1000, 800, 600
+      if (lvl < 10) return 400 - ((lvl - 5) * 50);  // 400, 350, 300, 250, 200
+      // 10-15: Exponential decay from 180 to 60
+      const progress = (lvl - 10) / 5; // 0 to 1
+      return Math.floor(180 * (1 - progress) + 60 * progress);
+    };
+
+    const getThresholdForLevel = (lvl) => {
+      // Base 1000 + increasing difficulty
+      return 1000 + (lvl * 250);
+    };
+
+    const generateBlock = (row, col) => {
+      const colorIndex = Math.floor(Math.random() * COLORS.length);
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        color: COLORS[colorIndex],
+        colorIndex: colorIndex,
+        row, col, isFalling: false, isNew: false
+      };
+    };
+
+    const App = () => {
+      // Settings
+      const [settings, setSettings] = useState({ sound: true, haptics: true, crt: true, colorBlind: false });
+      const [isPaused, setIsPaused] = useState(false);
+
+      // Game State
+      const [board, setBoard] = useState([]);
+      const [previewRow, setPreviewRow] = useState(Array(8).fill(null));
+      const [score, setScore] = useState(0);
+      const [highScore, setHighScore] = useState(parseInt(localStorage.getItem('anxiety_highscore')) || 0);
+      const [level, setLevel] = useState(1);
+      const [startLevel, setStartLevel] = useState(1); // User selection
+      const [levelScore, setLevelScore] = useState(0); // Score within current level
+      const [gameOver, setGameOver] = useState(false);
+      const [gameStarted, setGameStarted] = useState(false);
+      const [selectedBlock, setSelectedBlock] = useState(null);
+      const [shake, setShake] = useState(false);
+      const [levelAnim, setLevelAnim] = useState(false);
+      const [particles, setParticles] = useState([]);
+      const [floatingTexts, setFloatingTexts] = useState([]);
+
+      const [inventory, setInventory] = useState({ radius: 0, col: 0, row: 0, x: 0, color: 0 });
+      const [activeTool, setActiveTool] = useState(null);
+      const [comboChain, setComboChain] = useState(0);
+
+      const [tickRate, setTickRate] = useState(1200);
+      const [previewIndex, setPreviewIndex] = useState(0);
+      const timerRef = useRef(null);
+
+      // --- Helpers ---
+      const triggerHaptic = (pattern) => {
+        if (settings.haptics && navigator.vibrate) navigator.vibrate(pattern);
+      };
+
+      const playTone = (freq, type, duration, vol = 0.1) => {
+        if (!settings.sound) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      };
+
+      const playMatchSound = (combo) => {
+        const baseFreq = 300 + (combo * 100);
+        playTone(baseFreq, 'sine', 0.3, 0.2);
+        playTone(baseFreq * 1.5, 'triangle', 0.1, 0.1);
+      };
+      const playExplosionSound = () => {
+        playTone(100, 'sawtooth', 0.4, 0.3);
+        setTimeout(() => playTone(80, 'square', 0.4, 0.3), 50);
+      };
+      const playDropSound = () => playTone(100, 'square', 0.1, 0.05);
+      const playTickSound = (i) => playTone(400 + (i * 100), 'sawtooth', 0.05, 0.05);
+      const playSwapSound = () => playTone(600, 'sine', 0.1, 0.1);
+      const playLevelUpSound = () => {
+        playTone(400, 'square', 0.1, 0.2);
+        setTimeout(() => playTone(600, 'square', 0.1, 0.2), 100);
+        setTimeout(() => playTone(800, 'square', 0.2, 0.2), 200);
+      };
+      const playGameOverSound = () => {
+        playTone(150, 'sawtooth', 1, 0.3);
+        setTimeout(() => playTone(100, 'sawtooth', 1, 0.3), 200);
+      };
+
+      // Init
+      const initGame = () => {
+        const newBoard = [];
+        for (let r = 0; r < ROWS; r++) {
+          const row = [];
+          for (let c = 0; c < COLS; c++) {
+            if (r >= ROWS - 5) {
+              let block = generateBlock(r, c);
+              while (
+                (c >= 2 && block.color === row[c - 1]?.color && block.color === row[c - 2]?.color) ||
+                (r >= ROWS - 3 && block.color === newBoard[r - 1][c]?.color && block.color === newBoard[r - 2][c]?.color)
+              ) block = generateBlock(r, c);
+              row.push(block);
+            } else row.push(null);
+          }
+          newBoard.push(row);
+        }
+        setBoard(newBoard);
+        setPreviewRow(Array(8).fill(null));
+        setPreviewIndex(0);
+        setScore(0);
+        setLevel(startLevel);
+        setLevelScore(0);
+        setInventory({ radius: 0, col: 0, row: 0, x: 0, color: 0 });
+        setGameOver(false);
+        setGameStarted(true);
+        setTickRate(getTickRateForLevel(startLevel));
+        setSelectedBlock(null);
+        setParticles([]);
+        setFloatingTexts([]);
+        setActiveTool(null);
+        setComboChain(0);
+        setIsPaused(false);
+      };
+
+      // Effects
+      const createExplosion = (r, c, color) => {
+        const newParticles = [];
+        for (let i = 0; i < 8; i++) {
+          const angle = (Math.PI * 2 * i) / 8;
+          newParticles.push({
+            id: Math.random(), r, c, color,
+            tx: Math.cos(angle) * 100 + 'px',
+            ty: Math.sin(angle) * 100 + 'px'
+          });
+        }
+        setParticles(prev => [...prev, ...newParticles]);
+        setTimeout(() => setParticles(prev => prev.filter(p => !newParticles.includes(p))), 600);
+      };
+
+      const showFloatingText = (r, c, text, color = '#fff') => {
+        const id = Math.random();
+        const offsetX = (Math.random() - 0.5) * 20;
+        const offsetY = (Math.random() - 0.5) * 20;
+        setFloatingTexts(prev => [...prev, { id, r, c, text, color, offsetX, offsetY }]);
+        setTimeout(() => setFloatingTexts(prev => prev.filter(t => t.id !== id)), 1200);
+      };
+
+      // Leveling Logic
+      useEffect(() => {
+        if (!gameStarted) return;
+        const threshold = getThresholdForLevel(level);
+
+        if (levelScore >= threshold) {
+          const newLevel = level + 1;
+          setLevel(newLevel);
+          setLevelScore(0); // Reset progress bar for next level
+
+          playLevelUpSound();
+          triggerHaptic([100, 50, 100]);
+          setLevelAnim(true);
+          setTimeout(() => setLevelAnim(false), 500);
+
+          const bombTypes = ['radius', 'col', 'row', 'x', 'color'];
+          const reward = bombTypes[Math.floor(Math.random() * bombTypes.length)];
+          setInventory(prev => ({ ...prev, [reward]: prev[reward] + 1 }));
+
+          showFloatingText(ROWS / 2 - 2, COLS / 2, `LEVEL ${newLevel}!`, '#FFFFFF');
+          setTimeout(() => {
+            showFloatingText(ROWS / 2 + 1, COLS / 2, `+1 ${reward.toUpperCase()} BOMB`, '#FBBF24');
+          }, 200);
+
+          setTickRate(getTickRateForLevel(newLevel));
+        }
+        if (score > highScore) {
+          setHighScore(score);
+          localStorage.setItem('anxiety_highscore', score);
+        }
+      }, [levelScore, gameStarted, level, score, highScore]);
+
+      // Timers
+      useEffect(() => {
+        if (!gameStarted || gameOver || isPaused) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          return;
+        }
+        timerRef.current = setInterval(() => fillPreviewSlot(), tickRate);
+        return () => clearInterval(timerRef.current);
+      }, [gameStarted, gameOver, isPaused, tickRate, previewIndex, previewRow]);
+
+      const fillPreviewSlot = () => {
+        setPreviewIndex(prev => {
+          if (prev >= COLS) { dropPreviewRow(); return 0; }
+          setPreviewRow(curr => {
+            const newRow = [...curr];
+            newRow[prev] = generateBlock(-1, prev);
+            return newRow;
+          });
+          playTickSound(prev);
+          return prev + 1;
+        });
+      };
+
+      const dropPreviewRow = () => {
+        setBoard(cur => {
+          for (let c = 0; c < COLS; c++) if (cur[0][c]) { handleGameOver(); return cur; }
+          return cur;
+        });
+        performDrop();
+      };
+
+      const performDrop = () => {
+        setPreviewRow(prev => {
+          setBoard(cur => {
+            for (let c = 0; c < COLS; c++) if (cur[0][c]) { handleGameOver(); return cur; }
+            const nb = cur.map(r => [...r]);
+            for (let c = 0; c < COLS; c++) if (prev[c]) nb[0][c] = { ...prev[c], row: 0, col: c };
+            playDropSound();
+            return nb;
+          });
+          triggerHaptic(50);
+          return Array(8).fill(null);
+        });
+      };
+
+      const handleGameOver = () => {
+        setGameOver(true); setGameStarted(false); setIsPaused(false);
+        playGameOverSound(); triggerHaptic(1000);
+        setShake(true); setTimeout(() => setShake(false), 500);
+      };
+
+      // Physics Loop
+      useEffect(() => {
+        if (!gameStarted || gameOver || isPaused) return;
+        const int = setTimeout(() => {
+          applyGravity();
+          let res = checkMatches(board);
+          if (res.matched) {
+            playMatchSound(comboChain); triggerHaptic([30, 30]);
+            setBoard(res.board);
+            setScore(s => s + res.points);
+            setLevelScore(s => s + res.points); // Track level progress
+            setComboChain(c => c + 1);
+            setShake(true); setTimeout(() => setShake(false), 300);
+          }
+        }, 65);
+        return () => clearTimeout(int);
+      }, [board, gameStarted, gameOver, isPaused, comboChain]);
+
+      const applyGravity = () => {
+        let moved = false;
+        const nb = board.map(r => [...r]);
+        for (let c = 0; c < COLS; c++) {
+          for (let r = ROWS - 2; r >= 0; r--) {
+            if (nb[r][c] && !nb[r + 1][c]) {
+              nb[r + 1][c] = { ...nb[r][c], row: r + 1 }; nb[r][c] = null; moved = true;
+            }
+          }
+        }
+        if (moved) setBoard(nb);
+        return moved;
+      };
+
+      const isSettled = (r, c, b) => {
+        let curr = r;
+        while (curr < ROWS - 1) {
+          if (b[curr + 1][c] === null) return false;
+          curr++;
+        }
+        return true;
+      };
+
+      const checkMatches = (b) => {
+        let matches = new Set();
+        let hRuns = [], vRuns = [];
+
+        const scanLine = (isRow) => {
+          const outer = isRow ? ROWS : COLS;
+          const inner = isRow ? COLS : ROWS;
+          for (let i = 0; i < outer; i++) {
+            let run = [];
+            for (let j = 0; j < inner; j++) {
+              const r = isRow ? i : j;
+              const c = isRow ? j : i;
+              const blk = b[r][c];
+              const settled = blk && isSettled(r, c, b);
+              if (settled) {
+                if (run.length === 0) run.push({ r, c, color: blk.color });
+                else if (blk.color === run[0].color) run.push({ r, c, color: blk.color });
+                else {
+                  if (run.length >= 3) { (isRow ? hRuns : vRuns).push(run); run.forEach(p => matches.add(`${p.r},${p.c}`)); }
+                  run = [{ r, c, color: blk.color }];
+                }
+              } else {
+                if (run.length >= 3) { (isRow ? hRuns : vRuns).push(run); run.forEach(p => matches.add(`${p.r},${p.c}`)); }
+                run = [];
+              }
+            }
+            if (run.length >= 3) { (isRow ? hRuns : vRuns).push(run); run.forEach(p => matches.add(`${p.r},${p.c}`)); }
+          }
+        };
+        scanLine(true); scanLine(false);
+
+        if (matches.size > 0) {
+          const nb = b.map(r => [...r]);
+          let mult = 1;
+          [...hRuns, ...vRuns].forEach(run => { if (run.length === 4) mult = Math.max(mult, 2); if (run.length >= 5) mult = Math.max(mult, 3); });
+          let bonus = (comboChain > 0) ? (comboChain * 0.5) + 1 : 1;
+          let pts = Math.floor(matches.size * 10 * mult * bonus);
+
+          let cr = 0, cc = 0;
+          if (hRuns[0]) { cr = hRuns[0][0].r; cc = hRuns[0][0].c; }
+          else if (vRuns[0]) { cr = vRuns[0][0].r; cc = vRuns[0][0].c; }
+
+          let txt = `+${pts}`;
+          if (comboChain > 1) txt += ` x${Math.floor(bonus)}`;
+          if (mult > 1) txt = (mult === 2 ? "4-MATCH! " : "MEGA! ") + txt;
+          showFloatingText(cr, cc, txt, '#FBBF24');
+
+          matches.forEach(k => {
+            const [r, c] = k.split(',').map(Number);
+            if (nb[r][c]) createExplosion(r, c, nb[r][c].color);
+            nb[r][c] = null;
+          });
+          return { matched: true, board: nb, points: pts };
+        }
+        return { matched: false };
+      };
+
+      // --- Bomb Logic ---
+      const activateTool = (t) => {
+        if (activeTool === t) setActiveTool(null);
+        else if (inventory[t] > 0) { setActiveTool(t); setSelectedBlock(null); }
+      };
+
+      const detonateBomb = (r, c) => {
+        if (!activeTool || inventory[activeTool] <= 0) return;
+        const nb = board.map(row => [...row]);
+        let destroyed = 0;
+        const destroy = (tr, tc) => {
+          if (tr >= 0 && tr < ROWS && tc >= 0 && tc < COLS && nb[tr][tc]) {
+            createExplosion(tr, tc, nb[tr][tc].color);
+            nb[tr][tc] = null; destroyed++;
+          }
+        };
+
+        if (activeTool === 'radius') {
+          for (let i = r - 2; i <= r + 2; i++) for (let j = c - 2; j <= c + 2; j++) if (Math.sqrt((i - r) ** 2 + (j - c) ** 2) < 2.5) destroy(i, j);
+        } else if (activeTool === 'col') {
+          for (let i = 0; i < ROWS; i++) destroy(i, c);
+        } else if (activeTool === 'row') {
+          for (let j = 0; j < COLS; j++) destroy(r, j);
+        } else if (activeTool === 'x') {
+          for (let k = -Math.max(ROWS, COLS); k < Math.max(ROWS, COLS); k++) { destroy(r + k, c + k); destroy(r + k, c - k); }
+        } else if (activeTool === 'color') {
+          const targetColor = board[r][c]?.color;
+          if (targetColor) for (let i = 0; i < ROWS; i++) for (let j = 0; j < COLS; j++) if (nb[i][j]?.color === targetColor) destroy(i, j);
+        }
+
+        playExplosionSound(); triggerHaptic(200);
+        setShake(true); setTimeout(() => setShake(false), 500);
+        setBoard(nb);
+        setInventory(prev => ({ ...prev, [activeTool]: prev[activeTool] - 1 }));
+        setActiveTool(null);
+
+        const pts = destroyed * 5;
+        setScore(prev => prev + pts);
+        setLevelScore(prev => prev + pts);
+        showFloatingText(r, c, "BOOM!", "#ef4444");
+        showFloatingText(r, c, `+${pts}`, "#FBBF24");
+      };
+
+      // --- Interaction ---
+      const handleBlockClick = (r, c) => {
+        if (gameOver || !gameStarted || isPaused) return;
+        if (activeTool) { detonateBomb(r, c); return; }
+
+        const blk = board[r][c];
+        if (!blk) { setSelectedBlock(null); return; }
+        if (!selectedBlock) { setSelectedBlock({ r, c }); playTone(500, 'sine', 0.05, 0.1); triggerHaptic(10); }
+        else {
+          if (selectedBlock.r === r && selectedBlock.c === c) { setSelectedBlock(null); return; }
+          const nb = board.map(rw => [...rw]);
+          const b1 = nb[selectedBlock.r][selectedBlock.c];
+          const b2 = nb[r][c];
+          nb[selectedBlock.r][selectedBlock.c] = { ...b2, row: selectedBlock.r, col: selectedBlock.c };
+          nb[r][c] = { ...b1, row: r, col: c };
+          playSwapSound(); triggerHaptic(30);
+
+          const res = checkMatches(nb);
+          if (res.matched) {
+            setBoard(res.board);
+            setScore(s => s + res.points);
+            setLevelScore(s => s + res.points);
+            setComboChain(1); playMatchSound(1); triggerHaptic([30, 30]);
+            setShake(true); setTimeout(() => setShake(false), 300);
+          } else {
+            setBoard(nb); setComboChain(0);
+          }
+          setSelectedBlock(null);
+        }
+      };
+
+      // --- UI Handlers ---
+      const togglePause = () => setIsPaused(prev => !prev);
+      const toggleSound = () => setSettings(s => ({ ...s, sound: !s.sound }));
+      const toggleHaptics = () => setSettings(s => ({ ...s, haptics: !s.haptics }));
+      const toggleCRT = () => setSettings(s => ({ ...s, crt: !s.crt }));
+      const toggleColorBlind = () => setSettings(s => ({ ...s, colorBlind: !s.colorBlind }));
+
+      const adjustStartLevel = (delta) => {
+        setStartLevel(prev => Math.max(1, Math.min(15, prev + delta)));
+      };
+
+      const ToolBtn = ({ type, icon: Icon, label }) => (
+        <button
+          onClick={() => activateTool(type)}
+          disabled={inventory[type] === 0 || isPaused}
+          className={`
+                        powerup-btn flex flex-col items-center justify-center w-12 md:w-16 h-14 rounded border-2 
+                        ${activeTool === type ? 'powerup-active' : ''}
+                        ${inventory[type] > 0 && activeTool !== type ? 'powerup-available' : ''}
+                        ${inventory[type] === 0 ? 'powerup-disabled' : ''}
+                    `}
+        >
+          <Icon />
+          <span className="text-[10px] font-bold mt-1 leading-none">{label}</span>
+          <div className="absolute top-0 right-0 bg-black/50 px-1 text-[9px]">{inventory[type]}</div>
+        </button>
+      );
+
+      const SettingBtn = ({ label, active, onClick, icon: Icon }) => (
+        <button onClick={onClick} className={`flex items-center justify-between w-full p-3 mb-2 rounded border ${active ? 'bg-blue-900/50 border-blue-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400'}`}>
+          <div className="flex items-center gap-2"><Icon /> <span>{label}</span></div>
+          <span className="font-bold">{active ? 'ON' : 'OFF'}</span>
+        </button>
+      );
+
+      const threshold = getThresholdForLevel(level);
+      const progress = Math.min(100, (levelScore / threshold) * 100);
+
+      return (
+        <div className={`h-full w-full flex flex-col relative ${shake ? 'shake' : ''} bg-gray-900 overflow-hidden select-none`}>
+          {settings.crt && <div className="scanlines"></div>}
+
+          {/* Top */}
+          <div className="flex-none p-2 z-10 bg-gray-900 border-b-2 border-gray-800">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <a href="index.html" className="text-gray-500 hover:text-white"><IconBack /></a>
+                  <h1 className="text-2xl font-black text-red-500 tracking-tighter leading-none" style={{ fontFamily: '"Black Ops One", cursive' }}>ANXIETY</h1>
+                </div>
+                <div className="text-xs text-gray-400 flex gap-3 items-center mt-1">
+                  <span className={levelAnim ? 'level-up-anim font-bold' : ''}>LVL:{level}</span>
+                  {/* Level Progress Bar */}
+                  <div className="w-24 h-2 bg-gray-800 rounded overflow-hidden border border-gray-700">
+                    <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-[10px] text-gray-400 font-bold">HIGH: {highScore}</div>
+                  <div className="text-2xl font-bold text-white leading-none">{score}</div>
+                  <div className="text-[10px] text-gray-400">SCORE</div>
+                </div>
+                {gameStarted && !gameOver && (
+                  <button onClick={togglePause} className="p-2 bg-gray-800 rounded border border-gray-600 hover:bg-gray-700 text-white">
+                    <IconPause />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="flex w-full h-8 md:h-10 bg-black/50 p-1 rounded border border-gray-700 relative overflow-hidden">
+              <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 ${previewIndex > 5 ? 'bg-red-900/30 pulse-red' : 'opacity-0'}`}></div>
+              {Array(8).fill(0).map((_, i) => {
+                const Shape = previewRow[i] && SHAPES[previewRow[i].colorIndex];
+                return (
+                  <div key={`prev-${i}`} className="flex-1 h-full mx-[2px] rounded flex items-center justify-center border border-gray-800/50 bg-gray-800/30 relative">
+                    {previewRow[i] && (
+                      <>
+                        <div className="absolute inset-0 rounded shadow-inner border-t border-white/20" style={{ backgroundColor: previewRow[i].color }}></div>
+                        {settings.colorBlind && Shape && <div className="absolute inset-0 flex items-center justify-center p-1"><Shape /></div>}
+                      </>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Board */}
+          <div className="flex-grow relative p-2 z-10 overflow-hidden cursor-crosshair flex items-center justify-center">
+            <div className="grid-container">
+              {Array.from({ length: ROWS }).map((_, r) => (
+                Array.from({ length: COLS }).map((_, c) => {
+                  const block = board[r]?.[c];
+                  const Shape = block && SHAPES[block.colorIndex];
+                  return (
+                    <div
+                      key={`cell-${r}-${c}`}
+                      onClick={() => handleBlockClick(r, c)}
+                      className={`
+                                                w-full h-full rounded cursor-pointer relative
+                                                ${!block ? 'bg-gray-800/20' : ''}
+                                                ${selectedBlock && selectedBlock.r === r && selectedBlock.c === c ? 'ring-2 ring-white z-20' : ''}
+                                            `}
+                    >
+                      {block && (
+                        <div
+                          className="w-full h-full rounded shadow-lg border-t border-white/30 block relative overflow-visible"
+                          style={{
+                            backgroundColor: block.color,
+                            transform: block.isFalling ? 'translateY(-20%)' : 'none',
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.5)'
+                          }}
+                        >
+                          <div className="absolute inset-0 rounded bg-gradient-to-br from-white/20 to-black/30 pointer-events-none"></div>
+                          {settings.colorBlind && Shape && (
+                            <div className="absolute inset-0 flex items-center justify-center p-2 pointer-events-none opacity-80">
+                              <Shape />
+                            </div>
+                          )}
+                          {selectedBlock && selectedBlock.r === r && selectedBlock.c === c && (
+                            <div className="absolute inset-0 border-2 border-white rounded selected-ring opacity-50"></div>
+                          )}
+                        </div>
+                      )}
+                      {particles.filter(p => p.r === r && p.c === c).map(p => (
+                        <div key={p.id} className="particle w-3 h-3 rounded-full z-30" style={{ backgroundColor: p.color, left: '50%', top: '50%', '--tx': p.tx, '--ty': p.ty, boxShadow: `0 0 10px ${p.color}` }}></div>
+                      ))}
+                      {floatingTexts.filter(t => t.r === r && t.c === c).map(t => (
+                        <div
+                          key={t.id}
+                          className="floating-score"
+                          style={{
+                            color: t.color,
+                            left: `calc(50% + ${t.offsetX}px)`,
+                            top: `calc(50% + ${t.offsetY}px)`
+                          }}
+                        >
+                          {t.text}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })
+              ))}
+            </div>
+          </div>
+
+          {/* Tools */}
+          <div className="flex-none h-20 bg-gray-900 border-t-2 border-gray-800 flex items-center justify-center gap-2 px-2 z-20">
+            <ToolBtn type="radius" icon={IconRadius} label="RAD" />
+            <ToolBtn type="col" icon={IconCol} label="COL" />
+            <ToolBtn type="row" icon={IconRow} label="ROW" />
+            <ToolBtn type="x" icon={IconX} label="X" />
+            <ToolBtn type="color" icon={IconColor} label="CLR" />
+          </div>
+
+          {/* Pause Menu */}
+          {isPaused && !gameOver && (
+            <div className="absolute inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-6">
+              <h2 className="text-4xl font-black text-white mb-8 tracking-widest">PAUSED</h2>
+              <div className="w-full max-w-xs space-y-2 mb-8">
+                <SettingBtn label="SOUND" active={settings.sound} onClick={toggleSound} icon={settings.sound ? IconVolume : IconVolumeOff} />
+                <SettingBtn label="HAPTICS" active={settings.haptics} onClick={toggleHaptics} icon={IconZap} />
+                <SettingBtn label="CRT EFFECT" active={settings.crt} onClick={toggleCRT} icon={IconMonitor} />
+                <SettingBtn label="COLOR BLIND" active={settings.colorBlind} onClick={toggleColorBlind} icon={IconEye} />
+              </div>
+              <div className="flex flex-col gap-4 w-full max-w-xs">
+                <button onClick={togglePause} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 transition-all">RESUME</button>
+                <button onClick={() => { togglePause(); initGame(); }} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded border-b-4 border-red-800 active:border-b-0 active:translate-y-1 transition-all">RESTART</button>
+                <a href="index.html" className="w-full py-4 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded border-b-4 border-gray-900 active:border-b-0 active:translate-y-1 transition-all text-center">EXIT TO MENU</a>
+              </div>
+            </div>
+          )}
+
+          {/* Game Over */}
+          {gameOver && (
+            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+              <h2 className="text-6xl font-black text-red-600 mb-4 tracking-widest">FAIL</h2>
+              <p className="text-2xl text-white mb-2 font-mono">LEVEL: {level}</p>
+              <p className="text-2xl text-white mb-8 font-mono">SCORE: {score}</p>
+              <button onClick={initGame} className="px-10 py-4 text-xl bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-[0_0_20px_rgba(220,38,38,0.5)] active:scale-95 transition-transform mb-4">RETRY</button>
+              <a href="index.html" className="text-gray-400 hover:text-white underline">EXIT TO MENU</a>
+            </div>
+          )}
+
+          {/* Start Screen */}
+          {!gameStarted && !gameOver && (
+            <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50 px-6">
+              <h2 className="text-5xl font-bold text-white mb-6 text-center">ANXIETY</h2>
+              <div className="w-full max-w-xs bg-gray-800 rounded p-4 border border-gray-700 mb-8">
+                <div className="text-gray-400 text-sm mb-2 text-center font-bold">SELECT START LEVEL</div>
+                <div className="flex items-center justify-between">
+                  <button onClick={() => adjustStartLevel(-1)} className="p-2 bg-gray-700 rounded text-white hover:bg-gray-600"><IconMinus /></button>
+                  <div className="text-center">
+                    <div className="text-4xl font-black text-white">{startLevel}</div>
+                    <div className={`text-xs font-bold ${startLevel < 5 ? 'text-green-400' : startLevel < 10 ? 'text-yellow-400' : 'text-red-500'}`}>
+                      {startLevel < 5 ? 'NORMAL' : startLevel < 10 ? 'THREATENING' : startLevel < 15 ? 'EXPERT' : 'IMPOSSIBLE'}
+                    </div>
+                  </div>
+                  <button onClick={() => adjustStartLevel(1)} className="p-2 bg-gray-700 rounded text-white hover:bg-gray-600"><IconPlus /></button>
+                </div>
+              </div>
+              <div className="text-base text-gray-300 mb-8 text-center font-mono space-y-2 max-w-xs">
+                <p>Swap <span className="text-white font-bold">ANY</span> blocks.</p>
+                <p>Instant matches.</p>
+                <p>Don't panic.</p>
+              </div>
+              <button onClick={initGame} className="px-12 py-5 text-xl bg-blue-600 hover:bg-blue-500 text-white font-bold rounded shadow-[0_0_30px_rgba(37,99,235,0.5)] active:scale-95 transition-transform">START</button>
+              <a href="index.html" className="mt-8 text-gray-500 hover:text-white">BACK TO MENU</a>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+
+</html>

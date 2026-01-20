@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Discalculia - Math Crunch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Courier+Prime:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+            color: white;
+            font-family: 'Courier Prime', monospace;
+            touch-action: none;
+        }
+
+        #root {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.2));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.3;
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 2px;
+            max-width: 100%;
+            max-height: 100%;
+            aspect-ratio: 4/5;
+            margin: auto;
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            animation: particleAnim 0.6s ease-out forwards;
+        }
+
+        @keyframes particleAnim {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .floating-score {
+            position: absolute;
+            font-weight: bold;
+            font-size: 1.2rem;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 40;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+
+            20% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(-50%, -150%);
+                opacity: 0;
+            }
+        }
+
+        .level-up-anim {
+            animation: levelUp 0.5s ease-out;
+        }
+
+        @keyframes levelUp {
+            0% {
+                transform: scale(1);
+                color: white;
+            }
+
+            50% {
+                transform: scale(1.5);
+                color: #fbbf24;
+            }
+
+            100% {
+                transform: scale(1);
+                color: white;
+            }
+        }
+
+        .pulse-red {
+            animation: pulseRed 1s infinite;
+        }
+
+        @keyframes pulseRed {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .selected-ring {
+            animation: ringPulse 1.5s infinite;
+        }
+
+        @keyframes ringPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+            }
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb, #ef4444);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // --- Icons ---
+        const IconPause = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>;
+        const IconVolume = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>;
+        const IconVolumeOff = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23" /><path d="M9 9v6a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" /></svg>;
+        const IconZap = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+        const IconMonitor = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>;
+        const IconEye = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>;
+        const IconMinus = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+        const IconPlus = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+        const IconCheck = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>;
+        const IconX = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+        const IconBack = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>;
+
+        // --- Audio Context ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // --- Constants ---
+        const ROWS = 10;
+        const COLS = 8;
+
+        // Math Blocks
+        const NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        const OPERATORS = ['+', '-', '*', '/'];
+        const ITEMS = [...NUMBERS, ...OPERATORS];
+
+        // Colors
+        const COLOR_NUM = '#3b82f6'; // Blue
+        const COLOR_OP = '#eab308'; // Yellow
+        const COLOR_ZERO = '#6b7280'; // Gray
+
+        // --- Difficulty Logic ---
+        const getTickRateForLevel = (lvl) => {
+            // Slower than Anxiety, similar to Dyslexia
+            return Math.max(1000, 3000 - ((lvl - 1) * 200));
+        };
+
+        const getThresholdForLevel = (lvl) => {
+            return 500 + (lvl * 200);
+        };
+
+        const generateBlock = (row, col) => {
+            // 70% chance Number, 30% chance Operator
+            const isNum = Math.random() < 0.7;
+            let val, color;
+
+            if (isNum) {
+                val = NUMBERS[Math.floor(Math.random() * NUMBERS.length)];
+                color = val === '0' ? COLOR_ZERO : COLOR_NUM;
+            } else {
+                val = OPERATORS[Math.floor(Math.random() * OPERATORS.length)];
+                color = COLOR_OP;
+            }
+
+            return {
+                id: Math.random().toString(36).substr(2, 9),
+                value: val,
+                type: isNum ? 'number' : 'operator',
+                color: color,
+                row, col, isFalling: false, isNew: false
+            };
+        };
+
+        const generateTarget = (lvl, usedSet) => {
+            // 3rd-5th Grade Math Standards:
+            // - Addition/Subtraction within 100 (Lvl 1-5)
+            // - Multiplication/Division facts (Lvl 1-5)
+            // - Multi-step problems (Lvl 6+)
+
+            let min = 10; // No single digits
+            let max = 20 + (lvl * 5); // Lvl 1: 25, Lvl 10: 70, Lvl 15: 95
+
+            if (lvl > 5) max = 100; // Cap at 100 for a while to practice standard facts
+            if (lvl > 10) max = 150; // Push to 150 for expert
+
+            let target;
+            let attempts = 0;
+            const used = usedSet || new Set();
+
+            do {
+                target = Math.floor(Math.random() * (max - min + 1)) + min;
+                attempts++;
+            } while (used.has(target) && attempts < 50);
+
+            return target;
+        };
+
+        const App = () => {
+            // Settings
+            const [settings, setSettings] = useState({ sound: true, haptics: true, crt: true, colorBlind: false });
+            const [isPaused, setIsPaused] = useState(false);
+
+            // Game State
+            const [board, setBoard] = useState([]);
+            const [previewRow, setPreviewRow] = useState(Array(8).fill(null));
+            const [score, setScore] = useState(0);
+            const [highScore, setHighScore] = useState(() => {
+                const saved = localStorage.getItem('discalculia_highscore');
+                return saved ? parseInt(saved, 10) : 0;
+            });
+            const [level, setLevel] = useState(1);
+            const [startLevel, setStartLevel] = useState(1);
+            const [levelScore, setLevelScore] = useState(0);
+            const [gameOver, setGameOver] = useState(false);
+            const [gameStarted, setGameStarted] = useState(false);
+            const [shake, setShake] = useState(false);
+
+            // Additional State
+            const [tickRate, setTickRate] = useState(1000);
+            const [currentEquation, setCurrentEquation] = useState([]);
+            const [parenthesizedOps, setParenthesizedOps] = useState(new Set());
+            const [isParenMode, setIsParenMode] = useState(false);
+            const [particles, setParticles] = useState([]);
+            const [floatingTexts, setFloatingTexts] = useState([]);
+            const [targetNumber, setTargetNumber] = useState(0);
+            const [usedTargets, setUsedTargets] = useState(new Set());
+            const [levelAnim, setLevelAnim] = useState(false);
+            const [previewIndex, setPreviewIndex] = useState(0);
+
+            const timerRef = useRef(null);
+
+            // High Score Persistence
+            useEffect(() => {
+                if (score > highScore) {
+                    setHighScore(score);
+                    localStorage.setItem('discalculia_highscore', score.toString());
+                }
+            }, [score, highScore]);
+
+            // --- Helpers ---
+            const triggerHaptic = (pattern) => {
+                if (settings.haptics && navigator.vibrate) navigator.vibrate(pattern);
+            };
+
+            const playTone = (freq, type, duration, vol = 0.1) => {
+                if (!settings.sound) return;
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            };
+
+            const playSelectSound = () => playTone(400, 'sine', 0.05, 0.1);
+            const playDeselectSound = () => playTone(300, 'sine', 0.05, 0.1);
+            const playSubmitSound = () => {
+                playTone(400, 'triangle', 0.1, 0.2);
+                setTimeout(() => playTone(600, 'triangle', 0.2, 0.2), 100);
+            };
+            const playErrorSound = () => {
+                playTone(150, 'sawtooth', 0.2, 0.2);
+                setTimeout(() => playTone(100, 'sawtooth', 0.2, 0.2), 100);
+            };
+            const playDropSound = () => playTone(100, 'square', 0.1, 0.05);
+            const playTickSound = (i) => playTone(400 + (i * 100), 'sawtooth', 0.05, 0.05);
+            const playLevelUpSound = () => {
+                playTone(400, 'square', 0.1, 0.2);
+                setTimeout(() => playTone(600, 'square', 0.1, 0.2), 100);
+                setTimeout(() => playTone(800, 'square', 0.2, 0.2), 200);
+            };
+            const playGameOverSound = () => {
+                playTone(150, 'sawtooth', 1, 0.3);
+                setTimeout(() => playTone(100, 'sawtooth', 1, 0.3), 200);
+            };
+
+            // Init
+            const initGame = () => {
+                const newBoard = [];
+                for (let r = 0; r < ROWS; r++) {
+                    const row = [];
+                    for (let c = 0; c < COLS; c++) {
+                        if (r >= ROWS - 5) {
+                            row.push(generateBlock(r, c));
+                        } else row.push(null);
+                    }
+                    newBoard.push(row);
+                }
+                setBoard(newBoard);
+                setPreviewRow(Array(8).fill(null));
+                setPreviewIndex(0);
+                setScore(0);
+                setLevel(startLevel);
+                setLevelScore(0);
+                setGameOver(false);
+                setGameStarted(true);
+                setTickRate(getTickRateForLevel(startLevel));
+                setCurrentEquation([]);
+                setParticles([]);
+                setFloatingTexts([]);
+
+                const initialUsed = new Set();
+                const newTarget = generateTarget(startLevel, initialUsed);
+                initialUsed.add(newTarget);
+                setUsedTargets(initialUsed);
+                setTargetNumber(newTarget);
+
+                setIsPaused(false);
+            };
+
+            // Effects
+            const createExplosion = (r, c, color) => {
+                const newParticles = [];
+                for (let i = 0; i < 8; i++) {
+                    const angle = (Math.PI * 2 * i) / 8;
+                    newParticles.push({
+                        id: Math.random(), r, c, color,
+                        tx: Math.cos(angle) * 100 + 'px',
+                        ty: Math.sin(angle) * 100 + 'px'
+                    });
+                }
+                setParticles(prev => [...prev, ...newParticles]);
+                setTimeout(() => setParticles(prev => prev.filter(p => !newParticles.includes(p))), 600);
+            };
+
+            const showFloatingText = (r, c, text, color = '#fff') => {
+                const id = Math.random();
+                const offsetX = (Math.random() - 0.5) * 20;
+                const offsetY = (Math.random() - 0.5) * 20;
+                setFloatingTexts(prev => [...prev, { id, r, c, text, color, offsetX, offsetY }]);
+                setTimeout(() => setFloatingTexts(prev => prev.filter(t => t.id !== id)), 1200);
+            };
+
+            // Leveling Logic
+            useEffect(() => {
+                if (!gameStarted) return;
+                const threshold = getThresholdForLevel(level);
+
+                if (levelScore >= threshold) {
+                    const newLevel = level + 1;
+                    setLevel(newLevel);
+                    setLevelScore(0);
+                    setLevelAnim(true); setTimeout(() => setLevelAnim(false), 500);
+                    setTickRate(getTickRateForLevel(newLevel));
+                    playLevelUpSound();
+                    triggerHaptic([100, 50, 100]);
+                    return;
+                }
+            }, [gameStarted, levelScore, level]);
+
+            // Timers
+            useEffect(() => {
+                if (!gameStarted || gameOver || isPaused) {
+                    if (timerRef.current) clearInterval(timerRef.current);
+                    return;
+                }
+                timerRef.current = setInterval(() => fillPreviewSlot(), tickRate);
+                return () => clearInterval(timerRef.current);
+            }, [gameStarted, gameOver, isPaused, tickRate, previewIndex, previewRow]);
+
+            const fillPreviewSlot = () => {
+                setPreviewIndex(prev => {
+                    if (prev >= COLS) { dropPreviewRow(); return 0; }
+                    setPreviewRow(curr => {
+                        const newRow = [...curr];
+                        newRow[prev] = generateBlock(-1, prev);
+                        return newRow;
+                    });
+                    playTickSound(prev);
+                    return prev + 1;
+                });
+            };
+
+            const dropPreviewRow = () => {
+                setBoard(cur => {
+                    for (let c = 0; c < COLS; c++) if (cur[0][c]) { handleGameOver(); return cur; }
+                    return cur;
+                });
+                performDrop();
+            };
+
+            const performDrop = () => {
+                setPreviewRow(prev => {
+                    setBoard(cur => {
+                        for (let c = 0; c < COLS; c++) if (cur[0][c]) { handleGameOver(); return cur; }
+                        const nb = cur.map(r => [...r]);
+                        for (let c = 0; c < COLS; c++) if (prev[c]) nb[0][c] = { ...prev[c], row: 0, col: c };
+                        playDropSound();
+                        return nb;
+                    });
+                    triggerHaptic(50);
+                    return Array(8).fill(null);
+                });
+            };
+
+            const handleGameOver = () => {
+                setGameOver(true); setGameStarted(false); setIsPaused(false);
+                playGameOverSound(); triggerHaptic(1000);
+                setShake(true); setTimeout(() => setShake(false), 500);
+            };
+
+            // Physics Loop
+            useEffect(() => {
+                if (!gameStarted || gameOver || isPaused) return;
+                const int = setTimeout(() => {
+                    applyGravity();
+                }, 65);
+                return () => clearTimeout(int);
+            }, [board, gameStarted, gameOver, isPaused]);
+
+            const applyGravity = () => {
+                let moved = false;
+                const nb = board.map(r => [...r]);
+                for (let c = 0; c < COLS; c++) {
+                    for (let r = ROWS - 2; r >= 0; r--) {
+                        if (nb[r][c] && !nb[r + 1][c]) {
+                            nb[r + 1][c] = { ...nb[r][c], row: r + 1 }; nb[r][c] = null; moved = true;
+                            // Update currentEquation references if blocks move
+                            setCurrentEquation(prev => prev.map(b => b.id === nb[r + 1][c].id ? nb[r + 1][c] : b));
+                        }
+                    }
+                }
+                if (moved) setBoard(nb);
+                return moved;
+            };
+
+            // --- Interaction ---
+            const handleBlockClick = (r, c) => {
+                if (gameOver || !gameStarted || isPaused) return;
+                const blk = board[r][c];
+                if (!blk) return;
+
+                // Check if already selected
+                const idx = currentEquation.findIndex(b => b.id === blk.id);
+                if (idx !== -1) {
+                    // Deselect this and all after it
+                    setCurrentEquation(prev => prev.slice(0, idx));
+                    playDeselectSound();
+                } else {
+                    // Add to selection
+                    setCurrentEquation(prev => [...prev, blk]);
+                    playSelectSound();
+                    triggerHaptic(10);
+                }
+            };
+
+            const handleOperatorClick = (id) => {
+                setParenthesizedOps(prev => {
+                    const next = new Set(prev);
+                    if (next.has(id)) {
+                        next.delete(id);
+                        playDeselectSound();
+                    } else {
+                        next.add(id);
+                        playSelectSound();
+                    }
+                    return next;
+                });
+            };
+
+            const calculateResult = () => {
+                let tokens = currentEquation.map(b => ({ ...b, pre: '', post: '' }));
+
+                currentEquation.forEach((b, i) => {
+                    if (b.type === 'operator' && parenthesizedOps.has(b.id)) {
+                        if (i > 0) tokens[i - 1].pre = '(' + tokens[i - 1].pre;
+                        if (i < tokens.length - 1) tokens[i + 1].post = tokens[i + 1].post + ')';
+                    }
+                });
+
+                return tokens.map(t => t.pre + t.value + t.post).join('');
+            };
+
+            const clearEquation = () => {
+                setCurrentEquation([]);
+                setParenthesizedOps(new Set());
+                setIsParenMode(false);
+                playDeselectSound();
+            };
+
+            const submitEquation = () => {
+                if (currentEquation.length < 1) return;
+
+                const eqStr = calculateResult();
+
+                try {
+                    // Basic validation
+                    const rawStr = currentEquation.map(b => b.value).join('');
+                    if (/[\+\-\*\/]{2,}/.test(rawStr) || /[\+\-\*\/]$/.test(rawStr) || /^[\+\*\/]/.test(rawStr)) {
+                        throw new Error("Invalid format");
+                    }
+
+                    // Safe evaluation
+                    // eslint-disable-next-line no-new-func
+                    const result = Function('"use strict";return (' + eqStr + ')')();
+
+                    if (Math.abs(result - targetNumber) < 0.001) {
+                        // Success
+                        let eqScore = Math.abs(targetNumber) * currentEquation.length;
+                        if (eqScore === 0) eqScore = 10 * currentEquation.length;
+
+                        setScore(s => s + eqScore);
+                        setLevelScore(s => s + eqScore);
+                        playSubmitSound();
+                        triggerHaptic([50, 50]);
+
+                        // Remove blocks
+                        const nb = board.map(r => [...r]);
+                        currentEquation.forEach(b => {
+                            if (nb[b.row][b.col] && nb[b.row][b.col].id === b.id) {
+                                createExplosion(b.row, b.col, b.color);
+                                nb[b.row][b.col] = null;
+                            }
+                        });
+                        setBoard(nb);
+                        setCurrentEquation([]);
+                        setParenthesizedOps(new Set());
+                        setIsParenMode(false);
+                        showFloatingText(currentEquation[0].row, currentEquation[0].col, `${eqStr} = ${result}`, '#FBBF24');
+
+                        // New Target
+                        setUsedTargets(prev => {
+                            const next = new Set(prev);
+                            const nextTarget = generateTarget(level, next);
+                            next.add(nextTarget);
+                            setTargetNumber(nextTarget);
+                            return next;
+                        });
+
+                    } else {
+                        playErrorSound();
+                        setShake(true); setTimeout(() => setShake(false), 300);
+                        showFloatingText(currentEquation[currentEquation.length - 1].row, currentEquation[currentEquation.length - 1].col, `= ${Math.round(result * 100) / 100}`, '#ef4444');
+                    }
+                } catch (e) {
+                    playErrorSound();
+                    setShake(true); setTimeout(() => setShake(false), 300);
+                    showFloatingText(currentEquation[currentEquation.length - 1].row, currentEquation[currentEquation.length - 1].col, "INVALID", '#ef4444');
+                }
+            };
+
+            // --- UI Handlers ---
+            const togglePause = () => setIsPaused(prev => !prev);
+            const toggleSound = () => setSettings(s => ({ ...s, sound: !s.sound }));
+            const toggleHaptics = () => setSettings(s => ({ ...s, haptics: !s.haptics }));
+            const toggleCRT = () => setSettings(s => ({ ...s, crt: !s.crt }));
+            const toggleColorBlind = () => setSettings(s => ({ ...s, colorBlind: !s.colorBlind }));
+
+            const adjustStartLevel = (delta) => {
+                setStartLevel(prev => Math.max(1, Math.min(15, prev + delta)));
+            };
+
+            const SettingBtn = ({ label, active, onClick, icon: Icon }) => (
+                <button onClick={onClick} className={`flex items-center justify-between w-full p-3 mb-2 rounded border ${active ? 'bg-yellow-900/50 border-yellow-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400'}`}>
+                    <div className="flex items-center gap-2"><Icon /> <span>{label}</span></div>
+                    <span className="font-bold">{active ? 'ON' : 'OFF'}</span>
+                </button>
+            );
+
+            const threshold = getThresholdForLevel(level);
+            const progress = Math.min(100, (levelScore / threshold) * 100);
+
+            // Render helpers
+            const renderCurrentEquation = () => {
+                if (currentEquation.length === 0) return <div className="h-12 flex items-center justify-center text-gray-600 italic">Tap blocks to build equation</div>;
+
+                return (
+                    <div className="h-12 flex items-center justify-center gap-1 bg-gray-800/50 rounded px-2 overflow-x-auto">
+                        {currentEquation.map((b, i) => {
+                            const isOp = b.type === 'operator';
+                            const hasParen = isOp && parenthesizedOps.has(b.id);
+                            return (
+                                <div key={b.id} className="flex items-center">
+                                    {/* Left Paren */}
+                                    {isOp && hasParen && <span className="text-yellow-400 font-bold text-xl">(</span>}
+
+                                    <button
+                                        onClick={() => isOp ? handleOperatorClick(b.id) : null}
+                                        className={`
+                                            px-2 py-1 rounded font-bold text-lg transition-colors
+                                            ${isOp ? 'bg-yellow-900/30 text-yellow-400 hover:bg-yellow-900/50 cursor-pointer' : 'text-white'}
+                                            ${hasParen ? 'ring-1 ring-yellow-500' : ''}
+                                        `}
+                                    >
+                                        {b.value}
+                                    </button>
+
+                                    {/* Right Paren */}
+                                    {isOp && hasParen && <span className="text-yellow-400 font-bold text-xl">)</span>}
+                                </div>
+                            );
+                        })}
+                        <div className="ml-4 flex gap-2">
+                            <button onClick={submitEquation} className="p-1 bg-green-700 rounded text-white hover:bg-green-600"><IconCheck size={16} /></button>
+                            <button onClick={clearEquation} className="p-1 bg-red-700 rounded text-white hover:bg-red-600"><IconX size={16} /></button>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className={`h-full w-full flex flex-col relative ${shake ? 'shake' : ''} bg-gray-900 overflow-hidden select-none`}>
+                    {settings.crt && <div className="scanlines"></div>}
+
+                    {/* Top */}
+                    <div className="flex-none p-2 z-10 bg-gray-900 border-b-2 border-gray-800">
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                    <a href="index.html" className="text-gray-500 hover:text-white"><IconBack /></a>
+                                    <h1 className="text-2xl font-black text-yellow-500 tracking-tighter leading-none" style={{ fontFamily: '"Black Ops One", cursive' }}>DISCALCULIA</h1>
+                                </div>
+                                <div className="text-xs text-gray-400 flex gap-3 items-center mt-1">
+                                    <span className={levelAnim ? 'level-up-anim font-bold' : ''}>LVL:{level}</span>
+                                    <div className="w-24 h-2 bg-gray-800 rounded overflow-hidden border border-gray-700">
+                                        <div className="h-full bg-yellow-500 transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <div className="text-[10px] text-gray-400 font-bold">HIGH: {highScore}</div>
+                                    <div className="text-2xl font-bold text-white leading-none">{score}</div>
+                                    <div className="text-[10px] text-gray-400">SCORE</div>
+                                </div>
+                                {gameStarted && !gameOver && (
+                                    <button onClick={togglePause} className="p-2 bg-gray-800 rounded border border-gray-600 hover:bg-gray-700 text-white">
+                                        <IconPause />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Target Display */}
+                        <div className="flex items-center justify-center py-2 bg-black/50 rounded border border-gray-700 mb-2">
+                            <span className="text-gray-400 mr-2 font-bold">TARGET:</span>
+                            <span className="text-3xl font-black text-white tracking-widest">{targetNumber}</span>
+                        </div>
+
+                        {/* Current Equation Display */}
+                        <div className="mb-2">
+                            {renderCurrentEquation()}
+                        </div>
+
+                        <div className="flex w-full h-8 md:h-10 bg-black/50 p-1 rounded border border-gray-700 relative overflow-hidden">
+                            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 ${previewIndex > 5 ? 'bg-red-900/30 pulse-red' : 'opacity-0'}`}></div>
+                            {Array(8).fill(0).map((_, i) => {
+                                return (
+                                    <div key={`prev-${i}`} className="flex-1 h-full mx-[2px] rounded flex items-center justify-center border border-gray-800/50 bg-gray-800/30 relative">
+                                        {previewRow[i] && (
+                                            <div className="absolute inset-0 rounded shadow-inner border-t border-white/20 flex items-center justify-center font-bold text-lg" style={{ backgroundColor: previewRow[i].color }}>
+                                                {previewRow[i].value}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Board */}
+                    <div className="flex-grow relative p-2 z-10 overflow-hidden cursor-crosshair flex items-center justify-center">
+                        <div className="grid-container">
+                            {Array.from({ length: ROWS }).map((_, r) => (
+                                Array.from({ length: COLS }).map((_, c) => {
+                                    const block = board[r]?.[c];
+                                    const isSelected = currentEquation.some(b => b.id === block?.id);
+                                    return (
+                                        <div
+                                            key={`cell-${r}-${c}`}
+                                            onClick={() => handleBlockClick(r, c)}
+                                            className={`
+                                        w-full h-full rounded cursor-pointer relative
+                                        ${!block ? 'bg-gray-800/20' : ''}
+                                        ${isSelected ? 'ring-2 ring-white z-20' : ''}
+                                    `}
+                                        >
+                                            {block && (
+                                                <div
+                                                    className="w-full h-full rounded shadow-lg border-t border-white/30 block relative overflow-visible flex items-center justify-center"
+                                                    style={{
+                                                        backgroundColor: block.color,
+                                                        transform: block.isFalling ? 'translateY(-20%)' : 'none',
+                                                        boxShadow: '0 4px 6px rgba(0,0,0,0.5)'
+                                                    }}
+                                                >
+                                                    <div className="absolute inset-0 rounded bg-gradient-to-br from-white/20 to-black/30 pointer-events-none"></div>
+                                                    <span className="text-2xl font-bold drop-shadow-md">{block.value}</span>
+
+                                                    {isSelected && (
+                                                        <div className="absolute inset-0 border-2 border-white rounded selected-ring opacity-50"></div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {particles.filter(p => p.r === r && p.c === c).map(p => (
+                                                <div key={p.id} className="particle w-3 h-3 rounded-full z-30" style={{ backgroundColor: p.color, left: '50%', top: '50%', '--tx': p.tx, '--ty': p.ty, boxShadow: `0 0 10px ${p.color}` }}></div>
+                                            ))}
+                                            {floatingTexts.filter(t => t.r === r && t.c === c).map(t => (
+                                                <div
+                                                    key={t.id}
+                                                    className="floating-score"
+                                                    style={{
+                                                        color: t.color,
+                                                        left: `calc(50% + ${t.offsetX}px)`,
+                                                        top: `calc(50% + ${t.offsetY}px)`
+                                                    }}
+                                                >
+                                                    {t.text}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })
+                            ))}
+
+                            {/* Pause Menu */}
+                            {isPaused && !gameOver && (
+                                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+                                    <h2 className="text-4xl font-black text-white mb-8 tracking-widest">PAUSED</h2>
+                                    <div className="w-full max-w-xs space-y-2 mb-8">
+                                        <SettingBtn label="SOUND" active={settings.sound} onClick={toggleSound} icon={settings.sound ? IconVolume : IconVolumeOff} />
+                                        <SettingBtn label="HAPTICS" active={settings.haptics} onClick={toggleHaptics} icon={IconZap} />
+                                        <SettingBtn label="CRT EFFECT" active={settings.crt} onClick={toggleCRT} icon={IconMonitor} />
+                                        <SettingBtn label="COLOR BLIND" active={settings.colorBlind} onClick={toggleColorBlind} icon={IconEye} />
+                                    </div>
+                                    <div className="flex flex-col gap-4 w-full max-w-xs">
+                                        <button onClick={togglePause} className="w-full py-4 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded border-b-4 border-yellow-800 active:border-b-0 active:translate-y-1 transition-all">RESUME</button>
+                                        <button onClick={() => { togglePause(); initGame(); }} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded border-b-4 border-red-800 active:border-b-0 active:translate-y-1 transition-all">RESTART</button>
+                                        <a href="index.html" className="w-full py-4 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded border-b-4 border-gray-900 active:border-b-0 active:translate-y-1 transition-all text-center">EXIT TO MENU</a>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Game Over */}
+                    {gameOver && (
+                        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+                            <h2 className="text-6xl font-black text-red-600 mb-4 tracking-widest">FAIL</h2>
+                            <p className="text-2xl text-white mb-2 font-mono">LEVEL: {level}</p>
+                            <p className="text-2xl text-white mb-8 font-mono">SCORE: {score}</p>
+                            <button onClick={initGame} className="px-10 py-4 text-xl bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-[0_0_20px_rgba(220,38,38,0.5)] active:scale-95 transition-transform mb-4">RETRY</button>
+                            <a href="index.html" className="text-gray-400 hover:text-white underline">EXIT TO MENU</a>
+                        </div>
+                    )}
+
+                    {/* Start Screen */}
+                    {!gameStarted && !gameOver && (
+                        <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50 px-6">
+                            <h2 className="text-5xl font-bold text-yellow-500 mb-2 text-center">DISCALCULIA</h2>
+                            <h3 className="text-xl font-bold text-white mb-6 text-center tracking-widest">MATH CRUNCH</h3>
+
+                            <div className="w-full max-w-xs bg-gray-800 rounded p-4 border border-gray-700 mb-8">
+                                <div className="text-gray-400 text-sm mb-2 text-center font-bold">SELECT START LEVEL</div>
+                                <div className="flex items-center justify-between">
+                                    <button onClick={() => adjustStartLevel(-1)} className="p-2 bg-gray-700 rounded text-white hover:bg-gray-600"><IconMinus /></button>
+                                    <div className="text-center">
+                                        <div className="text-4xl font-black text-white">{startLevel}</div>
+                                        <div className={`text-xs font-bold ${startLevel < 5 ? 'text-green-400' : startLevel < 10 ? 'text-yellow-400' : 'text-red-500'}`}>
+                                            {startLevel < 5 ? 'NORMAL' : startLevel < 10 ? 'THREATENING' : startLevel < 15 ? 'EXPERT' : 'IMPOSSIBLE'}
+                                        </div>
+                                    </div>
+                                    <button onClick={() => adjustStartLevel(1)} className="p-2 bg-gray-700 rounded text-white hover:bg-gray-600"><IconPlus /></button>
+                                </div>
+                            </div>
+                            <div className="text-base text-gray-300 mb-8 text-center font-mono space-y-2 max-w-xs">
+                                <p>Tap blocks to build an equation.</p>
+                                <p>Match the TARGET number.</p>
+                                <p>Example: 5 * 2 + 1 = 11</p>
+                            </div>
+                            <button onClick={initGame} className="px-12 py-5 text-xl bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded shadow-[0_0_30px_rgba(234,179,8,0.5)] active:scale-95 transition-transform">START</button>
+                            <a href="index.html" className="mt-8 text-gray-500 hover:text-white">BACK TO MENU</a>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
