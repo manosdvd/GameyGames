@@ -48,9 +48,22 @@ try {
     run('npm install && npm run build', anxietyDir);
     copyRecursiveWithLog(path.join(anxietyDir, 'dist'), path.join(distDir, 'anxiety3'));
 
-    // 5. Build HexEnergy (Static)
+    // 5. Build HexEnergy (Static + Assets)
     console.log('> Building HexEnergy...');
     copyRecursiveWithLog(path.join(__dirname, 'hexenergy'), path.join(distDir, 'hexenergy'));
+
+    // 6. Build Wordle (Static + Assets)
+    console.log('> Building Wordle...');
+    copyRecursiveWithLog(path.join(__dirname, 'wordle'), path.join(distDir, 'wordle'));
+
+    // 7. Build Bejewelled (Static + Assets)
+    console.log('> Building Gem Rush (Bejewelled)...');
+    copyRecursiveWithLog(path.join(__dirname, 'bejewelled'), path.join(distDir, 'bejewelled'));
+
+    // 8. Copy Shared Scripts
+    if (fs.existsSync(path.join(__dirname, 'timeLimit.js'))) {
+        fs.copyFileSync(path.join(__dirname, 'timeLimit.js'), path.join(distDir, 'timeLimit.js'));
+    }
 
     console.log('\n✅ Build verification passed! Output is in /dist');
 

@@ -74,6 +74,34 @@
                     </div>
                 </div>
 
+                <!-- Wordle Card -->
+                <div class="card elevated-card" onclick="window.location.href='wordle/index.html'">
+                    <div class="card-media" style="background: linear-gradient(135deg, #121213 0%, #3a3a3c 100%);">
+                        <span class="material-symbols-outlined card-icon">grid_view</span>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="title-large">Wordle</h3>
+                        <p class="body-medium">Guess the 5-letter word.</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="filled-tonal-button">Play Now</button>
+                    </div>
+                </div>
+
+                <!-- Bejewelled Card -->
+                <div class="card elevated-card" onclick="window.location.href='bejewelled/index.html'">
+                    <div class="card-media" style="background: linear-gradient(135deg, #ff00de 0%, #00ffaa 100%);">
+                        <span class="material-symbols-outlined card-icon">diamond</span>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="title-large">Gem Rush</h3>
+                        <p class="body-medium">Match gems in this juicy classic.</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="filled-tonal-button">Play Now</button>
+                    </div>
+                </div>
+
                 <!-- Coming Soon Placeholder -->
                 <div class="card outlined-card">
                     <div class="card-media placeholder-bg">
@@ -85,8 +113,111 @@
                     </div>
                 </div>
 
+                <!-- Responsible Gaming Settings -->
+                <div class="card outlined-card" style="margin-top: 2rem; border-color: #4b5563;">
+                    <div class="card-content">
+                        <h3 class="title-large" style="margin-bottom: 1rem;">Settings</h3>
+
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                            <div>
+                                <div class="body-large" style="font-weight: 500;">Responsible Mode</div>
+                                <div class="body-medium" style="color: #9ca3af;">Limit daily playtime</div>
+                            </div>
+                            <label class="switch"
+                                style="position: relative; display: inline-block; width: 60px; height: 34px;">
+                                <input type="checkbox" id="responsibleToggle">
+                                <span class="slider round"
+                                    style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                                <style>
+                                    .switch input {
+                                        opacity: 0;
+                                        width: 0;
+                                        height: 0;
+                                    }
+
+                                    .slider:before {
+                                        position: absolute;
+                                        content: "";
+                                        height: 26px;
+                                        width: 26px;
+                                        left: 4px;
+                                        bottom: 4px;
+                                        background-color: white;
+                                        transition: .4s;
+                                        border-radius: 50%;
+                                    }
+
+                                    input:checked+.slider {
+                                        background-color: #2196F3;
+                                    }
+
+                                    input:focus+.slider {
+                                        box-shadow: 0 0 1px #2196F3;
+                                    }
+
+                                    input:checked+.slider:before {
+                                        transform: translateX(26px);
+                                    }
+                                </style>
+                            </label>
+                        </div>
+
+                        <div id="timeLimitConfig"
+                            style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #374151;">
+                            <label class="body-medium" style="display: block; margin-bottom: 0.5rem;">Daily Limit
+                                (Minutes)</label>
+                            <div style="display: flex; gap: 1rem;">
+                                <input type="number" id="timeLimitInput" value="60" min="5" max="300"
+                                    style="background: #1f2937; border: 1px solid #374151; color: white; padding: 0.5rem; border-radius: 0.25rem; width: 100px;">
+                                <button id="saveSettings" class="filled-tonal-button">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </main>
+
+        <script>
+            // Simple logic for Main Menu settings
+            const toggle = document.getElementById('responsibleToggle');
+            const configArea = document.getElementById('timeLimitConfig');
+            const timeInput = document.getElementById('timeLimitInput');
+            const saveBtn = document.getElementById('saveSettings');
+
+            // Load saved state
+            const currentMode = localStorage.getItem('gameMode');
+            const currentMax = localStorage.getItem('maxTimeMinutes');
+
+            if (currentMode === 'responsible') {
+                toggle.checked = true;
+                configArea.style.display = 'block';
+            }
+            if (currentMax) timeInput.value = currentMax;
+
+            // Handlers
+            toggle.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    localStorage.setItem('gameMode', 'responsible');
+                    configArea.style.display = 'block';
+                } else {
+                    localStorage.setItem('gameMode', 'unlimited');
+                    configArea.style.display = 'none';
+                }
+            });
+
+            saveBtn.addEventListener('click', () => {
+                const val = Math.max(5, parseInt(timeInput.value));
+                localStorage.setItem('maxTimeMinutes', val);
+                alert('Settings Saved: ' + val + ' minutes per day.');
+            });
+
+            timeInput.addEventListener('change', () => {
+                const val = Math.max(5, parseInt(timeInput.value));
+                localStorage.setItem('maxTimeMinutes', val);
+            });
+        </script>
 
         <button class="fab" aria-label="Add Game">
             <span class="material-symbols-outlined">add</span>

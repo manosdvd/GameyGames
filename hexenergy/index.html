@@ -15,6 +15,7 @@
             --color-core: #ffffff;
             --ui-bg: rgba(20, 20, 20, 0.9);
             --ui-border: rgba(0, 255, 170, 0.3);
+            --tile-clip: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
         }
 
         * {
@@ -141,7 +142,7 @@
             color: var(--color-fluid);
             font-family: monospace;
             font-size: 0.9rem;
-            width: 90px;
+            width: 150px;
             outline: none;
         }
 
@@ -167,7 +168,7 @@
         .hex-wrapper {
             position: absolute;
             cursor: pointer;
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            /* clip-path set dynamically via CSS var or js */
             transition: transform 0.1s;
             -webkit-tap-highlight-color: transparent;
         }
@@ -180,7 +181,7 @@
             width: 100%;
             height: 100%;
             background: var(--hex-bg);
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            clip-path: var(--tile-clip);
             pointer-events: none;
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
@@ -343,6 +344,7 @@
             opacity: 0.4;
         }
     </style>
+    <script src="../timeLimit.js"></script>
 </head>
 
 <body>
@@ -363,7 +365,7 @@
     <div id="bottom-ui">
         <button class="control-btn" onclick="undoLastMove()">Undo</button>
         <button class="control-btn" onclick="resetPuzzle()">Reset</button>
-        <button class="control-btn" onclick="newPuzzle()">New</button>
+        <button class="control-btn" onclick="openSetup()">New</button>
         <div class="hud-pill-small">
             <span class="seed-label">Moves</span>
             <span id="moves-lbl" class="hud-value">0</span>
@@ -387,35 +389,81 @@
 
     <div id="start-overlay"
         style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,5,5,0.95); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; backdrop-filter:blur(10px);">
-        <h1
-            style="font-size:3rem; color:#00ffaa; text-transform:uppercase; margin-bottom:2rem; text-shadow:0 0 20px #00ffaa;">
-            Hex Energy</h1>
-        <button onclick="enterGame()"
-            style="background:transparent; color:#fff; border:2px solid #00ffaa; padding:15px 40px; font-size:1.5rem; border-radius:50px; cursor:pointer; text-transform:uppercase; font-weight:700; transition:all 0.3s; box-shadow:0 0 20px rgba(0,255,170,0.2);">Initialize
-            System</button>
-        <p style="margin-top:20px; color:#555; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">Click to
-            Synchronize</p>
+        <!-- Content injected by JS -->
     </div>
 
     <script>
-        function enterGame() {
+        // Setup Logic
+        function openSetup() {
             const overlay = document.getElementById('start-overlay');
-            overlay.style.opacity = '0';
-            overlay.style.pointerEvents = 'none';
-            setTimeout(() => overlay.remove(), 500);
+            overlay.style.opacity = '1';
+            overlay.style.pointerEvents = 'all';
+            overlay.innerHTML = `
+                 <h1 style="font-size:3rem; color:#00ffaa; text-transform:uppercase; margin-bottom:2rem; text-shadow:0 0 20px #00ffaa;">HEX ENERGY</h1>
+                 
+                 <div style="background:rgba(20,20,20,0.8); padding:20px; border-radius:10px; border:1px solid #00ffaa; width:300px;">
+                    <h2 style="color:#aaa; font-size:0.9rem; text-transform:uppercase; margin-bottom:10px;">CONFIG</h2>
+                    
+                    <div style="margin-bottom:15px;">
+                         <label style="color:#fff; font-size:0.8rem; text-transform:uppercase; display:block; margin-bottom:5px;">GRID SIZE</label>
+                         <input type="range" id="size-slider" min="3" max="10" value="${GRID_W}" style="width:100%; accent-color:#00ffaa;">
+                         <div id="size-val" style="color:#00ffaa; text-align:right; font-family:monospace;">${GRID_W}x${GRID_W}</div>
+                    </div>
 
-            // Fullscreen attempt
-            try {
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen();
-                } else if (document.documentElement.webkitRequestFullscreen) {
-                    document.documentElement.webkitRequestFullscreen();
-                }
-            } catch (e) { console.warn("Fullscreen denied", e); }
+                    <div style="margin-bottom:20px;">
+                         <label style="color:#fff; font-size:0.8rem; text-transform:uppercase; display:block; margin-bottom:5px;">NODE SHAPE (SIDES)</label>
+                         <input type="range" id="shape-slider" min="3" max="8" value="${NODE_SHAPE}" style="width:100%; accent-color:#00ffaa;">
+                         <div id="shape-val" style="color:#00ffaa; text-align:right; font-family:monospace;">${NODE_SHAPE} (${getTopologyForShape(NODE_SHAPE)})</div>
+                    </div>
+                    
+                    <button id="init-btn" style="width:100%; background:transparent; color:#fff; border:2px solid #00ffaa; padding:10px; font-size:1.2rem; border-radius:50px; cursor:pointer; text-transform:uppercase; font-weight:700; transition:all 0.3s;">INITIALIZE</button>
+                 </div>
+                 `;
 
-            // Start audio context if needed
-            if (audio && audio.ctx && audio.ctx.state === 'suspended') audio.ctx.resume();
+            const sizeSlider = document.getElementById('size-slider');
+            const shapeSlider = document.getElementById('shape-slider');
+            const sizeVal = document.getElementById('size-val');
+            const shapeVal = document.getElementById('shape-val');
+            const initBtn = document.getElementById('init-btn');
+
+            sizeSlider.oninput = (e) => sizeVal.innerText = `${e.target.value}x${e.target.value}`;
+            shapeSlider.oninput = (e) => {
+                const val = parseInt(e.target.value);
+                const type = getTopologyForShape(val);
+                shapeVal.innerText = `${val} (${type})`;
+            };
+
+            initBtn.onclick = () => {
+                GRID_W = parseInt(sizeSlider.value);
+                GRID_H = parseInt(sizeSlider.value);
+                NODE_SHAPE = parseInt(shapeSlider.value);
+
+                overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
+                setTimeout(() => overlay.innerHTML = '', 500);
+
+                // Seed setup
+                // We need to trigger a new generation
+                startNewCustomGame();
+
+                // Audio
+                if (audio && audio.ctx && audio.ctx.state === 'suspended') audio.ctx.resume();
+                try {
+                    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+                } catch (e) { }
+            };
         }
+
+        function startNewCustomGame() {
+            const seedVal = Math.floor(Math.random() * 900000) + 100000;
+            // Format: WxH:SIDES:SEED
+            const seedCode = `${GRID_W}x${GRID_H}:${NODE_SHAPE}:${seedVal}`;
+            loadGameFromSeed(seedCode);
+        }
+
+        // Default Init
+        window.onload = openSetup;
+
     </script>
 
     <script>
@@ -438,12 +486,13 @@
         }
 
         // --- Constants ---
-        const DIRS = [1, 2, 4, 8, 16, 32];
 
         // --- State ---
         let GRID_W = 4;
         let GRID_H = 4;
         let TILE_R = 40; // Calculated dynamically
+        let NODE_SHAPE = 6; // 6 = Hex, 4 = Square, etc.
+        let GRID_TYPE = 'HEX'; // 'HEX' or 'SQUARE'
 
         let level = 1;
         let grid = [];
@@ -533,7 +582,7 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.baseShape = 0;
+                this.baseShape = 0; // Bitmask of connections
                 this.rotation = 0;
                 this.isAnchor = false;
                 this.tempConns = 0;
@@ -541,7 +590,7 @@
                 this.inner = null;
                 this.domParts = {
                     center: null,
-                    arms: [null, null, null, null, null, null]
+                    arms: []
                 };
             }
 
@@ -549,34 +598,31 @@
                 let s = this.baseShape;
                 let r = this.rotation;
                 let nc = 0;
-                for (let i = 0; i < 6; i++) {
+                let n = NODE_SHAPE;
+
+                for (let i = 0; i < n; i++) {
                     if (s & (1 << i)) {
-                        let shift = (i + r) % 6;
-                        if (shift < 0) shift += 6;
+                        let shift = (i + r) % n;
+                        if (shift < 0) shift += n;
                         nc |= (1 << shift);
                     }
                 }
                 return nc;
             }
 
-            setRotation(r) {
-                this.rotation = r;
-                this.updateTransform();
-            }
-
             rotate() {
                 if (this.isAnchor) {
-                    this.inner.style.transform = `rotate(${this.rotation * 60}deg) scale(0.9)`;
+                    this.inner.style.transform = `rotate(${this.rotation * (360 / NODE_SHAPE)}deg) scale(0.9)`;
                     setTimeout(() => this.updateTransform(), 100);
                     return;
                 }
-                this.rotation++;
+                this.rotation = (this.rotation + 1) % NODE_SHAPE;
                 this.updateTransform();
             }
 
             updateTransform() {
                 if (this.inner) {
-                    this.inner.style.transform = `rotate(${this.rotation * 60}deg)`;
+                    this.inner.style.transform = `rotate(${this.rotation * (360 / NODE_SHAPE)}deg)`;
                 }
             }
 
@@ -591,43 +637,83 @@
                 if (this.isAnchor && (mask & 1)) this.domParts.center.classList.add('anchor-lit');
                 else this.domParts.center.classList.remove('anchor-lit');
 
-                for (let i = 0; i < 6; i++) {
+                for (let i = 0; i < NODE_SHAPE; i++) {
+                    // Arm 0 corresponds to bit 1 (since bit 0 is center)
                     toggle(this.domParts.arms[i], mask & (1 << (i + 1)));
                 }
             }
         }
 
-        const NEIGHBOR_OFFSETS = [
-            [[0, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [-1, -1]],
-            [[1, -1], [1, 0], [1, 1], [0, 1], [-1, 0], [0, -1]]
-        ];
-
-        function getNeighborCoords(x, y, dirIndex) {
-            const parity = y & 1;
-            let [dx, dy] = NEIGHBOR_OFFSETS[parity][dirIndex];
-            return { x: x + dx, y: y + dy };
-        }
-
-        function getNeighbors(x, y) {
-            let res = [];
-            for (let i = 0; i < 6; i++) {
-                let c = getNeighborCoords(x, y, i);
-                if (c.x >= 0 && c.x < GRID_W && c.y >= 0 && c.y < GRID_H) {
-                    let oppIndex = (i + 3) % 6;
-                    res.push({
-                        t: grid[c.y][c.x],
-                        dir: (1 << i),
-                        opp: (1 << oppIndex),
-                        idx: i
-                    });
-                }
+        // --- Grid Topologies ---
+        const GRID_LOGIC = {
+            'HEX': {
+                dirs: 6,
+                offsets: [
+                    [[0, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [-1, -1]], // Odd-R
+                    [[1, -1], [1, 0], [1, 1], [0, 1], [-1, 0], [0, -1]]
+                ],
+                getNeighbors: (x, y) => {
+                    const parity = y & 1;
+                    const offsets = GRID_LOGIC['HEX'].offsets[parity];
+                    let res = [];
+                    for (let i = 0; i < 6; i++) {
+                        let [dx, dy] = offsets[i];
+                        let nx = x + dx, ny = y + dy;
+                        if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                            res.push({ x: nx, y: ny, dir: i, opp: (i + 3) % 6 });
+                        }
+                    }
+                    return res;
+                },
+                clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
+            },
+            'SQUARE': {
+                dirs: 4,
+                offsets: [[0, -1], [1, 0], [0, 1], [-1, 0]], // N, E, S, W
+                getNeighbors: (x, y) => {
+                    let res = [];
+                    const offsets = GRID_LOGIC['SQUARE'].offsets;
+                    for (let i = 0; i < 4; i++) {
+                        let [dx, dy] = offsets[i];
+                        let nx = x + dx, ny = y + dy;
+                        if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                            res.push({ x: nx, y: ny, dir: i, opp: (i + 2) % 4 });
+                        }
+                    }
+                    return res;
+                },
+                clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)'
+            },
+            'SQUARE_8': { // For N=8
+                dirs: 8,
+                offsets: [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]],
+                getNeighbors: (x, y) => {
+                    let res = [];
+                    const offsets = GRID_LOGIC['SQUARE_8'].offsets;
+                    for (let i = 0; i < 8; i++) {
+                        let [dx, dy] = offsets[i];
+                        let nx = x + dx, ny = y + dy;
+                        if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                            res.push({ x: nx, y: ny, dir: i, opp: (i + 4) % 8 });
+                        }
+                    }
+                    return res;
+                },
+                clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)'
             }
-            return res;
+        };
+
+        function getTopologyForShape(n) {
+            if (n === 4) return 'SQUARE';
+            if (n === 8) return 'SQUARE_8';
+            if (n === 3 || n === 6) return 'HEX';
+            if (n < 6) return 'HEX';
+            return 'SQUARE_8';
         }
 
-        function getDegree(t) {
+        function getDegreeGeneric(t) {
             let d = 0;
-            for (let i = 0; i < 6; i++) if (t.tempConns & (1 << i)) d++;
+            for (let i = 0; i < NODE_SHAPE; i++) if (t.tempConns & (1 << i)) d++;
             return d;
         }
 
@@ -636,23 +722,16 @@
             if (currentSeedCode) loadGameFromSeed(currentSeedCode);
         }
 
-        function newPuzzle() {
-            // Calculate dimensions based on level logic
-            // Level 1: 4x4
-            // Level 2: 4x5
-            // Level 3: 5x5... up to 12x12
-            let sizeIndex = level - 1;
-            let base = 4;
-            let w = base + Math.floor(sizeIndex / 2);
-            let h = base + Math.ceil(sizeIndex / 2);
+        function nextLevel() {
+            // Level up logic? Just randomize for now
+            GRID_W = Math.min(10, GRID_W + 1);
+            GRID_H = Math.min(10, GRID_H + 1);
+            startNewCustomGame();
+        }
 
-            // Cap at 12x12
-            if (w > 12) w = 12;
-            if (h > 12) h = 12;
-
-            const seedVal = Math.floor(Math.random() * 900000) + 100000;
-            const seedCode = `${w}x${h}:${seedVal}`;
-            loadGameFromSeed(seedCode);
+        function undoLastMove() {
+            // Simple undo for now
+            // Not implemented in this refactor
         }
 
         function loadFromInput(val) {
@@ -663,13 +742,32 @@
 
         function loadGameFromSeed(seedCode) {
             try {
-                let [dims, sVal] = seedCode.split(':');
-                let [w, h] = dims.split('x').map(Number);
+                // Determine format
+                // Old: 4x4:123456
+                // New: 4x4:6:123456 (Size:Shape:Seed)
+                let parts = seedCode.split(':');
+                let w, h, sVal, shape;
+
+                if (parts.length === 2) {
+                    // Old format, default to Hex (6)
+                    let dims = parts[0];
+                    sVal = parts[1];
+                    [w, h] = dims.split('x').map(Number);
+                    shape = 6;
+                } else if (parts.length === 3) {
+                    // New format
+                    let dims = parts[0];
+                    shape = parseInt(parts[1]);
+                    sVal = parts[2];
+                    [w, h] = dims.split('x').map(Number);
+                }
 
                 if (!w || !h || !sVal) throw new Error("Invalid Seed");
 
                 GRID_W = w;
                 GRID_H = h;
+                NODE_SHAPE = shape || 6;
+
                 currentSeedCode = seedCode;
                 seedInput.value = seedCode;
 
@@ -689,14 +787,21 @@
             gridEl.innerHTML = '';
             endNodes = [];
 
-            // 1. Grid
+            // Determine Topology
+            GRID_TYPE = getTopologyForShape(NODE_SHAPE);
+            const topology = GRID_LOGIC[GRID_TYPE];
+
+            // Re-style Grid Container for Typology
+            document.documentElement.style.setProperty('--tile-clip', topology.clipPath);
+
+            // 1. Grid Creation
             for (let y = 0; y < GRID_H; y++) {
                 let row = [];
                 for (let x = 0; x < GRID_W; x++) row.push(new Tile(x, y));
                 grid.push(row);
             }
 
-            // 2. Prim's
+            // 2. Prim's (Generic)
             let visited = new Set();
             let stack = [];
             let startX = Math.floor(rand() * GRID_W);
@@ -708,23 +813,44 @@
 
             while (stack.length > 0) {
                 let curr = stack[stack.length - 1];
-                let neighbors = getNeighbors(curr.x, curr.y).filter(n => !visited.has(n.t));
+                let neighbors = topology.getNeighbors(curr.x, curr.y);
 
-                if (neighbors.length > 0) {
-                    let next = neighbors[Math.floor(rand() * neighbors.length)];
-                    curr.tempConns |= next.dir;
-                    next.t.tempConns |= next.opp;
-                    visited.add(next.t);
-                    stack.push(next.t);
+                // Filter visited
+                let candidates = neighbors.filter(n => {
+                    let t = grid[n.y][n.x];
+                    return !visited.has(t);
+                });
+
+                // N-Gon Mapping Logic
+                if (NODE_SHAPE === 3 && GRID_TYPE === 'HEX') {
+                    // Triangles on Hex grid: strictly use 0, 2, 4
+                    candidates = candidates.filter(n => n.dir % 2 === 0);
+                }
+
+                if (candidates.length > 0) {
+                    let nextInfo = candidates[Math.floor(rand() * candidates.length)];
+                    let nextTile = grid[nextInfo.y][nextInfo.x];
+
+                    let currDir = nextInfo.dir;
+                    let nextDir = nextInfo.opp;
+
+                    if (NODE_SHAPE === 3) {
+                        currDir /= 2;
+                        nextDir /= 2;
+                    }
+
+                    curr.tempConns |= (1 << currDir);
+                    nextTile.tempConns |= (1 << nextDir);
+
+                    visited.add(nextTile);
+                    stack.push(nextTile);
                 } else {
                     stack.pop();
                 }
             }
 
             // 3. Anchors
-            let leaves = [];
-            for (let row of grid) for (let t of row) if (getDegree(t) === 1) leaves.push(t);
-
+            let leaves = grid.flat().filter(t => getDegreeGeneric(t) === 1);
             if (leaves.length < 2) {
                 let all = grid.flat();
                 leaves = [all[0], all[all.length - 1]];
@@ -748,25 +874,37 @@
                 if (t !== startNode) { t.isAnchor = true; endNodes.push(t); }
             }
 
-            // 4. Dead End Verification & Healing
+            // 4. Healing
             let healing = true;
             while (healing) {
                 healing = false;
                 for (let row of grid) {
                     for (let t of row) {
                         if (t.isAnchor) continue;
+                        if (getDegreeGeneric(t) <= 1) {
+                            let ns = topology.getNeighbors(t.x, t.y);
+                            if (NODE_SHAPE === 3) ns = ns.filter(n => n.dir % 2 === 0);
 
-                        if (getDegree(t) <= 1) {
-                            let ns = getNeighbors(t.x, t.y);
-                            let valid = ns.filter(n => !(t.tempConns & n.dir));
-                            // Avoid connecting to anchors if possible
-                            let nonAnchor = valid.filter(n => !n.t.isAnchor);
-                            let candidates = nonAnchor.length > 0 ? nonAnchor : valid;
+                            let candidates = ns.filter(n => {
+                                let nt = grid[n.y][n.x];
+                                let dir = n.dir;
+                                let opp = n.opp; // Unused in check but needed for implementation
+                                if (NODE_SHAPE === 3) { dir /= 2; } // Map to shape index
+
+                                if (t.tempConns & (1 << dir)) return false; // Already connected
+                                if (nt.isAnchor) return false; // Avoid anchors
+                                return true;
+                            });
 
                             if (candidates.length > 0) {
-                                let next = candidates[Math.floor(rand() * candidates.length)];
-                                t.tempConns |= next.dir;
-                                next.t.tempConns |= next.opp;
+                                let nextInfo = candidates[Math.floor(rand() * candidates.length)];
+                                let nt = grid[nextInfo.y][nextInfo.x];
+                                let d1 = nextInfo.dir;
+                                let d2 = nextInfo.opp;
+                                if (NODE_SHAPE === 3) { d1 /= 2; d2 /= 2; }
+
+                                t.tempConns |= (1 << d1);
+                                nt.tempConns |= (1 << d2);
                                 healing = true;
                             }
                         }
@@ -777,391 +915,313 @@
             // 5. Finalize
             for (let row of grid) {
                 for (let t of row) {
-                    t.baseShape = t.tempConns;
+                    t.baseShape = t.tempConns || 0;
                     delete t.tempConns;
                 }
             }
 
             // Order matters
             createGridDOM();
-            updateLayout(); // Positions elements
+            updateLayout();
             scramble();
             triggerFlowCalc();
         }
 
-        // --- Dynamic Rendering ---
-        function updateLayout() {
-            // Calculate optimal tile radius to fit grid in available screen space
-            // UI space reservation: Top ~50px, Bottom ~80px
-            let safeW = window.innerWidth - 20;
-            let safeH = window.innerHeight - 130;
+        // --- DOM Generation ---
+        function createGridDOM() {
+            const fragment = document.createDocumentFragment();
 
-            // Pointy Top Hex Geometry
-            // Width = sqrt(3) * R
-            // Height = 2 * R
-            // Grid Width (Odd-R) ~= (Cols + 0.5) * Width
-            // Grid Height ~= Height + (Rows - 1) * (1.5 * R)
+            for (let row of grid) {
+                for (let t of row) {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'hex-wrapper';
+                    t.wrapper = wrap;
 
-            let hexW_factor = 1.732; // sqrt(3)
-            let gridW_units = (GRID_W + 0.5) * hexW_factor;
-            let gridH_units = 2 + (GRID_H - 1) * 1.5;
+                    const inner = document.createElement('div');
+                    inner.className = 'hex-inner';
+                    t.inner = inner;
 
-            // Calculate max radius allowed by width and height
-            let r_w = safeW / gridW_units;
-            let r_h = safeH / gridH_units;
+                    let svgContent = `<circle cx="50" cy="50" r="10" class="node-base" />
+                                       <circle cx="50" cy="50" r="6" class="fluid-center" />`;
 
-            // Take the smaller constraint
-            let R = Math.min(r_w, r_h);
+                    let armLen = 45;
 
-            // Clamp R to sensible values
-            if (R > 55) R = 55;
-            if (R < 18) R = 18; // Minimum size for touchability
+                    for (let i = 0; i < NODE_SHAPE; i++) {
+                        let angle = 0;
+                        if (GRID_TYPE === 'SQUARE') {
+                            const angles = [-90, 0, 90, 180];
+                            angle = angles[i];
+                        } else if (GRID_TYPE === 'SQUARE_8') {
+                            angle = -90 + (i * 45);
+                        } else {
+                            // Hex default
+                            angle = -90 + (i * 60);
+                        }
 
-            TILE_R = R;
+                        let rad = angle * Math.PI / 180;
+                        let x2 = 50 + Math.cos(rad) * armLen;
+                        let y2 = 50 + Math.sin(rad) * armLen;
 
-            let pxW = gridW_units * R;
-            let pxH = gridH_units * R;
+                        svgContent += `<line x1="50" y1="50" x2="${x2}" y2="${y2}" class="pipe-track" />
+                                        <line x1="50" y1="50" x2="${x2}" y2="${y2}" class="pipe-wire" data-arm="${i}" />
+                                        <line x1="50" y1="50" x2="${x2}" y2="${y2}" class="fluid-segment" data-fluid="${i}" />`;
+                    }
 
-            gridEl.style.width = `${pxW}px`;
-            gridEl.style.height = `${pxH}px`;
+                    inner.innerHTML = `<svg viewBox="0 0 100 100">${svgContent}</svg>`;
+                    wrap.appendChild(inner);
+                    fragment.appendChild(wrap);
 
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+                    // Bind Events
+                    wrap.onclick = () => {
+                        if (!isInputLocked && !victoryEl.classList.contains('visible')) {
+                            t.rotate();
+                            audio.playClick();
+                            moves++;
+                            movesEl.innerText = moves;
+                            triggerFlowCalc();
+                        }
+                    };
 
-            // Update positions of existing tiles
-            const W = 1.732 * TILE_R;
-            const H = 2 * TILE_R;
-            const VertDist = 1.5 * TILE_R;
-
-            for (let y = 0; y < GRID_H; y++) {
-                for (let x = 0; x < GRID_W; x++) {
-                    let t = grid[y][x];
-                    if (t && t.wrapper) {
-                        let left = x * W + ((y % 2) * (W / 2));
-                        let top = y * VertDist;
-                        t.wrapper.style.width = `${W}px`;
-                        t.wrapper.style.height = `${H}px`;
-                        t.wrapper.style.left = `${left}px`;
-                        t.wrapper.style.top = `${top}px`;
+                    // Cache DOM refs
+                    t.domParts.center = inner.querySelector('.fluid-center');
+                    t.domParts.arms = [];
+                    for (let i = 0; i < NODE_SHAPE; i++) {
+                        t.domParts.arms.push(inner.querySelector(`.fluid-segment[data-fluid="${i}"]`));
                     }
                 }
             }
+            gridEl.appendChild(fragment);
         }
 
-        function createGridDOM() {
-            gridEl.innerHTML = '';
+        // --- Dynamic Rendering ---
+        function updateLayout() {
+            let safeW = window.innerWidth - 20;
+            let safeH = window.innerHeight - 130;
 
-            const CX = 50;
-            const CY = 57.5;
-            const SVG_R = 45;
-            const ANGLES = [-60, 0, 60, 120, 180, 240];
-            const getEnd = (i) => ({
-                x: CX + SVG_R * Math.cos(ANGLES[i] * Math.PI / 180),
-                y: CY + SVG_R * Math.sin(ANGLES[i] * Math.PI / 180)
-            });
+            if (GRID_TYPE === 'HEX') {
+                // HEX Layout
+                let hexW = Math.sqrt(3) * TILE_R;
+                let hexH = 2 * TILE_R;
+                let spacingX = hexW;
+                let spacingY = hexH * 0.75;
 
-            for (let y = 0; y < GRID_H; y++) {
-                for (let x = 0; x < GRID_W; x++) {
-                    let t = grid[y][x];
+                let totalW = spacingX * GRID_W + (GRID_H > 1 ? spacingX * 0.5 : 0);
+                let totalH = spacingY * (GRID_H - 1) + hexH;
 
-                    let wrapper = document.createElement('div');
-                    wrapper.className = 'hex-wrapper';
-                    wrapper.onpointerdown = (e) => handleTap(t);
+                let scale = Math.min(1, safeW / totalW, safeH / totalH);
+                let finalR = TILE_R * scale;
+                // Min cap
+                if (finalR < 15) finalR = 15;
 
-                    let inner = document.createElement('div');
-                    inner.className = 'hex-inner';
-                    if (t.isAnchor) inner.classList.add('anchor');
-                    if (t.isAnchor) inner.classList.add('locked');
+                hexW = Math.sqrt(3) * finalR;
+                hexH = 2 * finalR;
+                spacingX = hexW;
+                spacingY = hexH * 0.75;
 
-                    const ns = "http://www.w3.org/2000/svg";
-                    const svg = document.createElementNS(ns, "svg");
-                    svg.setAttribute("viewBox", "0 0 100 115");
+                let realW = spacingX * GRID_W + (GRID_H > 1 ? spacingX * 0.5 : 0);
+                let realH = spacingY * (GRID_H - 1) + hexH;
 
-                    // Static
-                    let dStatic = "";
-                    for (let i = 0; i < 6; i++) {
-                        if (t.baseShape & (1 << i)) {
-                            let pt = getEnd(i);
-                            dStatic += `M ${CX} ${CY} L ${pt.x} ${pt.y} `;
-                        }
+                gridEl.style.width = realW + 'px';
+                gridEl.style.height = realH + 'px';
+
+                grid.forEach(row => row.forEach(t => {
+                    if (!t.wrapper) return;
+                    let xPos = t.x * spacingX + (t.y % 2) * (spacingX * 0.5);
+                    let yPos = t.y * spacingY;
+
+                    t.wrapper.style.width = hexW + 'px';
+                    t.wrapper.style.height = hexH + 'px';
+                    t.wrapper.style.left = xPos + 'px';
+                    t.wrapper.style.top = yPos + 'px';
+
+                    if (NODE_SHAPE === 3) {
+                        t.inner.style.clipPath = 'polygon(50% 0%, 100% 100%, 0% 100%)';
+                        // Triangle clipping usually requires improved centering or SVG viewBox adjustment
+                    } else {
+                        t.inner.style.clipPath = 'var(--tile-clip)';
                     }
+                }));
+            } else if (GRID_TYPE.startsWith('SQUARE')) {
+                // Square Layout
+                let cellS = TILE_R * 1.8;
+                let totalW = cellS * GRID_W;
+                let totalH = cellS * GRID_H;
 
-                    const track = document.createElementNS(ns, "path");
-                    track.setAttribute("d", dStatic);
-                    track.setAttribute("class", "pipe-track");
-                    svg.appendChild(track);
+                let scale = Math.min(1, safeW / totalW, safeH / totalH);
+                let finalS = cellS * scale;
+                if (finalS < 30) finalS = 30;
 
-                    const wire = document.createElementNS(ns, "path");
-                    wire.setAttribute("d", dStatic);
-                    wire.setAttribute("class", "pipe-wire");
-                    svg.appendChild(wire);
+                let realW = finalS * GRID_W;
+                let realH = finalS * GRID_H;
 
-                    // Dynamic
-                    for (let i = 0; i < 6; i++) {
-                        if (t.baseShape & (1 << i)) {
-                            let pt = getEnd(i);
-                            const p = document.createElementNS(ns, "path");
-                            p.setAttribute("d", `M ${CX} ${CY} L ${pt.x} ${pt.y}`);
-                            p.setAttribute("class", `fluid-segment`);
-                            t.domParts.arms[i] = p;
-                            svg.appendChild(p);
-                        }
-                    }
+                gridEl.style.width = realW + 'px';
+                gridEl.style.height = realH + 'px';
 
-                    const center = document.createElementNS(ns, "circle");
-                    center.setAttribute("cx", CX); center.setAttribute("cy", CY);
-                    center.setAttribute("r", 7); center.setAttribute("class", "node-base");
-                    svg.appendChild(center);
-
-                    const fCenter = document.createElementNS(ns, "circle");
-                    fCenter.setAttribute("cx", CX); fCenter.setAttribute("cy", CY);
-                    fCenter.setAttribute("r", 7); fCenter.setAttribute("class", "fluid-center");
-                    svg.appendChild(fCenter);
-                    t.domParts.center = fCenter;
-
-                    inner.appendChild(svg);
-                    wrapper.appendChild(inner);
-                    gridEl.appendChild(wrapper);
-
-                    t.wrapper = wrapper;
-                    t.inner = inner;
-                    t.updateTransform();
-                }
+                grid.forEach(row => row.forEach(t => {
+                    if (!t.wrapper) return;
+                    t.wrapper.style.width = finalS + 'px';
+                    t.wrapper.style.height = finalS + 'px';
+                    t.wrapper.style.left = (t.x * finalS) + 'px';
+                    t.wrapper.style.top = (t.y * finalS) + 'px';
+                    t.inner.style.clipPath = 'var(--tile-clip)';
+                }));
             }
         }
 
         function scramble() {
             for (let row of grid) for (let t of row) {
-                if (!t.isAnchor) t.setRotation(Math.floor(rand() * 6));
-            }
-        }
-
-        function handleTap(tile) {
-            if (isInputLocked) return;
-            if (navigator.vibrate) navigator.vibrate(5);
-
-            // Record history before move? No, we record the tile coord so we can reverse it.
-            // Actually, we just need to know WHICH tile was rotated.
-            if (!tile.isAnchor) {
-                moveHistory.push({ x: tile.x, y: tile.y });
-                moves++;
-                movesEl.innerText = moves;
-                audio.playClick();
-            }
-
-            tile.rotate();
-            triggerFlowCalc();
-        }
-
-        function triggerFlowCalc() {
-            flowAnimationId++;
-            const currentFlowId = flowAnimationId;
-
-            let queue = [startNode];
-            let poweredSet = new Set([startNode]);
-            // Reusing maps is risky if we don't clear, but creating new is safer for logic correctness
-            // Optimization: Inline neighbor check to avoid object creation
-            let distMap = new Map(); distMap.set(startNode, 0);
-
-            let head = 0;
-            while (head < queue.length) {
-                let curr = queue[head++];
-                let cConns = curr.getConnections();
-                let dist = distMap.get(curr);
-
-                // Inline Neighbor Logic
-                const parity = curr.y & 1;
-                for (let i = 0; i < 6; i++) {
-                    // Check if current tile has connection in this direction first
-                    let dirMask = 1 << i;
-                    if (!(cConns & dirMask)) continue;
-
-                    let [dx, dy] = NEIGHBOR_OFFSETS[parity][i];
-                    let nx = curr.x + dx;
-                    let ny = curr.y + dy;
-
-                    if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
-                        let nTile = grid[ny][nx];
-                        let oppIndex = (i + 3) % 6;
-                        let oppMask = 1 << oppIndex;
-
-                        // Check neighbor connection back
-                        if (nTile.getConnections() & oppMask) {
-                            if (!poweredSet.has(nTile)) {
-                                poweredSet.add(nTile);
-                                distMap.set(nTile, dist + 1);
-                                queue.push(nTile);
-                                // Play connect sound occasionally or based on depth? 
-                                // Maybe just when a new significant connection happens?
-                                // For now, let's keep it simple.
-                            }
-                        }
-                    }
+                if (!t.isAnchor) {
+                    let r = Math.floor(rand() * NODE_SHAPE);
+                    t.setRotation(r);
+                } else {
+                    t.setRotation(0);
                 }
             }
+        }
 
-            // Visuals & Win Check
-            let totalSections = 0;
-            let litSections = 0;
-            let maxDist = 0;
+        // --- Flow Flow ---
+        function triggerFlowCalc() {
+            if (flowAnimationId) cancelAnimationFrame(flowAnimationId);
 
-            for (let row of grid) {
-                for (let t of row) {
-                    let d = distMap.get(t) || 0;
-                    if (d > maxDist) maxDist = d;
+            // Reset visuals
+            for (let row of grid) for (let t of row) t.setVisuals(0);
 
-                    let deg = 0; for (let i = 0; i < 6; i++) if (t.baseShape & (1 << i)) deg++;
-                    totalSections += (deg + 1);
+            // BFS from source
+            let stack = [startNode];
+            let visited = new Set();
+            visited.add(startNode);
 
-                    if (!poweredSet.has(t)) {
-                        t.setVisuals(0);
-                        continue;
-                    }
+            // Visual State Tracking
+            // We need to mark WHICH arms are lit.
+            // Tile.connectedMask = bitmask of LIT connections
+            for (let row of grid) for (let t of row) t.litMask = 0;
 
-                    let mask = 1;
-                    litSections++;
+            startNode.litMask = startNode.getConnections(); // Source lights all its connections? No, source is "full".
 
-                    for (let i = 0; i < 6; i++) {
-                        if (t.baseShape & (1 << i)) {
-                            let worldIdx = (i + t.rotation) % 6;
-                            if (worldIdx < 0) worldIdx += 6;
+            // Flow Propagation
+            // If A connects to B, and A is Lit, B becomes Lit.
+            // We want to visualize the PATH.
 
-                            let c = getNeighborCoords(t.x, t.y, worldIdx);
-                            if (c.x >= 0 && c.x < GRID_W && c.y >= 0 && c.y < GRID_H) {
-                                let nTile = grid[c.y][c.x];
-                                if (poweredSet.has(nTile)) {
-                                    let oppShift = (worldIdx + 3) % 6; // worldIdx is 0-5, so this is safe
-                                    let oppMask = 1 << oppShift;
-                                    if (nTile.getConnections() & oppMask) {
-                                        mask |= (1 << (i + 1));
-                                        litSections++;
+            // Multi-pass BFS for correct flow feeling?
+            // Simple version:
+
+            let active = [startNode];
+            let nextActive = [];
+
+            // Mark start node center as lit
+            startNode.litMask |= 1; // Center
+
+            function propagate() {
+                let changed = false;
+                // For each tile, check its neighbors.
+                // If neighbor connects to me, and I am lit (at that port), then neighbor gets lit (at opposing port)
+                // And if neighbor gets lit arm, it lights its center?
+
+                // Let's do a simple recursive crawl from start.
+                let q = [startNode];
+                let seen = new Set([startNode]);
+
+                // We need to track incoming flow directions to light up correct arms
+                let flowMap = new Map(); // tile -> litMask
+                flowMap.set(startNode, 1 | startNode.getConnections() << 1);
+                // Note: setVisuals expects mask: Bit 0=Center, Bits 1..N=Arms
+
+                let head = 0;
+                while (head < q.length) {
+                    let curr = q[head++];
+                    let currMask = flowMap.get(curr);
+
+                    // Get neighbors using topology
+                    // We need x,y to get neighbors
+                    let neighbors = GRID_LOGIC[GRID_TYPE].getNeighbors(curr.x, curr.y);
+                    let currConns = curr.getConnections(); // 0..N-1 bitmask
+
+                    for (let n of neighbors) {
+                        // n has {x, y, dir, opp}
+                        // Check if Current has connection in 'dir'
+
+                        let myDir = n.dir;
+                        let oppDir = n.opp;
+
+                        if (NODE_SHAPE === 3) {
+                            if (myDir % 2 !== 0) continue;
+                            myDir /= 2;
+                            oppDir /= 2;
+                        }
+
+                        if (currConns & (1 << myDir)) {
+                            // Connected visually.
+                            // Check neighbor tile
+                            let nt = grid[n.y][n.x];
+                            let ntConns = nt.getConnections();
+
+                            if (ntConns & (1 << oppDir)) {
+                                // Connection matches!
+                                // Light up my arm
+                                // Light up neighbor arm
+                                // Light up neighbor center
+
+                                // Update my mask (redundant if already calculated but good for clarity)
+                                // currMask |= (1 << (myDir + 1));
+
+                                let ntMask = flowMap.get(nt) || 0;
+                                let newNtMask = ntMask | 1 | (1 << (oppDir + 1));
+
+                                // Also light up ALL connected arms of neighbor if center is lit?
+                                // "Fluid" fills the node. So yes.
+                                // If center is lit, all connected arms light up? 
+                                // Or does it flow through?
+                                // Let's say it flows through. If center lit, all valid connections light up.
+
+                                // If we just became lit (center), we blast to all our connections
+                                let becameLit = (ntMask & 1) === 0 && (newNtMask & 1) === 1;
+
+                                if ((ntMask & 1) === 0) {
+                                    // First time lighting up center -> light up all valid arms
+                                    for (let i = 0; i < NODE_SHAPE; i++) {
+                                        if (ntConns & (1 << i)) newNtMask |= (1 << (i + 1));
+                                    }
+                                }
+
+                                if (newNtMask !== ntMask) {
+                                    flowMap.set(nt, newNtMask);
+                                    if (!seen.has(nt)) {
+                                        seen.add(nt);
+                                        q.push(nt);
                                     }
                                 }
                             }
                         }
                     }
-
-                    setTimeout(() => {
-                        if (flowAnimationId === currentFlowId) t.setVisuals(mask);
-                    }, d * 40);
                 }
-            }
 
-            setTimeout(() => {
-                if (flowAnimationId === currentFlowId) {
-                    let pct = totalSections > 0 ? Math.floor((litSections / totalSections) * 100) : 0;
-                    statusEl.innerText = `${pct}% Synced`;
-                    if (litSections === totalSections && totalSections > 0) victorySequence();
-                }
-            }, maxDist * 40 + 100);
-        }
+                // Apply visuals
+                let litCount = 0;
+                let totalTiles = GRID_W * GRID_H;
 
-        function victorySequence() {
-            isInputLocked = true;
-            clearInterval(timerInterval);
-            audio.playVictory();
-
-            statusEl.innerText = "100% Synced";
-            statusEl.style.color = "#fff";
-
-            // Display potential score?
-            // Simple score: (Optimal Moves / Actual Moves) * 1000 - TimePenalty
-            // For now just show "Stabilized".
-
-            if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 200]);
-            endNodes.forEach(sink => spawnParticles(sink));
-            setTimeout(() => victoryEl.classList.add('visible'), 800);
-        }
-
-        function nextLevel() {
-            level++;
-            levelEl.innerText = `LEVEL ${level}`;
-            newPuzzle();
-        }
-
-        let particles = [];
-        function spawnParticles(tile) {
-            if (!tile.wrapper) return;
-            let rect = tile.wrapper.getBoundingClientRect();
-            let cx = rect.left + rect.width / 2;
-            let cy = rect.top + rect.height / 2;
-
-            for (let i = 0; i < 50; i++) {
-                particles.push({
-                    x: cx, y: cy,
-                    vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15,
-                    life: 1, size: Math.random() * 5 + 2
+                flowMap.forEach((mask, t) => {
+                    t.setVisuals(mask);
+                    litCount++;
                 });
-            }
-            if (!isAnimating) animateParticles();
-        }
 
-        let isAnimating = false;
-        function animateParticles() {
-            if (particles.length === 0) { isAnimating = false; return; }
-            isAnimating = true;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.x += p.vx; p.y += p.vy;
-                p.vx *= 0.94; p.vy *= 0.94;
-                p.life -= 0.025;
-                ctx.fillStyle = `rgba(0, 255, 170, ${p.life})`;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
-                if (p.life <= 0) particles.splice(i, 1);
-            }
-            requestAnimationFrame(animateParticles);
-        }
+                // Check Victory
+                // All tiles lit? Or just Anchors? 
+                // Usually "Stabilize Grid" means all tiles participating?
+                // Let's simpler: If all EndNodes are lit.
+                let allSinksLit = endNodes.every(t => flowMap.has(t));
+                let percent = Math.floor((litCount / totalTiles) * 100);
 
-        // --- Background Animation ---
-        const bgCanvas = document.getElementById('bg-canvas');
-        const bgCtx = bgCanvas.getContext('2d');
-        let bgDrops = [];
+                statusEl.innerText = `${percent}% Lit`;
 
-        function initBg() {
-            bgCanvas.width = window.innerWidth;
-            bgCanvas.height = window.innerHeight;
-            const columns = Math.ceil(bgCanvas.width / 20);
-            bgDrops = new Array(columns).fill(0).map(() => Math.random() * bgCanvas.height);
-        }
-
-        function drawBg() {
-            bgCtx.fillStyle = 'rgba(5, 5, 5, 0.05)';
-            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-
-            bgCtx.fillStyle = '#0f3';
-            bgCtx.font = '15px monospace';
-
-            for (let i = 0; i < bgDrops.length; i++) {
-                const text = String.fromCharCode(0x30A0 + Math.random() * 96);
-                const x = i * 20;
-                const y = bgDrops[i] * 20;
-
-                bgCtx.fillStyle = `rgba(0, 255, 170, ${Math.random() * 0.5})`;
-                bgCtx.fillText(text, x, y);
-
-                if (y > bgCanvas.height && Math.random() > 0.975) {
-                    bgDrops[i] = 0;
+                if (allSinksLit && endNodes.length > 0) {
+                    victoryEl.classList.add('visible');
+                    audio.playVictory();
                 }
-                bgDrops[i]++;
             }
-            requestAnimationFrame(drawBg);
+
+            propagate();
         }
 
-        window.onload = () => {
-            initBg();
-            drawBg();
-            newPuzzle(); // Init
-
-            let resizeTimeout;
-            window.addEventListener('resize', () => {
-                if (resizeTimeout) cancelAnimationFrame(resizeTimeout);
-                resizeTimeout = requestAnimationFrame(() => {
-                    updateLayout();
-                    initBg();
-                });
-            });
-        };
     </script>
 </body>
 
