@@ -34,7 +34,6 @@
             align-items: center;
             justify-content: center;
             height: 100dvh;
-            /* Dynamic viewport height for mobile */
             width: 100vw;
         }
 
@@ -120,37 +119,22 @@
             border-radius: 12px;
             border: 4px solid #333;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            /* Aspect ratio logic handled via ResizeObserver or max-sizing */
             width: min(95vw, 90dvh);
-            /* Max width based on viewport */
             height: min(95vw, 90dvh);
             display: block;
-            /* We'll use absolute positioning for gems inside */
-        }
-
-        .timer-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 4px;
-            width: 0%;
-            background: linear-gradient(90deg, #00ffaa, #ff00de);
-            transition: width 0.1s linear;
         }
 
         /* Gems */
         .gem {
             position: absolute;
             width: 12.5%;
-            /* 100 / 8 */
             height: 12.5%;
             top: 0;
             left: 0;
             padding: 2%;
-            /* Gap */
-            transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
             z-index: 2;
             cursor: pointer;
+            /* No default transition to allow JS control */
         }
 
         .gem-inner {
@@ -158,14 +142,9 @@
             height: 100%;
             border-radius: 15%;
             box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.4), 0 3px 5px rgba(0, 0, 0, 0.4);
-            transition: filter 0.2s, transform 0.2s;
+            transition: filter 0.1s, transform 0.1s;
         }
 
-        .gem.falling {
-            transition: transform 0.4s cubic-bezier(0.5, 0, 0.5, 1);
-        }
-
-        /* Smooth fall */
         .gem.selected .gem-inner {
             filter: brightness(1.5);
             transform: scale(1.15);
@@ -199,42 +178,34 @@
             background: radial-gradient(circle at 30% 30%, #ff4d4d, #990000);
         }
 
-        /* Red Square */
         .g1 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #4dff4d, #009900);
         }
 
-        /* Green Square */
         .g2 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #4d4dff, #000099);
         }
 
-        /* Blue Square */
         .g3 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #ffff4d, #999900);
         }
 
-        /* Yellow */
         .g4 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #ff4dff, #990099);
             border-radius: 50%;
         }
 
-        /* Purple Circle */
         .g5 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #ff9e4d, #994c00);
             clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
             border-radius: 0;
         }
 
-        /* Orange Diamond */
         .g6 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #ffffff, #888888);
             clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             border-radius: 0;
         }
-
-        /* Hex */
 
         /* FX */
         #fx-canvas {
@@ -245,10 +216,6 @@
             height: 100%;
             pointer-events: none;
             z-index: 20;
-        }
-
-        .shaker {
-            animation: none;
         }
 
         .shake-anim {
@@ -318,7 +285,6 @@
 
 <body>
     <div id="bg"></div>
-
     <div id="ui-layer">
         <button id="back-btn" onclick="window.location.href='../index.html'"> &lt; </button>
         <div class="score-box">
@@ -326,18 +292,15 @@
             <div class="value" id="score">0</div>
         </div>
     </div>
-
     <div id="game-wrapper" class="shaker">
         <div id="game-container"></div>
     </div>
-
     <div id="overlay">
         <div
             style="font-size: 4rem; font-weight: 900; color: #fff; text-shadow: 0 0 20px #ff00de; margin-bottom: 30px;">
             GEM RUSH</div>
         <button class="btn-play" onclick="initGame()">PLAY</button>
     </div>
-
     <canvas id="fx-canvas"></canvas>
 
     <script>
@@ -347,54 +310,35 @@
         const ctx = fxCanvas.getContext('2d');
 
         // --- Conf ---
-        const ROWS = 8;
-        const COLS = 8;
-        const GEM_TYPES = 7;
-        const ANIM_SWAP = 200; // ms
-        const ANIM_FALL = 300; // ms per row? No, constant fall speed
+        const ROWS = 8, COLS = 8, GEM_TYPES = 7;
 
         // --- State ---
-        let grid = []; // Logical Ref: { type, id }
+        let grid = []; // Logical: { type, id }
         let gems = new Map(); // ID -> DOM Element
         let nextId = 1;
         let score = 0;
-        let state = 'IDLE'; // IDLE, ANIMATING
-        let selected = null; // {x, y}
-
-        // Swipe
+        let state = 'IDLE';
+        let selected = null;
         let touchStart = null;
 
         // --- Init ---
-        function resize() {
-            fxCanvas.width = window.innerWidth;
-            fxCanvas.height = window.innerHeight;
-            // Update gem sizes? handled by CSS %
-        }
-        window.onresize = resize;
-        resize();
-
+        function resize() { fxCanvas.width = window.innerWidth; fxCanvas.height = window.innerHeight; }
+        window.onresize = resize; resize();
         function rnd(n) { return Math.floor(Math.random() * n); }
 
         function initGame() {
             document.getElementById('overlay').style.display = 'none';
             if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
-
-            // Build Grid
             container.innerHTML = '';
-            grid = [];
-            score = 0;
-            updateScore(0);
-
+            grid = []; score = 0; updateScore(0);
             for (let y = 0; y < ROWS; y++) {
                 let row = [];
                 for (let x = 0; x < COLS; x++) {
                     let type;
-                    // No initial matches
                     do { type = rnd(GEM_TYPES); } while (
                         (x >= 2 && row[x - 1].type === type && row[x - 2].type === type) ||
                         (y >= 2 && grid[y - 1][x].type === type && grid[y - 2][x].type === type)
                     );
-
                     let id = nextId++;
                     let g = createGem(id, type, x, y);
                     gems.set(id, g);
@@ -412,14 +356,8 @@
             d.innerHTML = `<div class="gem-inner"></div>`;
             d.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
             d.dataset.id = id;
-            d.dataset.x = x;
-            d.dataset.y = y;
-
-            // Mouse
             d.onmousedown = (e) => handleInputStart(x, y, e.clientX, e.clientY);
-            // Touch
             d.ontouchstart = (e) => { e.preventDefault(); handleInputStart(x, y, e.touches[0].clientX, e.touches[0].clientY); };
-
             return d;
         }
 
@@ -427,58 +365,30 @@
         function handleInputStart(x, y, cx, cy) {
             if (state !== 'IDLE') return;
             touchStart = { x, y, cx, cy };
-
-            // Bind Move/End global
             document.onmousemove = handleInputMove;
             document.onmouseup = handleInputEnd;
             document.ontouchmove = (e) => handleInputMove(e.touches[0]);
             document.ontouchend = handleInputEnd;
         }
-
-        function handleInputMove(e) {
-            // Optional: highlight direction
-        }
-
+        function handleInputMove(e) { }
         function handleInputEnd(e) {
             if (!touchStart) return;
-
             let cx, cy;
             if (e.type === 'mouseup') { cx = e.clientX; cy = e.clientY; }
             else if (e.changedTouches) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; }
-            else { cx = touchStart.cx; cy = touchStart.cy; } // Click fallback
+            else { cx = touchStart.cx; cy = touchStart.cy; }
 
-            let dx = cx - touchStart.cx;
-            let dy = cy - touchStart.cy;
-            let dist = Math.sqrt(dx * dx + dy * dy);
+            let dx = cx - touchStart.cx, dy = cy - touchStart.cy;
+            let tx = touchStart.x, ty = touchStart.y;
 
-            let tx = touchStart.x;
-            let ty = touchStart.y;
+            document.onmousemove = null; document.onmouseup = null;
+            document.ontouchmove = null; document.ontouchend = null;
 
-            // Unbind
-            document.onmousemove = null;
-            document.onmouseup = null;
-            document.ontouchmove = null;
-            document.ontouchend = null;
-
-            if (dist < 20) {
-                // It's a Click
-                handleClick(tx, ty);
-            } else {
-                // It's a Swipe
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    // Horz
-                    if (dx > 0) trySwap(tx, ty, tx + 1, ty);
-                    else trySwap(tx, ty, tx - 1, ty);
-                } else {
-                    // Vert
-                    if (dy > 0) trySwap(tx, ty, tx, ty + 1);
-                    else trySwap(tx, ty, tx, ty - 1);
-                }
-                // Deselect if swiping
-                if (selected) {
-                    gems.get(grid[selected.y][selected.x].id).classList.remove('selected');
-                    selected = null;
-                }
+            if (Math.sqrt(dx * dx + dy * dy) < 20) handleClick(tx, ty);
+            else {
+                if (Math.abs(dx) > Math.abs(dy)) dx > 0 ? trySwap(tx, ty, tx + 1, ty) : trySwap(tx, ty, tx - 1, ty);
+                else dy > 0 ? trySwap(tx, ty, tx, ty + 1) : trySwap(tx, ty, tx, ty - 1);
+                if (selected) { gems.get(grid[selected.y][selected.x].id).classList.remove('selected'); selected = null; }
             }
             touchStart = null;
         }
@@ -487,27 +397,17 @@
             if (selected) {
                 let d = Math.abs(selected.x - x) + Math.abs(selected.y - y);
                 if (d === 1) {
-                    // Adjacent: Swap
-                    let prev = selected; // capture
-                    // Deselect visual
+                    let prev = selected;
                     gems.get(grid[selected.y][selected.x].id).classList.remove('selected');
                     selected = null;
                     trySwap(prev.x, prev.y, x, y);
                 } else {
-                    // Far or Same: Select new
                     gems.get(grid[selected.y][selected.x].id).classList.remove('selected');
-                    if (selected.x === x && selected.y === y) {
-                        selected = null; // Toggle off
-                    } else {
-                        selected = { x, y };
-                        gems.get(grid[y][x].id).classList.add('selected');
-                        playSound('select');
-                    }
+                    if (selected.x === x && selected.y === y) selected = null;
+                    else { selected = { x, y }; gems.get(grid[y][x].id).classList.add('selected'); playSound('select'); }
                 }
             } else {
-                selected = { x, y };
-                gems.get(grid[y][x].id).classList.add('selected');
-                playSound('select');
+                selected = { x, y }; gems.get(grid[y][x].id).classList.add('selected'); playSound('select');
             }
         }
 
@@ -518,54 +418,50 @@
             let id1 = grid[y1][x1].id;
             let id2 = grid[y2][x2].id;
 
-            // Visual Move
-            await moveGem(id1, x2, y2); // Concurrently
-            cancelMove(id2, x1, y1); // Actually await both? 
-            // Better:
-            let p1 = moveGem(id1, x2, y2);
-            let p2 = moveGem(id2, x1, y1);
-            await Promise.all([p1, p2]);
+            // Simultaneous crisp swap
+            await animateSwap(id1, x1, y1, id2, x2, y2);
 
-            // Logic Swap
-            let temp = grid[y1][x1];
-            grid[y1][x1] = grid[y2][x2];
-            grid[y2][x2] = temp;
-
-            // Update dataset for inputs
+            let temp = grid[y1][x1]; grid[y1][x1] = grid[y2][x2]; grid[y2][x2] = temp;
             updateDataset();
 
-            // Check
             let matches = findMatches();
             if (matches.length > 0) {
                 playSound('match');
                 await resolveMatches(matches);
             } else {
-                // Fail
                 playSound('bad');
-                // Swap Back
-                p1 = moveGem(id1, x1, y1);
-                p2 = moveGem(id2, x2, y2);
-                await Promise.all([p1, p2]);
-
-                temp = grid[y1][x1];
-                grid[y1][x1] = grid[y2][x2];
-                grid[y2][x2] = temp;
+                await animateSwap(id1, x2, y2, id2, x1, y1); // Swap back
+                temp = grid[y1][x1]; grid[y1][x1] = grid[y2][x2]; grid[y2][x2] = temp;
                 updateDataset();
                 state = 'IDLE';
             }
         }
 
+        function animateSwap(id1, x1, y1, id2, x2, y2) {
+            return new Promise(resolve => {
+                let g1 = gems.get(id1);
+                let g2 = gems.get(id2);
+
+                // Set CSS transition
+                g1.style.transition = 'transform 0.25s cubic-bezier(0.2, 1.0, 0.4, 1.0)';
+                g2.style.transition = 'transform 0.25s cubic-bezier(0.2, 1.0, 0.4, 1.0)';
+
+                // Force Reflow
+                g1.offsetHeight;
+
+                // Move
+                g1.style.transform = `translate(${x2 * 100}%, ${y2 * 100}%)`;
+                g2.style.transform = `translate(${x1 * 100}%, ${y1 * 100}%)`;
+
+                setTimeout(resolve, 250);
+            });
+        }
+
         function updateDataset() {
             for (let y = 0; y < ROWS; y++) {
                 for (let x = 0; x < COLS; x++) {
-                    if (grid[y][x].id !== -1) {
-                        let g = gems.get(grid[y][x].id);
-                        g.dataset.x = x; g.dataset.y = y;
-                        // re-apply touch handler with new x,y?
-                        // No, we use dataset values or pass from closure?
-                        // The closure in createGem captures initial X,Y. This is WRONG.
-                        // We must update the handlers OR read from dataset in handler.
-                        // Let's update closure usage:
+                    let g = gems.get(grid[y][x].id);
+                    if (g) {
                         g.onmousedown = (e) => handleInputStart(x, y, e.clientX, e.clientY);
                         g.ontouchstart = (e) => { e.preventDefault(); handleInputStart(x, y, e.touches[0].clientX, e.touches[0].clientY); };
                     }
@@ -573,143 +469,110 @@
             }
         }
 
-        function moveGem(id, x, y) {
-            return new Promise(r => {
-                let g = gems.get(id);
-                g.style.transition = 'transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)';
-                g.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
-                setTimeout(r, 200);
-            });
-        }
-
-        // Helper just to sync transform without promise/wait
-        function setPos(id, x, y) {
-            let g = gems.get(id);
-            g.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
-        }
-
-        // Used for simulated concurrent move
-        async function cancelMove(id, x, y) {
-            // implemented in trySwap logic
-        }
-
         function findMatches() {
             let set = new Set();
-            // Horz
             for (let y = 0; y < ROWS; y++) {
                 for (let x = 0; x < COLS - 2; x++) {
-                    let t = grid[y][x].type;
-                    if (t === -1) continue;
-                    let l = 1;
-                    while (x + l < COLS && grid[y][x + l].type === t) l++;
-                    if (l >= 3) {
-                        for (let i = 0; i < l; i++) set.add(`${x + i},${y}`);
-                        x += l - 1;
-                    }
+                    let t = grid[y][x].type; if (t === -1) continue;
+                    let l = 1; while (x + l < COLS && grid[y][x + l].type === t) l++;
+                    if (l >= 3) { for (let i = 0; i < l; i++) set.add(`${x + i},${y}`); x += l - 1; }
                 }
             }
-            // Vert
             for (let x = 0; x < COLS; x++) {
                 for (let y = 0; y < ROWS - 2; y++) {
-                    let t = grid[y][x].type;
-                    if (t === -1) continue;
-                    let l = 1;
-                    while (y + l < ROWS && grid[y + l][x].type === t) l++;
-                    if (l >= 3) {
-                        for (let i = 0; i < l; i++) set.add(`${x},${y + i}`);
-                        y += l - 1;
-                    }
+                    let t = grid[y][x].type; if (t === -1) continue;
+                    let l = 1; while (y + l < ROWS && grid[y + l][x].type === t) l++;
+                    if (l >= 3) { for (let i = 0; i < l; i++) set.add(`${x},${y + i}`); y += l - 1; }
                 }
             }
-            return Array.from(set).map(s => {
-                let [x, y] = s.split(',').map(Number);
-                return { x, y };
-            });
+            return Array.from(set).map(s => { let [x, y] = s.split(',').map(Number); return { x, y }; });
         }
 
         async function resolveMatches(matches) {
-            // Visual Pop
             matches.forEach(m => {
                 let id = grid[m.y][m.x].id;
                 let g = gems.get(id);
                 g.classList.add('match');
-
-                // Particles
                 let rect = g.getBoundingClientRect();
                 spawnParticles(rect.x + rect.width / 2, rect.y + rect.height / 2, grid[m.y][m.x].type);
             });
-
-            score += matches.length * 50; // More juicy score
+            score += matches.length * 50;
             if (matches.length > 4) playSound('big_match');
             updateScore(score);
             shakeWrapper();
-
             await sleep(300);
 
-            // Remove Logic
             matches.forEach(m => {
                 let id = grid[m.y][m.x].id;
-                gems.get(id).remove();
-                gems.delete(id);
+                gems.get(id).remove(); gems.delete(id);
                 grid[m.y][m.x] = { type: -1, id: -1 };
             });
-
             await applyGravity();
         }
 
         async function applyGravity() {
             let moves = [];
-            // Col by col
+            // Calculate drops
             for (let x = 0; x < COLS; x++) {
                 let writeY = ROWS - 1;
                 for (let y = ROWS - 1; y >= 0; y--) {
                     if (grid[y][x].type !== -1) {
                         if (writeY !== y) {
-                            // Move it
+                            let g = gems.get(grid[y][x].id);
                             grid[writeY][x] = grid[y][x];
                             grid[y][x] = { type: -1, id: -1 };
 
-                            // Visual
-                            let g = gems.get(grid[writeY][x].id);
-                            // We want a gravity fall speed
-                            // Dist = writeY - y
-                            // Time? Let's fix time or speed?
-                            // Uniform speed:
-                            g.style.transition = `transform 0.4s cubic-bezier(0.5, 0, 0.5, 1)`;
+                            // Physics Drop
+                            // Using a higher gravity effect: distance squared? 
+                            // Standard ease-in is okay, but bounce at end is better.
+                            let dist = (writeY - y);
+                            let time = 300 + (dist * 50); // scales slightly
+
+                            g.style.transition = `transform ${time}ms cubic-bezier(0.5, 0.05, 1, 0.5)`;
                             g.style.transform = `translate(${x * 100}%, ${writeY * 100}%)`;
-                            moves.push(new Promise(r => setTimeout(r, 400)));
+
+                            // Bounce & Clink
+                            moves.push(
+                                new Promise(r => setTimeout(() => {
+                                    // Slight bounce visual could be complex without keyframes per element
+                                    // Just Sound Clink
+                                    playSound('clink');
+                                    r();
+                                }, time))
+                            );
                         }
                         writeY--;
                     }
                 }
-
-                // Spawn new
+                // Spawn
                 for (let y = writeY; y >= 0; y--) {
                     let type = rnd(GEM_TYPES);
                     let id = nextId++;
                     let g = createGem(id, type, x, y);
-                    // Start above
-                    g.style.transform = `translate(${x * 100}%, -100%)`;
-                    g.style.transition = 'none'; // Instant place
-                    container.appendChild(g);
-                    gems.set(id, g);
+                    container.appendChild(g); gems.set(id, g);
                     grid[y][x] = { type, id };
 
-                    // Trigger reflow then fall
-                    g.offsetHeight;
-                    g.style.transition = `transform 0.4s cubic-bezier(0.5, 0, 0.5, 1)`;
+                    g.style.transition = 'none';
+                    g.style.transform = `translate(${x * 100}%, -${(writeY - y + 1) * 100}%)`;
+
+                    g.offsetHeight; // Reflow
+
+                    let time = 400 + (y * 50);
+                    g.style.transition = `transform ${time}ms cubic-bezier(0.5, 0.05, 1, 0.5)`;
                     g.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
-                    moves.push(new Promise(r => setTimeout(r, 400)));
+
+                    moves.push(new Promise(r => setTimeout(() => {
+                        playSound('clink');
+                        r();
+                    }, time)));
                 }
             }
-
             updateDataset();
             if (moves.length > 0) await Promise.all(moves);
 
-            // Chain?
             let newM = findMatches();
             if (newM.length > 0) {
-                await sleep(100);
+                await sleep(150);
                 await resolveMatches(newM);
             } else {
                 state = 'IDLE';
@@ -717,20 +580,15 @@
         }
 
         function updateScore(s) { scoreEl.innerText = s; }
-
         function shakeWrapper() {
             let w = document.getElementById('game-wrapper');
-            w.classList.remove('shake-anim');
-            w.offsetHeight;
-            w.classList.add('shake-anim');
+            w.classList.remove('shake-anim'); w.offsetHeight; w.classList.add('shake-anim');
         }
-
         const sleep = ms => new Promise(r => setTimeout(r, ms));
 
         // --- Audio ---
         const A = window.AudioContext || window.webkitAudioContext;
         const ac = new A();
-
         function playSound(t) {
             if (ac.state === 'suspended') ac.resume();
             let o = ac.createOscillator(), g = ac.createGain();
@@ -738,26 +596,26 @@
             let n = ac.currentTime;
 
             if (t === 'select') {
-                o.frequency.setValueAtTime(400, n);
-                g.gain.setValueAtTime(0.05, n); g.gain.linearRampToValueAtTime(0, n + 0.05);
-                o.start(n); o.stop(n + 0.05);
-            }
-            else if (t === 'swap') {
+                o.frequency.setValueAtTime(400, n); g.gain.setValueAtTime(0.05, n);
+                g.gain.linearRampToValueAtTime(0, n + 0.05); o.start(n); o.stop(n + 0.05);
+            } else if (t === 'swap') {
                 o.frequency.setValueAtTime(300, n); o.frequency.linearRampToValueAtTime(500, n + 0.1);
                 g.gain.setValueAtTime(0.05, n); g.gain.linearRampToValueAtTime(0, n + 0.15);
                 o.start(n); o.stop(n + 0.15);
-            }
-            else if (t === 'match') {
-                // Happy chord
+            } else if (t === 'match') {
                 o.frequency.setValueAtTime(440, n); o.frequency.linearRampToValueAtTime(880, n + 0.1);
                 g.gain.setValueAtTime(0.1, n); g.gain.exponentialRampToValueAtTime(0.001, n + 0.3);
                 o.start(n); o.stop(n + 0.3);
-            }
-            else if (t === 'bad') {
-                o.type = 'sawtooth';
-                o.frequency.setValueAtTime(150, n); o.frequency.linearRampToValueAtTime(100, n + 0.2);
+            } else if (t === 'bad') {
+                o.type = 'sawtooth'; o.frequency.setValueAtTime(150, n); o.frequency.linearRampToValueAtTime(100, n + 0.2);
                 g.gain.setValueAtTime(0.1, n); g.gain.linearRampToValueAtTime(0, n + 0.2);
                 o.start(n); o.stop(n + 0.2);
+            } else if (t === 'clink') {
+                // Short high ping
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(1200 + Math.random() * 400, n);
+                g.gain.setValueAtTime(0.02, n); g.gain.exponentialRampToValueAtTime(0.001, n + 0.1);
+                o.start(n); o.stop(n + 0.1);
             }
         }
 
@@ -765,15 +623,12 @@
         let parts = [];
         function spawnParticles(x, y, t) {
             let c = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#fa0', '#fff'][t];
-            for (let i = 0; i < 8; i++) {
-                parts.push({ x, y, vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15, l: 1, c });
-            }
+            for (let i = 0; i < 8; i++) { parts.push({ x, y, vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15, l: 1, c }); }
         }
         function drawFX() {
             ctx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
             for (let i = parts.length - 1; i >= 0; i--) {
-                let p = parts[i];
-                p.x += p.vx; p.y += p.vy; p.vy += 0.8; p.l -= 0.03;
+                let p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.8; p.l -= 0.03;
                 if (p.l <= 0) { parts.splice(i, 1); continue; }
                 ctx.globalAlpha = p.l; ctx.fillStyle = p.c;
                 ctx.beginPath(); ctx.arc(p.x, p.y, 4 * p.l, 0, 7); ctx.fill();
@@ -781,7 +636,6 @@
             requestAnimationFrame(drawFX);
         }
         drawFX();
-
     </script>
 </body>
 
