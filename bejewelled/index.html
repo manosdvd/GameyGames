@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Gem Rush</title>
     <script src="../timeLimit.js"></script>
     <style>
@@ -32,7 +33,9 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            height: 100dvh;
+            /* Dynamic viewport height for mobile */
+            width: 100vw;
         }
 
         /* --- Background --- */
@@ -61,7 +64,7 @@
         .score-box {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             text-align: center;
@@ -70,14 +73,14 @@
         }
 
         .label {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
             color: #aaa;
             letter-spacing: 1px;
         }
 
         .value {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: 800;
             color: #fff;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
@@ -101,143 +104,139 @@
         }
 
         /* --- Game Board --- */
+        #game-wrapper {
+            width: 100%;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            overflow: hidden;
+        }
+
         #game-container {
             position: relative;
-            width: 90vw;
-            max-width: 500px;
-            aspect-ratio: 1/1;
             background: var(--grid-bg);
             border-radius: 12px;
             border: 4px solid #333;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-            padding: 4px;
-            gap: 2px;
-            touch-action: none;
+            /* Aspect ratio logic handled via ResizeObserver or max-sizing */
+            width: min(95vw, 90dvh);
+            /* Max width based on viewport */
+            height: min(95vw, 90dvh);
+            display: block;
+            /* We'll use absolute positioning for gems inside */
         }
 
-        /* Shake effect container */
-        .shaker {
-            animation-duration: 0.5s;
-            animation-fill-mode: both;
+        .timer-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            width: 0%;
+            background: linear-gradient(90deg, #00ffaa, #ff00de);
+            transition: width 0.1s linear;
         }
 
-        @keyframes shake {
-            0% {
-                transform: translate(0, 0);
-            }
-
-            10%,
-            90% {
-                transform: translate(-3px, -1px);
-            }
-
-            20%,
-            80% {
-                transform: translate(3px, 2px);
-            }
-
-            30%,
-            50%,
-            70% {
-                transform: translate(-5px, 2px);
-            }
-
-            40%,
-            60% {
-                transform: translate(5px, -2px);
-            }
-
-            100% {
-                transform: translate(0, 0);
-            }
-        }
-
-        .cell {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            border-radius: 4px;
-            background: rgba(0, 0, 0, 0.2);
-        }
-
+        /* Gems */
         .gem {
             position: absolute;
-            width: 90%;
-            height: 90%;
-            left: 5%;
-            top: 5%;
-            border-radius: 15%;
-            transition: transform 0.2s, top 0.2s cubic-bezier(0.5, 0, 0.5, 1);
+            width: 12.5%;
+            /* 100 / 8 */
+            height: 12.5%;
+            top: 0;
+            left: 0;
+            padding: 2%;
+            /* Gap */
+            transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
             z-index: 2;
             cursor: pointer;
-            /* Neumorphic/Glassmorphic look */
-            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.4), 0 4px 6px rgba(0, 0, 0, 0.3);
         }
 
-        .gem.selected {
+        .gem-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 15%;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.4), 0 3px 5px rgba(0, 0, 0, 0.4);
+            transition: filter 0.2s, transform 0.2s;
+        }
+
+        .gem.falling {
+            transition: transform 0.4s cubic-bezier(0.5, 0, 0.5, 1);
+        }
+
+        /* Smooth fall */
+        .gem.selected .gem-inner {
             filter: brightness(1.5);
-            transform: scale(1.1);
+            transform: scale(1.15);
             box-shadow: 0 0 15px white;
             z-index: 10;
         }
 
-        .gem.match {
-            animation: zoomOut 0.3s forwards;
+        .gem.match .gem-inner {
+            animation: popOut 0.3s forwards;
         }
 
-        @keyframes zoomOut {
-            to {
+        @keyframes popOut {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.3);
+                opacity: 0.8;
+            }
+
+            100% {
                 transform: scale(0);
                 opacity: 0;
             }
         }
 
-        /* Gem Colors */
-        .gem-0 {
+        /* Shapes */
+        .g0 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #ff4d4d, #990000);
         }
 
-        /* Red */
-        .gem-1 {
+        /* Red Square */
+        .g1 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #4dff4d, #009900);
         }
 
-        /* Green */
-        .gem-2 {
+        /* Green Square */
+        .g2 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #4d4dff, #000099);
         }
 
-        /* Blue */
-        .gem-3 {
+        /* Blue Square */
+        .g3 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #ffff4d, #999900);
         }
 
         /* Yellow */
-        .gem-4 {
+        .g4 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #ff4dff, #990099);
             border-radius: 50%;
         }
 
         /* Purple Circle */
-        .gem-5 {
+        .g5 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #ff9e4d, #994c00);
             clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
             border-radius: 0;
         }
 
         /* Orange Diamond */
-        .gem-6 {
+        .g6 .gem-inner {
             background: radial-gradient(circle at 30% 30%, #ffffff, #888888);
             clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             border-radius: 0;
         }
 
-        /* White Hex */
+        /* Hex */
 
-        /* Canvas for particles */
+        /* FX */
         #fx-canvas {
             position: absolute;
             top: 0;
@@ -248,38 +247,71 @@
             z-index: 20;
         }
 
+        .shaker {
+            animation: none;
+        }
+
+        .shake-anim {
+            animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
         /* Overlay */
-        #start-overlay {
+        #overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 100;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(8px);
         }
 
-        .btn-large {
-            background: linear-gradient(45deg, #ff00de, #00ffaa);
+        .btn-play {
+            background: linear-gradient(135deg, #ff00de, #00ffaa);
             border: none;
-            padding: 15px 40px;
-            font-size: 1.5rem;
-            font-weight: bold;
+            padding: 20px 60px;
+            font-size: 2rem;
+            font-weight: 900;
             color: white;
-            border-radius: 50px;
+            border-radius: 60px;
             cursor: pointer;
-            box-shadow: 0 0 20px rgba(255, 0, 222, 0.4);
-            transition: transform 0.2s;
+            box-shadow: 0 0 30px rgba(255, 0, 222, 0.5);
             text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .btn-large:hover {
-            transform: scale(1.05);
+        .btn-play:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
@@ -291,453 +323,464 @@
         <button id="back-btn" onclick="window.location.href='../index.html'"> &lt; </button>
         <div class="score-box">
             <div class="label">Score</div>
-            <div class="value" id="score-display">0</div>
+            <div class="value" id="score">0</div>
         </div>
     </div>
 
-    <div id="start-overlay">
-        <h1 style="font-size: 4rem; margin-bottom: 2rem; text-shadow: 0 0 30px #ff00de;">GEM RUSH</h1>
-        <button class="btn-large" onclick="startGame()">PLAY</button>
+    <div id="game-wrapper" class="shaker">
+        <div id="game-container"></div>
     </div>
 
-    <div class="shaker" id="shaker">
-        <div id="game-container"></div>
+    <div id="overlay">
+        <div
+            style="font-size: 4rem; font-weight: 900; color: #fff; text-shadow: 0 0 20px #ff00de; margin-bottom: 30px;">
+            GEM RUSH</div>
+        <button class="btn-play" onclick="initGame()">PLAY</button>
     </div>
 
     <canvas id="fx-canvas"></canvas>
 
     <script>
-        // --- Audio System ---
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const audioCtx = new AudioContext();
-
-        function playSound(type) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            const now = audioCtx.currentTime;
-
-            if (type === 'swap') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.linearRampToValueAtTime(0, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
-            } else if (type === 'match') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
-                // Chord
-                const osc2 = audioCtx.createOscillator();
-                osc2.type = 'triangle';
-                osc2.frequency.setValueAtTime(600, now);
-                osc2.frequency.exponentialRampToValueAtTime(1200, now + 0.15);
-                osc2.connect(gain);
-                osc2.start(now);
-                osc2.stop(now + 0.2);
-
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                osc.start(now);
-                osc.stop(now + 0.3);
-            } else if (type === 'bad') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.linearRampToValueAtTime(100, now + 0.2);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.linearRampToValueAtTime(0, now + 0.2);
-                osc.start(now);
-                osc.stop(now + 0.2);
-            }
-        }
-
-        // --- Game Logic ---
-        const GRID_SIZE = 8;
-        const NUM_GEMS = 7;
         const container = document.getElementById('game-container');
-        const scoreDisplay = document.getElementById('score-display');
-        const shaker = document.getElementById('shaker');
+        const scoreEl = document.getElementById('score');
+        const fxCanvas = document.getElementById('fx-canvas');
+        const ctx = fxCanvas.getContext('2d');
 
-        let grid = []; // 2D array storing gem types (0-6) or -1 (empty)
-        let visualGrid = []; // 2D array storing DOM elements
+        // --- Conf ---
+        const ROWS = 8;
+        const COLS = 8;
+        const GEM_TYPES = 7;
+        const ANIM_SWAP = 200; // ms
+        const ANIM_FALL = 300; // ms per row? No, constant fall speed
+
+        // --- State ---
+        let grid = []; // Logical Ref: { type, id }
+        let gems = new Map(); // ID -> DOM Element
+        let nextId = 1;
         let score = 0;
-        let selected = null; // {r, c}
-        let isProcessing = false;
+        let state = 'IDLE'; // IDLE, ANIMATING
+        let selected = null; // {x, y}
 
-        function startGame() {
-            document.getElementById('start-overlay').style.display = 'none';
-            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(e => { });
-            initGrid();
-        }
+        // Swipe
+        let touchStart = null;
 
-        function initGrid() {
-            container.innerHTML = '';
-            grid = [];
-            visualGrid = [];
-            score = 0;
-            updateScore(0);
-
-            for (let r = 0; r < GRID_SIZE; r++) {
-                let row = [];
-                let vRow = [];
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    let type;
-                    // Prevent initial matches
-                    do {
-                        type = Math.floor(Math.random() * NUM_GEMS);
-                    } while (
-                        (c >= 2 && row[c - 1] === type && row[c - 2] === type) ||
-                        (r >= 2 && grid[r - 1][c] === type && grid[r - 2][c] === type)
-                    );
-
-                    row.push(type);
-
-                    // Create Cell (Background)
-                    let cell = document.createElement('div');
-                    cell.className = 'cell';
-                    container.appendChild(cell);
-
-                    // Create Gem
-                    let gem = createGemDOM(type, r, c);
-                    cell.appendChild(gem);
-                    vRow.push(gem);
-
-                    // Interaction
-                    gem.onmousedown = (e) => handleInput(r, c);
-                    gem.ontouchstart = (e) => { e.preventDefault(); handleInput(r, c); };
-                }
-                grid.push(row);
-                visualGrid.push(vRow);
-            }
-        }
-
-        function createGemDOM(type, r, c) {
-            let el = document.createElement('div');
-            el.className = `gem gem-${type}`;
-            el.dataset.r = r;
-            el.dataset.c = c;
-            return el;
-        }
-
-        function handleInput(r, c) {
-            if (isProcessing) return;
-
-            if (!selected) {
-                // Select
-                selected = { r, c };
-                visualGrid[r][c].classList.add('selected');
-                playSound('swap');
-            } else {
-                // Check adjacency
-                let dr = Math.abs(selected.r - r);
-                let dc = Math.abs(selected.c - c);
-
-                if (selected.r === r && selected.c === c) {
-                    // Deselect
-                    visualGrid[selected.r][selected.c].classList.remove('selected');
-                    selected = null;
-                } else if (dr + dc === 1) {
-                    // Swap
-                    visualGrid[selected.r][selected.c].classList.remove('selected');
-                    attemptSwap(selected, { r, c });
-                    selected = null;
-                } else {
-                    // Invalid, just select new
-                    visualGrid[selected.r][selected.c].classList.remove('selected');
-                    selected = { r, c };
-                    visualGrid[r][c].classList.add('selected');
-                    playSound('swap');
-                }
-            }
-        }
-
-        async function attemptSwap(p1, p2) {
-            isProcessing = true;
-
-            // Visual swap
-            await swapVisuals(p1, p2);
-
-            // Logic swap
-            let t = grid[p1.r][p1.c];
-            grid[p1.r][p1.c] = grid[p2.r][p2.c];
-            grid[p2.r][p2.c] = t;
-
-            // Check Match
-            let matches = findMatches();
-            if (matches.length > 0) {
-                await processMatches(matches);
-            } else {
-                // Swap back
-                playSound('bad');
-                await swapVisuals(p1, p2);
-                // Revert Logic -- Error here logic swap again reverts it
-                t = grid[p1.r][p1.c];
-                grid[p1.r][p1.c] = grid[p2.r][p2.c];
-                grid[p2.r][p2.c] = t;
-                isProcessing = false;
-            }
-        }
-
-        function swapVisuals(p1, p2) {
-            return new Promise(resolve => {
-                let g1 = visualGrid[p1.r][p1.c];
-                let g2 = visualGrid[p2.r][p2.c];
-
-                // We physically move them in DOM or just animate?
-                // Easier to swap DOM parent or swap class?
-                // Class swap is cleaner but we need to keep references consistent.
-
-                // Let's swap the DOM elements in the array and re-parent them
-                // Get cells
-                let c1 = container.children[p1.r * GRID_SIZE + p1.c];
-                let c2 = container.children[p2.r * GRID_SIZE + p2.c];
-
-                // Animate
-                // Calculate relative positions
-                let xDiff = (p2.c - p1.c) * 100;
-                let yDiff = (p2.r - p1.r) * 100;
-
-                g1.style.transform = `translate(${xDiff}%, ${yDiff}%)`;
-                g2.style.transform = `translate(${-xDiff}%, ${-yDiff}%)`;
-
-                setTimeout(() => {
-                    // Reset transform
-                    g1.style.transform = '';
-                    g2.style.transform = '';
-
-                    // Actually swap DOM parents
-                    c1.appendChild(g2);
-                    c2.appendChild(g1);
-
-                    // Swap Input Handlers (closure captures r/c) - Re-binding needed?
-                    // Yes, or we just rely on updating the visualGrid array and re-binding events?
-                    // Let's re-bind based on new position
-                    updateHandlers();
-
-                    // Swap array
-                    visualGrid[p1.r][p1.c] = g2;
-                    visualGrid[p2.r][p2.c] = g1;
-
-                    resolve();
-                }, 200);
-            });
-        }
-
-        function updateHandlers() {
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    let g = visualGrid[r][c];
-                    g.onmousedown = (e) => handleInput(r, c);
-                    g.ontouchstart = (e) => { e.preventDefault(); handleInput(r, c); };
-                }
-            }
-        }
-
-        function findMatches() {
-            let matched = new Set();
-
-            // Horizontal
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE - 2; c++) {
-                    let type = grid[r][c];
-                    if (type === -1) continue;
-                    let matchLen = 1;
-                    while (c + matchLen < GRID_SIZE && grid[r][c + matchLen] === type) matchLen++;
-                    if (matchLen >= 3) {
-                        for (let i = 0; i < matchLen; i++) matched.add(`${r},${c + i}`);
-                        c += matchLen - 1;
-                    }
-                }
-            }
-
-            // Vertical
-            for (let c = 0; c < GRID_SIZE; c++) {
-                for (let r = 0; r < GRID_SIZE - 2; r++) {
-                    let type = grid[r][c];
-                    if (type === -1) continue;
-                    let matchLen = 1;
-                    while (r + matchLen < GRID_SIZE && grid[r + matchLen][c] === type) matchLen++;
-                    if (matchLen >= 3) {
-                        for (let i = 0; i < matchLen; i++) matched.add(`${r + i},${c}`);
-                        r += matchLen - 1;
-                    }
-                }
-            }
-
-            return Array.from(matched).map(s => {
-                let [r, c] = s.split(',').map(Number);
-                return { r, c };
-            });
-        }
-
-        async function processMatches(matches) {
-            // Remove
-            playSound('match');
-            shakeScreen();
-
-            // Particles
-            matches.forEach(m => {
-                let rect = visualGrid[m.r][m.c].getBoundingClientRect();
-                spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, grid[m.r][m.c]);
-            });
-
-            // Updating State
-            matches.forEach(m => {
-                grid[m.r][m.c] = -1;
-                visualGrid[m.r][m.c].classList.add('match');
-            });
-
-            score += matches.length * 10;
-            updateScore(score);
-
-            await sleep(300);
-
-            // Destroy DOMs
-            matches.forEach(m => {
-                let el = visualGrid[m.r][m.c];
-                el.remove(); // Remove from DOM
-                visualGrid[m.r][m.c] = null;
-            });
-
-            // Gravity
-            await applyGravity();
-
-            // Check Cascade
-            let newMatches = findMatches();
-            if (newMatches.length > 0) {
-                await sleep(200);
-                await processMatches(newMatches);
-            } else {
-                isProcessing = false;
-            }
-        }
-
-        async function applyGravity() {
-            // Move items down
-            let moves = false;
-
-            // From bottom up (col by col)
-            for (let c = 0; c < GRID_SIZE; c++) {
-                let writeRow = GRID_SIZE - 1;
-                for (let r = GRID_SIZE - 1; r >= 0; r--) {
-                    if (grid[r][c] !== -1) {
-                        if (writeRow !== r) {
-                            // Move logic
-                            grid[writeRow][c] = grid[r][c];
-                            grid[r][c] = -1;
-
-                            // Move Visually
-                            let g = visualGrid[r][c];
-                            visualGrid[writeRow][c] = g;
-                            visualGrid[r][c] = null;
-
-                            // Re-parent to new cell
-                            let cell = container.children[writeRow * GRID_SIZE + c];
-                            cell.appendChild(g); // Instant re-parent
-
-                            // Animate Fall?
-                            // Since we instantly re-parented, let's fake fall via CSS
-                            // Actually, simple is ok for now. 
-                            // To animate: set translateY negative (from old pos) and transition to 0.
-                            // Currently simplest: just update handlers
-                            moves = true;
-                        }
-                        writeRow--;
-                    }
-                }
-
-                // Fill top with new
-                for (let r = writeRow; r >= 0; r--) {
-                    let type = Math.floor(Math.random() * NUM_GEMS);
-                    grid[r][c] = type;
-                    let cell = container.children[r * GRID_SIZE + c];
-                    let g = createGemDOM(type, r, c);
-
-                    // Fall in animation
-                    g.style.top = '-100%';
-                    cell.appendChild(g);
-                    visualGrid[r][c] = g;
-
-                    // Trigger reflow
-                    g.offsetHeight;
-                    g.style.top = '5%';
-                    moves = true;
-                }
-            }
-
-            updateHandlers();
-            if (moves) await sleep(250);
-        }
-
-        function updateScore(s) {
-            scoreDisplay.innerText = s;
-        }
-
-        function shakeScreen() {
-            shaker.style.animation = 'none';
-            shaker.offsetHeight; /* trigger reflow */
-            shaker.style.animation = 'shake 0.5s';
-        }
-
-        const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-        // --- Particles ---
-        const cvs = document.getElementById('fx-canvas');
-        const ctx = cvs.getContext('2d');
-        let particles = [];
-
+        // --- Init ---
         function resize() {
-            cvs.width = window.innerWidth;
-            cvs.height = window.innerHeight;
+            fxCanvas.width = window.innerWidth;
+            fxCanvas.height = window.innerHeight;
+            // Update gem sizes? handled by CSS %
         }
         window.onresize = resize;
         resize();
 
-        function spawnParticles(x, y, type) {
-            let color = getGemColor(type);
-            for (let i = 0; i < 10; i++) {
-                particles.push({
-                    x, y,
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 10,
-                    life: 1,
-                    color: color,
-                    size: Math.random() * 5 + 2
-                });
+        function rnd(n) { return Math.floor(Math.random() * n); }
+
+        function initGame() {
+            document.getElementById('overlay').style.display = 'none';
+            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
+
+            // Build Grid
+            container.innerHTML = '';
+            grid = [];
+            score = 0;
+            updateScore(0);
+
+            for (let y = 0; y < ROWS; y++) {
+                let row = [];
+                for (let x = 0; x < COLS; x++) {
+                    let type;
+                    // No initial matches
+                    do { type = rnd(GEM_TYPES); } while (
+                        (x >= 2 && row[x - 1].type === type && row[x - 2].type === type) ||
+                        (y >= 2 && grid[y - 1][x].type === type && grid[y - 2][x].type === type)
+                    );
+
+                    let id = nextId++;
+                    let g = createGem(id, type, x, y);
+                    gems.set(id, g);
+                    container.appendChild(g);
+                    row.push({ type, id });
+                }
+                grid.push(row);
+            }
+            state = 'IDLE';
+        }
+
+        function createGem(id, type, x, y) {
+            let d = document.createElement('div');
+            d.className = `gem g${type}`;
+            d.innerHTML = `<div class="gem-inner"></div>`;
+            d.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
+            d.dataset.id = id;
+            d.dataset.x = x;
+            d.dataset.y = y;
+
+            // Mouse
+            d.onmousedown = (e) => handleInputStart(x, y, e.clientX, e.clientY);
+            // Touch
+            d.ontouchstart = (e) => { e.preventDefault(); handleInputStart(x, y, e.touches[0].clientX, e.touches[0].clientY); };
+
+            return d;
+        }
+
+        // --- Input ---
+        function handleInputStart(x, y, cx, cy) {
+            if (state !== 'IDLE') return;
+            touchStart = { x, y, cx, cy };
+
+            // Bind Move/End global
+            document.onmousemove = handleInputMove;
+            document.onmouseup = handleInputEnd;
+            document.ontouchmove = (e) => handleInputMove(e.touches[0]);
+            document.ontouchend = handleInputEnd;
+        }
+
+        function handleInputMove(e) {
+            // Optional: highlight direction
+        }
+
+        function handleInputEnd(e) {
+            if (!touchStart) return;
+
+            let cx, cy;
+            if (e.type === 'mouseup') { cx = e.clientX; cy = e.clientY; }
+            else if (e.changedTouches) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; }
+            else { cx = touchStart.cx; cy = touchStart.cy; } // Click fallback
+
+            let dx = cx - touchStart.cx;
+            let dy = cy - touchStart.cy;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+
+            let tx = touchStart.x;
+            let ty = touchStart.y;
+
+            // Unbind
+            document.onmousemove = null;
+            document.onmouseup = null;
+            document.ontouchmove = null;
+            document.ontouchend = null;
+
+            if (dist < 20) {
+                // It's a Click
+                handleClick(tx, ty);
+            } else {
+                // It's a Swipe
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    // Horz
+                    if (dx > 0) trySwap(tx, ty, tx + 1, ty);
+                    else trySwap(tx, ty, tx - 1, ty);
+                } else {
+                    // Vert
+                    if (dy > 0) trySwap(tx, ty, tx, ty + 1);
+                    else trySwap(tx, ty, tx, ty - 1);
+                }
+                // Deselect if swiping
+                if (selected) {
+                    gems.get(grid[selected.y][selected.x].id).classList.remove('selected');
+                    selected = null;
+                }
+            }
+            touchStart = null;
+        }
+
+        function handleClick(x, y) {
+            if (selected) {
+                let d = Math.abs(selected.x - x) + Math.abs(selected.y - y);
+                if (d === 1) {
+                    // Adjacent: Swap
+                    let prev = selected; // capture
+                    // Deselect visual
+                    gems.get(grid[selected.y][selected.x].id).classList.remove('selected');
+                    selected = null;
+                    trySwap(prev.x, prev.y, x, y);
+                } else {
+                    // Far or Same: Select new
+                    gems.get(grid[selected.y][selected.x].id).classList.remove('selected');
+                    if (selected.x === x && selected.y === y) {
+                        selected = null; // Toggle off
+                    } else {
+                        selected = { x, y };
+                        gems.get(grid[y][x].id).classList.add('selected');
+                        playSound('select');
+                    }
+                }
+            } else {
+                selected = { x, y };
+                gems.get(grid[y][x].id).classList.add('selected');
+                playSound('select');
             }
         }
 
-        function getGemColor(t) {
-            const cols = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#ffaa00', '#ffffff'];
-            return cols[t] || '#fff';
-        }
+        async function trySwap(x1, y1, x2, y2) {
+            if (x2 < 0 || x2 >= COLS || y2 < 0 || y2 >= ROWS) return;
+            state = 'ANIMATING';
 
-        function loop() {
-            ctx.clearRect(0, 0, cvs.width, cvs.height);
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += 0.5; // Gravity
-                p.life -= 0.02;
-                p.size *= 0.95;
+            let id1 = grid[y1][x1].id;
+            let id2 = grid[y2][x2].id;
 
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
+            // Visual Move
+            await moveGem(id1, x2, y2); // Concurrently
+            cancelMove(id2, x1, y1); // Actually await both? 
+            // Better:
+            let p1 = moveGem(id1, x2, y2);
+            let p2 = moveGem(id2, x1, y1);
+            await Promise.all([p1, p2]);
 
-                if (p.life <= 0) particles.splice(i, 1);
+            // Logic Swap
+            let temp = grid[y1][x1];
+            grid[y1][x1] = grid[y2][x2];
+            grid[y2][x2] = temp;
+
+            // Update dataset for inputs
+            updateDataset();
+
+            // Check
+            let matches = findMatches();
+            if (matches.length > 0) {
+                playSound('match');
+                await resolveMatches(matches);
+            } else {
+                // Fail
+                playSound('bad');
+                // Swap Back
+                p1 = moveGem(id1, x1, y1);
+                p2 = moveGem(id2, x2, y2);
+                await Promise.all([p1, p2]);
+
+                temp = grid[y1][x1];
+                grid[y1][x1] = grid[y2][x2];
+                grid[y2][x2] = temp;
+                updateDataset();
+                state = 'IDLE';
             }
-            requestAnimationFrame(loop);
         }
-        loop();
+
+        function updateDataset() {
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (grid[y][x].id !== -1) {
+                        let g = gems.get(grid[y][x].id);
+                        g.dataset.x = x; g.dataset.y = y;
+                        // re-apply touch handler with new x,y?
+                        // No, we use dataset values or pass from closure?
+                        // The closure in createGem captures initial X,Y. This is WRONG.
+                        // We must update the handlers OR read from dataset in handler.
+                        // Let's update closure usage:
+                        g.onmousedown = (e) => handleInputStart(x, y, e.clientX, e.clientY);
+                        g.ontouchstart = (e) => { e.preventDefault(); handleInputStart(x, y, e.touches[0].clientX, e.touches[0].clientY); };
+                    }
+                }
+            }
+        }
+
+        function moveGem(id, x, y) {
+            return new Promise(r => {
+                let g = gems.get(id);
+                g.style.transition = 'transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)';
+                g.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
+                setTimeout(r, 200);
+            });
+        }
+
+        // Helper just to sync transform without promise/wait
+        function setPos(id, x, y) {
+            let g = gems.get(id);
+            g.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
+        }
+
+        // Used for simulated concurrent move
+        async function cancelMove(id, x, y) {
+            // implemented in trySwap logic
+        }
+
+        function findMatches() {
+            let set = new Set();
+            // Horz
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS - 2; x++) {
+                    let t = grid[y][x].type;
+                    if (t === -1) continue;
+                    let l = 1;
+                    while (x + l < COLS && grid[y][x + l].type === t) l++;
+                    if (l >= 3) {
+                        for (let i = 0; i < l; i++) set.add(`${x + i},${y}`);
+                        x += l - 1;
+                    }
+                }
+            }
+            // Vert
+            for (let x = 0; x < COLS; x++) {
+                for (let y = 0; y < ROWS - 2; y++) {
+                    let t = grid[y][x].type;
+                    if (t === -1) continue;
+                    let l = 1;
+                    while (y + l < ROWS && grid[y + l][x].type === t) l++;
+                    if (l >= 3) {
+                        for (let i = 0; i < l; i++) set.add(`${x},${y + i}`);
+                        y += l - 1;
+                    }
+                }
+            }
+            return Array.from(set).map(s => {
+                let [x, y] = s.split(',').map(Number);
+                return { x, y };
+            });
+        }
+
+        async function resolveMatches(matches) {
+            // Visual Pop
+            matches.forEach(m => {
+                let id = grid[m.y][m.x].id;
+                let g = gems.get(id);
+                g.classList.add('match');
+
+                // Particles
+                let rect = g.getBoundingClientRect();
+                spawnParticles(rect.x + rect.width / 2, rect.y + rect.height / 2, grid[m.y][m.x].type);
+            });
+
+            score += matches.length * 50; // More juicy score
+            if (matches.length > 4) playSound('big_match');
+            updateScore(score);
+            shakeWrapper();
+
+            await sleep(300);
+
+            // Remove Logic
+            matches.forEach(m => {
+                let id = grid[m.y][m.x].id;
+                gems.get(id).remove();
+                gems.delete(id);
+                grid[m.y][m.x] = { type: -1, id: -1 };
+            });
+
+            await applyGravity();
+        }
+
+        async function applyGravity() {
+            let moves = [];
+            // Col by col
+            for (let x = 0; x < COLS; x++) {
+                let writeY = ROWS - 1;
+                for (let y = ROWS - 1; y >= 0; y--) {
+                    if (grid[y][x].type !== -1) {
+                        if (writeY !== y) {
+                            // Move it
+                            grid[writeY][x] = grid[y][x];
+                            grid[y][x] = { type: -1, id: -1 };
+
+                            // Visual
+                            let g = gems.get(grid[writeY][x].id);
+                            // We want a gravity fall speed
+                            // Dist = writeY - y
+                            // Time? Let's fix time or speed?
+                            // Uniform speed:
+                            g.style.transition = `transform 0.4s cubic-bezier(0.5, 0, 0.5, 1)`;
+                            g.style.transform = `translate(${x * 100}%, ${writeY * 100}%)`;
+                            moves.push(new Promise(r => setTimeout(r, 400)));
+                        }
+                        writeY--;
+                    }
+                }
+
+                // Spawn new
+                for (let y = writeY; y >= 0; y--) {
+                    let type = rnd(GEM_TYPES);
+                    let id = nextId++;
+                    let g = createGem(id, type, x, y);
+                    // Start above
+                    g.style.transform = `translate(${x * 100}%, -100%)`;
+                    g.style.transition = 'none'; // Instant place
+                    container.appendChild(g);
+                    gems.set(id, g);
+                    grid[y][x] = { type, id };
+
+                    // Trigger reflow then fall
+                    g.offsetHeight;
+                    g.style.transition = `transform 0.4s cubic-bezier(0.5, 0, 0.5, 1)`;
+                    g.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
+                    moves.push(new Promise(r => setTimeout(r, 400)));
+                }
+            }
+
+            updateDataset();
+            if (moves.length > 0) await Promise.all(moves);
+
+            // Chain?
+            let newM = findMatches();
+            if (newM.length > 0) {
+                await sleep(100);
+                await resolveMatches(newM);
+            } else {
+                state = 'IDLE';
+            }
+        }
+
+        function updateScore(s) { scoreEl.innerText = s; }
+
+        function shakeWrapper() {
+            let w = document.getElementById('game-wrapper');
+            w.classList.remove('shake-anim');
+            w.offsetHeight;
+            w.classList.add('shake-anim');
+        }
+
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        // --- Audio ---
+        const A = window.AudioContext || window.webkitAudioContext;
+        const ac = new A();
+
+        function playSound(t) {
+            if (ac.state === 'suspended') ac.resume();
+            let o = ac.createOscillator(), g = ac.createGain();
+            o.connect(g); g.connect(ac.destination);
+            let n = ac.currentTime;
+
+            if (t === 'select') {
+                o.frequency.setValueAtTime(400, n);
+                g.gain.setValueAtTime(0.05, n); g.gain.linearRampToValueAtTime(0, n + 0.05);
+                o.start(n); o.stop(n + 0.05);
+            }
+            else if (t === 'swap') {
+                o.frequency.setValueAtTime(300, n); o.frequency.linearRampToValueAtTime(500, n + 0.1);
+                g.gain.setValueAtTime(0.05, n); g.gain.linearRampToValueAtTime(0, n + 0.15);
+                o.start(n); o.stop(n + 0.15);
+            }
+            else if (t === 'match') {
+                // Happy chord
+                o.frequency.setValueAtTime(440, n); o.frequency.linearRampToValueAtTime(880, n + 0.1);
+                g.gain.setValueAtTime(0.1, n); g.gain.exponentialRampToValueAtTime(0.001, n + 0.3);
+                o.start(n); o.stop(n + 0.3);
+            }
+            else if (t === 'bad') {
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(150, n); o.frequency.linearRampToValueAtTime(100, n + 0.2);
+                g.gain.setValueAtTime(0.1, n); g.gain.linearRampToValueAtTime(0, n + 0.2);
+                o.start(n); o.stop(n + 0.2);
+            }
+        }
+
+        // --- FX ---
+        let parts = [];
+        function spawnParticles(x, y, t) {
+            let c = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#fa0', '#fff'][t];
+            for (let i = 0; i < 8; i++) {
+                parts.push({ x, y, vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15, l: 1, c });
+            }
+        }
+        function drawFX() {
+            ctx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+            for (let i = parts.length - 1; i >= 0; i--) {
+                let p = parts[i];
+                p.x += p.vx; p.y += p.vy; p.vy += 0.8; p.l -= 0.03;
+                if (p.l <= 0) { parts.splice(i, 1); continue; }
+                ctx.globalAlpha = p.l; ctx.fillStyle = p.c;
+                ctx.beginPath(); ctx.arc(p.x, p.y, 4 * p.l, 0, 7); ctx.fill();
+            }
+            requestAnimationFrame(drawFX);
+        }
+        drawFX();
 
     </script>
 </body>
