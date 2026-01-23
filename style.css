@@ -49,8 +49,9 @@ body {
 
 .app-container {
     width: 100%;
-    max-width: 1200px;
-    padding: 2rem;
+    /* Default to full width for "full screen" feel */
+    min-height: 100vh;
+    padding: 1rem;
     position: relative;
     z-index: 1;
 }
@@ -65,7 +66,7 @@ h3 {
 }
 
 .main-title {
-    font-size: 3rem;
+    font-size: 2.5rem;
     text-align: center;
     margin-bottom: 2rem;
     color: var(--cyber-cyan);
@@ -73,7 +74,7 @@ h3 {
 }
 
 .section-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     color: var(--cyber-magenta);
     margin-bottom: 1.5rem;
     border-bottom: 2px solid var(--cyber-magenta);
@@ -84,8 +85,9 @@ h3 {
 /* Game Grid */
 .game-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.5rem;
+    /* Responsive columns: auto-fill tries to put as many as possible */
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
     margin-bottom: 3rem;
 }
 
@@ -94,13 +96,11 @@ h3 {
     background-color: var(--cyber-surface);
     border: 1px solid var(--cyber-cyan);
     border-radius: 4px;
-    /* Slightly rounded, tech feel */
     overflow: hidden;
     transition: all 0.3s ease;
     position: relative;
     cursor: pointer;
     clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
-    /* Angled corner */
 }
 
 .cyber-card:hover {
@@ -115,7 +115,7 @@ h3 {
 }
 
 .card-media {
-    height: 120px;
+    height: 100px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -136,12 +136,12 @@ h3 {
 }
 
 .card-icon {
-    font-size: 3rem;
+    font-size: 2.5rem;
     color: rgba(255, 255, 255, 0.8);
     z-index: 2;
 }
 
-/* Unique Card Backdrops */
+/* Unique Card Backdrops - Keep Existing */
 .bg-anxiety {
     background: radial-gradient(circle, #4a0000 0%, #000 70%);
 }
@@ -175,41 +175,84 @@ h3 {
 }
 
 .card-content {
-    padding: 1.5rem;
+    padding: 1rem;
 }
 
 .card-title {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    /* Smaller base font */
+    margin-bottom: 0.25rem;
     color: var(--cyber-cyan);
     transition: color 0.3s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .card-desc {
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     color: #a0a0a0;
-    line-height: 1.4;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
 }
 
 /* Play Button */
 .play-btn {
     display: inline-block;
-    margin-top: 1rem;
-    padding: 0.5rem 1.5rem;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0;
     background: transparent;
     border: 1px solid var(--cyber-yellow);
     color: var(--cyber-yellow);
     font-family: 'Orbitron', sans-serif;
     text-transform: uppercase;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     letter-spacing: 1px;
     transition: all 0.3s;
+    text-align: center;
 }
 
 .cyber-card:hover .play-btn {
     background: var(--cyber-yellow);
     color: #000;
     box-shadow: 0 0 10px var(--cyber-yellow);
+}
+
+/* Desktop Responsiveness */
+@media (min-width: 768px) {
+    .app-container {
+        padding: 3rem;
+    }
+
+    .game-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 2rem;
+    }
+
+    .card-media {
+        height: 140px;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+    }
+
+    .card-desc {
+        font-size: 0.85rem;
+    }
+
+    .card-icon {
+        font-size: 3.5rem;
+    }
+
+    .play-btn {
+        font-size: 0.8rem;
+    }
 }
 
 /* Settings Panel */
