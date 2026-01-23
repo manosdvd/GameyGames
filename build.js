@@ -42,11 +42,18 @@ try {
     run('npm install && npm run build', cryptoDir);
     copyRecursiveWithLog(path.join(cryptoDir, 'dist'), path.join(distDir, 'cryptograms'));
 
-    // 4. Build Anxiety3
-    console.log('> Building Anxiety3...');
+    // 4. Build Anxiety3 (Manual Copy)
+    console.log('> Copying Anxiety3 (Static)...');
     const anxietyDir = path.join(__dirname, 'anxiety3');
-    run('npm install && npm run build', anxietyDir);
-    copyRecursiveWithLog(path.join(anxietyDir, 'dist'), path.join(distDir, 'anxiety3'));
+    const anxietyDist = path.join(distDir, 'anxiety3');
+    if (!fs.existsSync(anxietyDist)) fs.mkdirSync(anxietyDist);
+
+    fs.readdirSync(anxietyDir).forEach(file => {
+        if (file.endsWith('.html') || file.endsWith('.js')) {
+            // Exclude build artifacts if any, but copy html/js
+            fs.copyFileSync(path.join(anxietyDir, file), path.join(anxietyDist, file));
+        }
+    });
 
     // 5. Build HexEnergy (Static + Assets)
     console.log('> Building HexEnergy...');
@@ -59,6 +66,10 @@ try {
     // 7. Build Bejewelled (Static + Assets)
     console.log('> Building Gem Rush (Bejewelled)...');
     copyRecursiveWithLog(path.join(__dirname, 'bejewelled'), path.join(distDir, 'bejewelled'));
+
+    // 8. Copy Shared Scripts/Assets
+    console.log('> Copying Shared Assets...');
+    copyRecursiveWithLog(path.join(__dirname, 'shared'), path.join(distDir, 'shared'));
 
     // 8. Copy Shared Scripts
     if (fs.existsSync(path.join(__dirname, 'timeLimit.js'))) {
