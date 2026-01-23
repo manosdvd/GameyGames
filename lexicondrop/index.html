@@ -113,11 +113,7 @@
 
         #grid {
             position: relative;
-            aspect-ratio: 1 / 1;
-            width: auto;
-            height: auto;
-            max-width: 100%;
-            max-height: 100%;
+            /* JS handles width/height */
         }
 
         .tile-wrapper {
@@ -763,6 +759,26 @@
                 document.getElementById('toggle-haptics').checked = this.options.haptics;
                 document.getElementById('toggle-realtime').checked = this.options.realtime;
                 document.getElementById('toggle-hints').checked = this.options.hints;
+                this.setupResizeHandler();
+            }
+
+            setupResizeHandler() {
+                const resize = () => {
+                    const container = document.getElementById('grid-container');
+                    if (!container) return;
+                    const rect = container.getBoundingClientRect();
+                    // Leave a tiny padding from edge
+                    const size = Math.min(rect.width, rect.height) - 10;
+                    this.gridEl.style.width = size + 'px';
+                    this.gridEl.style.height = size + 'px';
+
+                    // Force update of tile wrappers too?
+                    // No, wrappers use %, so they scale automatically with parent!
+                };
+
+                window.addEventListener('resize', resize);
+                // Call immediately
+                setTimeout(resize, 0);
             }
 
             async fetchExpandedDictionary() {
