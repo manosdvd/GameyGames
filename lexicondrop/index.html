@@ -731,9 +731,10 @@
 
                         ;
 
-                    // CHANGED: Realtime enabled by default
+                    // Sync with global settings
+                    const global = window.GameSettings ? window.GameSettings.get() : { sound: true, haptics: true };
                     this.options = {
-                        realtime: true, hints: false, sound: true, haptics: true
+                        realtime: true, hints: false, sound: global.sound, haptics: global.haptics
                     }
 
                         ;
@@ -1070,6 +1071,10 @@
                 /* --- SETTINGS & HINT LOGIC --- */
                 toggleOption(key, val) {
                     this.options[key] = val;
+                    // Sync back to global
+                    if (window.GameSettings && (key === 'sound' || key === 'haptics')) {
+                        window.GameSettings.set(key, val);
+                    }
                     this.calculateWord(); // Re-trigger visual updates
                 }
 
