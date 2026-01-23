@@ -31,7 +31,7 @@ export const CUSTOM_QUOTES = [
     { quote: "Shut up and take my money!", author: "Fry" },
 
     // --- Books / Literature ---
-    { quote: "All that is gold does not glitter, Not all those who wander are lost.", author: "J.R.R. Tolkien" },
+    // { quote: "All that is gold does not glitter, Not all those who wander are lost.", author: "J.R.R. Tolkien" }, // Duplicate of #740
     { quote: "It was the best of times, it was the worst of times.", author: "Charles Dickens" },
     { quote: "I solemnly swear that I am up to no good.", author: "Harry Potter" },
     { quote: "The man in black fled across the desert, and the gunslinger followed.", author: "Stephen King" },
@@ -71,7 +71,7 @@ export const CUSTOM_QUOTES = [
     { quote: "Optimism is a strategy for making a better future.", author: "Noam Chomsky" },
     { quote: "Be the change that you wish to see in the world.", author: "Mahatma Gandhi" },
     { quote: "If you want to lift yourself up, lift up someone else.", author: "Booker T. Washington" },
-    { quote: "Darkness cannot drive out darkness; only light can do that.", author: "Martin Luther King Jr." },
+    // { quote: "Darkness cannot drive out darkness; only light can do that.", author: "Martin Luther King Jr." }, // Duplicate of #654
     { quote: "Turn your wounds into wisdom.", author: "Oprah Winfrey" },
     { quote: "The journey of a thousand miles begins with one step.", author: "Lao Tzu" },
     { quote: "Get busy living or get busy dying.", author: "Stephen King" },
@@ -242,7 +242,7 @@ export const CUSTOM_QUOTES = [
     { quote: "The world has changed. I feel it in the water. I feel it in the earth. I smell it in the air.", author: "Galadriel (LOTR)" },
     { quote: "People are always asking me if I know Tyler Durden.", author: "Fight Club" },
     { quote: "I was 12 going on 13 the first time I saw a dead human being.", author: "Gordie Lachance (Stand by Me)" },
-    { quote: "Choose life. Choose a job. Choose a career. Choose a family. Choose a f***ing big television.", author: "Trainspotting" },
+    { quote: "Choose life. Choose a job. Choose a career. Choose a family. Choose a fucking big television.", author: "Trainspotting" },
     { quote: "Between the time when the oceans drank Atlantis and the rise of the sons of Aryas, there was an age undreamed of.", author: "Conan the Barbarian" },
     { quote: "Marley was dead: to begin with. There is no doubt whatever, about that. The register of his burial was signed by the clergyman, the clerk, the undertaker, and the chief mourner. Scrooge signed it; and Scrooge's name was good upon 'change, for anything he chose to put his hand to. Old Marley was as dead as a door-nail.", author: "Charles Dickens, A Christmas Carol" },
     { quote: "No live organism can continue for long to exist sanely under conditions of absolute reality; even larks and katydids are supposed, by some, to dream. Hill House, not sane, stood by itself against the hills, holding darkness within; it had stood so for eighty years and might stand for eighty more. Within, walls continued upright, bricks met neatly, floors were firm, and doors were sensibly shut; silence lay steadily against the wood and stone of Hill House, and whatever walked there, walked alone.", author: "Shirley Jackson, Haunting of Hill House" },
@@ -284,37 +284,7 @@ export const CUSTOM_QUOTES = [
     { quote: "A woman is like a tea bag; you never know how strong it is until it's in hot water.", author: "Eleanor Roosevelt" },
     { quote: "It is better to keep your mouth closed and let people think you are a fool than to open it and remove all doubt.", author: "Mark Twain" },
     { quote: "Never interrupt your enemy when he is making a mistake.", author: "Napoleon Bonaparte" },
-    // --- Movies ---
 
-    // --- TV Shows ---
-
-    // --- Books / Literature ---
-
-    // --- Music ---
-
-    // --- Memes / Internet Culture ---
-
-    // --- Gaming ---
-
-    // --- Modern / Present Day Speakers / Misc ---
-
-    // --- From the Internet / Reddit / Curated ---
-
-    // --- Deep / Life Changing (BuzzFeed/Reddit) ---
-
-    // --- Best of /r/quotes ---
-
-    // --- Life Changing / Deep (Reddit) ---
-
-    // --- Inspirational / Wisdom (Inc.com) ---
-
-    // --- Presidential Wisdom / Humor ---
-
-    // --- Great Opening Lines (Books/Movies) ---
-
-    // --- Funny / Witty ---
-
-    // --- Expanded Collection (90-150 chars) ---
 
     // --- Modern TV & Film Favorites ---
     { quote: "Be curious, not judgmental.", author: "Ted Lasso" },
@@ -359,7 +329,7 @@ export const CUSTOM_QUOTES = [
     { quote: "Wax on, wax off.", author: "Mr. Miyagi" },
     { quote: "Fasten your seatbelts. It's going to be a bumpy night.", author: "Bette Davis (All About Eve)" },
     { quote: "I love the smell of napalm in the morning.", author: "Kilgore (Apocalypse Now)" },
-    { quote: "Say 'what' again. I dare you, I double dare you motherf***er!", author: "Jules Winnfield" },
+    { quote: "Say 'what' again. I dare you, I double dare you motherfucker!", author: "Jules Winnfield" },
     { quote: "Royale with cheese.", author: "Vincent Vega" },
     { quote: "Yeah, well, that's just, like, your opinion, man.", author: "The Dude" },
     { quote: "Am I the only one around here who gives a s*** about the rules?", author: "Walter Sobchak" },
@@ -382,7 +352,7 @@ export const CUSTOM_QUOTES = [
     { quote: "Stay awhile and listen.", author: "Deckard Cain (Diablo)" },
     { quote: "Praise the sun!", author: "Solaire of Astora (Dark Souls)" },
     { quote: "Kept you waiting, huh?", author: "Solid Snake" },
-    { quote: "Wake the f*** up, Samurai. We have a city to burn.", author: "Johnny Silverhand (Cyberpunk 2077)" },
+    { quote: "Wake the fuck up, Samurai. We have a city to burn.", author: "Johnny Silverhand (Cyberpunk 2077)" },
     { quote: "Protocol 3: Protect the Pilot.", author: "BT-7274 (Titanfall 2)" },
     { quote: "Sir, finishing this fight.", author: "Master Chief" },
     { quote: "I need a weapon.", author: "Master Chief" },
@@ -403,7 +373,7 @@ export const CUSTOM_QUOTES = [
     { quote: "We suffer more often in imagination than in reality.", author: "Seneca" },
     { quote: "You have power over your mind - not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius" },
     { quote: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche" },
-    { quote: "The only true wisdom is in knowing you know nothing.", author: "Socrates" },
+    // { quote: "The only true wisdom is in knowing you know nothing.", author: "Socrates" }, // Duplicate of #644
     { quote: "In the depth of winter, I finally learned that within me there lay an invincible summer.", author: "Albert Camus" },
     { quote: "Man suffers only because he takes seriously what the gods made for fun.", author: "Alan Watts" },
     { quote: "The wound is the place where the Light enters you.", author: "Rumi" },
@@ -531,7 +501,7 @@ export const CUSTOM_QUOTES = [
     { quote: "Suppose you were an idiot, and suppose you were a member of Congress; but I repeat myself.", author: "Mark Twain" },
     { quote: "I'd rather be a hammer than a nail. Yes I would. If I only could, I surely would.", author: "Simon & Garfunkel" },
     { quote: "The answer, my friend, is blowin' in the wind. The answer is blowin' in the wind.", author: "Bob Dylan" },
-    { quote: "Come gathers 'round people wherever you roam, and admit that the waters around you have grown.", author: "Bob Dylan" },
+    { quote: "Come gather 'round people wherever you roam, and admit that the waters around you have grown.", author: "Bob Dylan" },
     { quote: "Ground Control to Major Tom, taking your protein pills and putting your helmet on.", author: "David Bowie" },
     { quote: "There's a starman waiting in the sky. He'd like to come and meet us but he thinks he'd blow our minds.", author: "David Bowie" },
     { quote: "It's the terror of knowing what the world is about, watching some good friends screaming 'Let me out!'", author: "Queen & David Bowie" },
@@ -638,7 +608,7 @@ export const CUSTOM_QUOTES = [
     { quote: "This was the noblest Roman of them all. All the conspirators save only he did that they did in envy of great Caesar.", author: "Julius Caesar" },
 
     // --- Newly Added Unique Quotes (80-150 chars) ---
-    { quote: "The only limit to our realization of tomorrow will be our doubts of today. Let us move forward with strong and active faith.", author: "Franklin D. Roosevelt" },
+    // { quote: "The only limit to our realization of tomorrow will be our doubts of today. Let us move forward with strong and active faith.", author: "Franklin D. Roosevelt" }, // Duplicate of #281
     { quote: "In three words I can sum up everything I've learned about life: it goes on. It pays to keep moving forward.", author: "Robert Frost" },
     { quote: "Do not dwell in the past, do not dream of the future, concentrate the mind on the present moment.", author: "Buddha" },
     { quote: "The only true wisdom is in knowing you know nothing. I am the wisest man alive, for I know one thing, and that is that I know nothing.", author: "Socrates" },
@@ -649,10 +619,10 @@ export const CUSTOM_QUOTES = [
     { quote: "I count him braver who overcomes his desires than him who conquers his enemies; for the hardest victory is over self.", author: "Aristotle" },
     { quote: "He who has overcome his fears will truly be free. Liberty consists in doing what one desires.", author: "Aristotle" },
     { quote: "There is no easy walk to freedom anywhere, and many of us will have to pass through the valley of the shadow of death.", author: "Nelson Mandela" },
-    { quote: "It always seems impossible until it's done. I learned that courage was not the absence of fear, but the triumph over it.", author: "Nelson Mandela" },
+    // { quote: "It always seems impossible until it's done. I learned that courage was not the absence of fear, but the triumph over it.", author: "Nelson Mandela" }, // Duplicate of #437 & #438
     { quote: "A winner is a dreamer who never gives up. Do not judge me by my successes, judge me by how many times I fell down and got back up again.", author: "Nelson Mandela" },
     { quote: "Darkness cannot drive out darkness; only light can do that. Hate cannot drive out hate; only love can do that.", author: "Martin Luther King Jr." },
-    { quote: "I generally avoid temptation unless I can't resist it. I can resist everything except temptation.", author: "Mae West" },
+    { quote: "I generally avoid temptation unless I can't resist it.", author: "Mae West" },
     { quote: "I wrote the story myself. It's about a girl who lost her reputation and never missed it.", author: "Mae West" },
     { quote: "I don't like to commit myself about heaven and hell - you see, I have friends in both places.", author: "Mark Twain" },
     { quote: "If you pick up a starving dog and make him prosperous, he will not bite you. This is the principal difference between a dog and a man.", author: "Mark Twain" },
@@ -660,8 +630,8 @@ export const CUSTOM_QUOTES = [
     { quote: "I may not have gone where I intended to go, but I think I have ended up where I needed to be.", author: "Douglas Adams" },
     { quote: "Eighty percent of success is showing up. The other twenty percent is following up.", author: "Woody Allen" },
     { quote: "If my doctor told me I had only six minutes to live, I wouldn't brood. I'd type a little faster.", author: "Isaac Asimov" },
-    { quote: "Those people who think they know everything are a great annoyance to those of us who do.", author: "Isaac Asimov" },
-    { quote: "Light travels faster than sound. That is why some people appear bright until you hear them speak.", author: "Anonymous" },
+    // { quote: "Those people who think they know everything are a great annoyance to those of us who do.", author: "Isaac Asimov" }, // Duplicate of #177
+    // { quote: "Light travels faster than sound. That is why some people appear bright until you hear them speak.", author: "Anonymous" }, // Duplicate of #525
     { quote: "My mother said I'd be quite a catch if I could ever just get someone to drop their standards low enough.", author: "Anonymous" },
     { quote: "Caroline! See she's the reason for the word 'bitch'. I hope she's speeding on the way to the club.", author: "Outkast" },
     { quote: "Hey ya! Shake it like a polaroid picture. Shake it, shake it, shake it, shake it like a polaroid picture.", author: "Outkast" },
@@ -731,7 +701,7 @@ export const CUSTOM_QUOTES = [
     { quote: "Your scientists were so preoccupied with whether or not they could, they didn't stop to think if they should.", author: "Ian Malcolm (Jurassic Park)" },
     { quote: "God creates dinosaurs, God destroys dinosaurs. God creates Man, man destroys God. Man creates dinosaurs.", author: "Ian Malcolm (Jurassic Park)" },
     { quote: "A heart is not judged by how much you love, but by how much you are loved by others.", author: "Wizard of Oz" },
-    { quote: "Mama always said life was like a box of chocolates. You never know what you're gonna get.", author: "Forrest Gump" },
+    // { quote: "Mama always said life was like a box of chocolates. You never know what you're gonna get.", author: "Forrest Gump" }, // Duplicate of #277
 
     // --- Newly Added Unique Quotes (80-150 chars) ---
     { quote: "It was a dark and stormy night; the rain fell in torrents — except at occasional intervals, when it was checked by a violent gust of wind.", author: "Edward Bulwer-Lytton" },
@@ -766,4 +736,145 @@ export const CUSTOM_QUOTES = [
     { quote: "We're not gonna take it. No, we ain't gonna take it. We're not gonna take it anymore.", author: "Twisted Sister" },
     { quote: "Why worry? If you've done the very best you can, worrying won't make it any better.", author: "Walt Disney" },
     { quote: "Whatever you do, do it well. Do it so well that when people see you do it, they will want to come back and see you do it again.", author: "Walt Disney" },
+
+    // --- Imported from Meaningful Quotes.txt ---
+    { quote: "It is not our abilities that show what we truly are… it is our choices.", author: "Albus Dumbledore (J.K. Rowling), Harry Potter and the Chamber of Secrets" },
+    { quote: "Success is not final, failure is not fatal: It is the courage to continue that counts.", author: "Winston Churchill" },
+    { quote: "It's only after we've lost everything that we're free to do anything.", author: "Tyler Durden, Fight Club" },
+    { quote: "There is nothing either good or bad, but thinking makes it so.", author: "Hamlet (William Shakespeare), Hamlet" },
+    { quote: "I wonder how many people I've looked at all my life and never seen.", author: "John Steinbeck, The Winter of Our Discontent" },
+    { quote: "When you play the game of thrones, you win or you die. There is no middle ground.", author: "Cersei Lannister, Game of Thrones" },
+    { quote: "Monsters are real, and ghosts are real too. They live inside us, and sometimes, they win.", author: "Stephen King, The Shining" },
+    { quote: "The only thing that feels better than winning is winning when nobody thought you could.", author: "Hank Aaron" },
+    { quote: "We accept the reality of the world with which we're presented.", author: "Christof, The Truman Show" },
+    { quote: "Cowards die many times before their deaths; The valiant never taste of death but once.", author: "Julius Caesar (William Shakespeare), Julius Caesar" },
+    { quote: "Beware; for I am fearless, and therefore powerful.", author: "The Creature (Mary Shelley), Frankenstein" },
+    { quote: "All great and precious things are lonely.", author: "John Steinbeck, East of Eden" },
+    { quote: "Everyone fails at who they are supposed to be, Thor. The measure of a person, of a hero, is how well they succeed at being who they are.", author: "Frigga, Avengers: Endgame" },
+    { quote: "I hope you live a life you're proud of. If you find that you're not, I hope you have the strength to start all over again.", author: "Benjamin Button, The Curious Case of Benjamin Button" },
+    { quote: "To love is to destroy, and to be loved is to be the one destroyed.", author: "Jace Wayland (Cassandra Clare), City of Bones" },
+    { quote: "We make up horrors to help us cope with the real ones.", author: "Stephen King, Danse Macabre" },
+    { quote: "Faithless is he that says farewell when the road darkens.", author: "Gimli (J.R.R. Tolkien), The Fellowship of the Ring" },
+    { quote: "The truth is, everyone is going to hurt you. You just got to find the ones worth suffering for.", author: "Bob Marley" },
+    { quote: "A sad soul can kill you quicker than a germ.", author: "John Steinbeck, Travels with Charley" },
+    { quote: "We accept the love we think we deserve.", author: "Stephen Chbosky, The Perks of Being a Wallflower" },
+    { quote: "We know what we are, but know not what we may be.", author: "Ophelia (William Shakespeare), Hamlet" },
+    { quote: "There is no greater agony than bearing an untold story inside you.", author: "Maya Angelou, I Know Why the Caged Bird Sings" },
+    { quote: "A man who stands for nothing will fall for anything.", author: "Malcolm X" },
+    { quote: "The hardest thing in this world is to live in it. Be brave. Live.", author: "Buffy Summers, Buffy the Vampire Slayer" },
+    { quote: "When we hit our lowest point, we are open to the greatest change.", author: "Aang, Avatar: The Legend of Korra" },
+    { quote: "The unexamined life is not worth living.", author: "Socrates" },
+    { quote: "Deep down, you may still be that same kid you were when you had your first crush.", author: "Stephen King, The Green Mile" },
+    { quote: "Deserves it! I daresay he does. Many that live deserve death. And some that die deserve life.", author: "Gandalf (J.R.R. Tolkien), The Fellowship of the Ring" },
+    { quote: "It is the unknown we fear when we look upon death and darkness, nothing more.", author: "Albus Dumbledore (J.K. Rowling), Harry Potter and the Half-Blood Prince" },
+    { quote: "The world breaks everyone, and afterward, many are strong at the broken places.", author: "Ernest Hemingway, A Farewell to Arms" },
+    { quote: "All the world's a stage, and all the men and women merely players.", author: "Jaques (William Shakespeare), As You Like It" },
+    { quote: "Who controls the past controls the future. Who controls the present controls the past.", author: "George Orwell, 1984" },
+    { quote: "I think we dream so we don’t have to be apart for so long. If we’re in each other’s dreams, we can be together all the time.", author: "A.A. Milne, Winnie-the-Pooh" },
+    { quote: "The mind is its own place, and in itself can make a heaven of hell, a hell of heaven.", author: "John Milton, Paradise Lost" },
+    { quote: "It is a far, far better thing that I do, than I have ever done.", author: "Sydney Carton (Charles Dickens), A Tale of Two Cities" },
+    { quote: "I would rather share one lifetime with you than face all the ages of this world alone.", author: "Arwen (J.R.R. Tolkien), The Fellowship of the Ring" },
+    { quote: "My words fly up, my thoughts remain below: Words without thoughts never to heaven go.", author: "Claudius (William Shakespeare), Hamlet" },
+    { quote: "Every man has his secret sorrows which the world knows not.", author: "Henry Wadsworth Longfellow" },
+    { quote: "Happiness can be found, even in the darkest of times, if one only remembers to turn on the light.", author: "Albus Dumbledore, Harry Potter and the Prisoner of Azkaban" },
+    { quote: "Books are a uniquely portable magic.", author: "Stephen King, On Writing: A Memoir of the Craft" },
+    { quote: "And now that you don't have to be perfect, you can be good.", author: "John Steinbeck, East of Eden" },
+    { quote: "No matter what anybody tells you, words and ideas can change the world.", author: "John Keating, Dead Poets Society" },
+    { quote: "It ain't about how hard you hit. It's about how hard you can get hit and keep moving forward.", author: "Rocky Balboa, Rocky Balboa" },
+    { quote: "Not all those who wander are lost.", author: "J.R.R. Tolkien, The Fellowship of the Ring" },
+    { quote: "The fault, dear Brutus, is not in our stars, but in ourselves.", author: "Cassius (William Shakespeare), Julius Caesar" },
+    { quote: "Adventure is out there!", author: "Ellie, Up" },
+    { quote: "Brave doesn’t mean you’re not scared. It means you go on even though you’re scared.", author: "Starr Carter (Angie Thomas), The Hate U Give" },
+    { quote: "You must never give in to despair. Allow yourself to slip down that road and you surrender to your lowest instincts.", author: "Uncle Iroh, Avatar: The Last Airbender" },
+    { quote: "Venture outside your comfort zone. The rewards are worth it.", author: "Rapunzel, Tangled" },
+    { quote: "Be not afraid of greatness. Some are born great, some achieve greatness, and others have greatness thrust upon them.", author: "Malvolio (William Shakespeare), Twelfth Night" },
+    { quote: "Even the smallest person can change the course of the future.", author: "Galadriel (J.R.R. Tolkien), The Fellowship of the Ring" },
+    { quote: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+    { quote: "Luminous beings are we, not this crude matter.", author: "Yoda, The Empire Strikes Back" },
+    { quote: "Just keep swimming. Just keep swimming. Just keep swimming, swimming, swimming.", author: "Dory, Finding Nemo" },
+    { quote: "There's some good in this world, Mr. Frodo, and it's worth fighting for.", author: "Samwise Gamgee (J.R.R. Tolkien), The Two Towers" },
+    { quote: "You have no power over me.", author: "Sarah Williams, Labyrinth" },
+    { quote: "Do the best you can until you know better. Then when you know better, do better.", author: "Maya Angelou" },
+    { quote: "The flower that blooms in adversity is the most rare and beautiful of all.", author: "The Emperor, Mulan" },
+    { quote: "It’s hard to beat a person who never gives up.", author: "Babe Ruth" },
+    { quote: "The best way to predict the future is to create it.", author: "Peter Drucker" },
+    { quote: "Don't let the noise of others' opinions drown out your own inner voice.", author: "Steve Jobs" },
+    { quote: "You are never too old to set another goal or to dream a new dream.", author: "C.S. Lewis" },
+    { quote: "What we do in life echoes in eternity.", author: "Maximus, Gladiator" },
+    { quote: "You're braver than you believe, stronger than you seem, and smarter than you think.", author: "A.A. Milne" },
+    { quote: "To live is the rarest thing in the world. Most people exist, that is all.", author: "Oscar Wilde" },
+    { quote: "Around here, however, we don't look backwards for very long. We keep moving forward, opening up new doors and doing new things.", author: "Walt Disney" },
+    { quote: "A little consideration, a little thought for others, makes all the difference.", author: "Eeyore (A.A. Milne), Winnie-the-Pooh" },
+    { quote: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+    { quote: "Every man dies, not every man really lives.", author: "William Wallace, Braveheart" },
+    { quote: "Keep your eyes on the stars and your feet on the ground.", author: "Theodore Roosevelt" },
+    { quote: "Don't judge each day by the harvest you reap but by the seeds that you plant.", author: "Robert Louis Stevenson" },
+    { quote: "If you can dream it, you can do it.", author: "Walt Disney" },
+    { quote: "Hope is a good thing, maybe the best of things, and no good thing ever dies.", author: "Andy Dufresne (Stephen King), The Shawshank Redemption" },
+    { quote: "Change your thoughts and you change your world.", author: "Norman Vincent Peale" },
+    { quote: "Act as if what you do makes a difference. It does.", author: "William James" },
+    { quote: "You can't go back and change the beginning, but you can start where you are and change the ending.", author: "C.S. Lewis" },
+    { quote: "Keep your face always toward the sunshine—and shadows will fall behind you.", author: "Walt Whitman" },
+    { quote: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+    { quote: "Start where you are. Use what you have. Do what you can.", author: "Arthur Ashe" },
+    { quote: "I have decided to stick with love. Hate is too great a burden to bear.", author: "Martin Luther King Jr." },
+    { quote: "Real courage is when you know you're licked before you begin, but you begin anyway and see it through no matter what.", author: "Atticus Finch (Harper Lee), To Kill a Mockingbird" },
+    { quote: "What lies behind us and what lies before us are tiny matters compared to what lies within us.", author: "Ralph Waldo Emerson" },
+    { quote: "Gentlemen, you can't fight in here! This is the War Room!", author: "President Merkin Muffley, Dr. Strangelove" },
+    { quote: "I don't know half of you half as well as I should like; and I like less than half of you half as well as you deserve.", author: "Bilbo Baggins (J.R.R. Tolkien), The Fellowship of the Ring" },
+    { quote: "A fool thinks himself to be wise, but a wise man knows himself to be a fool.", author: "Touchstone (William Shakespeare), As You Like It" },
+    { quote: "Ideas are like rabbits. You get a couple and learn how to handle them, and pretty soon you have a dozen.", author: "John Steinbeck, The Winter of Our Discontent" },
+    { quote: "I don't know how to put this, but I'm kind of a big deal.", author: "Ron Burgundy, Anchorman: The Legend of Ron Burgundy" },
+    { quote: "There are only two things I can't stand in this world: People who are intolerant of other people's cultures, and the Dutch.", author: "Nigel Powers, Austin Powers in Goldmember" },
+    { quote: "I am not afraid of death, I just don't want to be there when it happens.", author: "Woody Allen" },
+    { quote: "Never forget what you are. The rest of the world will not. Wear it like armor, and it can never be used to hurt you.", author: "Tyrion Lannister, Game of Thrones" },
+    { quote: "Man is the only kind of varmint sets his own trap, baits it, then steps on it.", author: "John Steinbeck, Sweet Thursday" },
+    { quote: "I do desire we may be better strangers.", author: "Orlando (William Shakespeare), As You Like It" },
+    { quote: "Friendship is like peeing on yourself: everyone can see it, but only you get the warm feeling that it brings.", author: "Robert Bloch (attributed)" },
+    { quote: "Never put off till tomorrow what may be done day after tomorrow just as well.", author: "Mark Twain" },
+    { quote: "Instant gratification takes too long.", author: "Carrie Fisher" },
+    { quote: "I haven’t spoken to my wife in years. I didn’t want to interrupt her.", author: "Rodney Dangerfield" },
+    { quote: "Before you judge a man, walk a mile in his shoes. After that who cares?... He’s a mile away and you’ve got his shoes!", author: "Billy Connolly" },
+    { quote: "If I had a gun with two bullets and I was in a room with Hitler, Bin Laden, and Toby, I would shoot Toby twice.", author: "Michael Scott, The Office" },
+    { quote: "Reality continues to ruin my life.", author: "Bill Watterson, Calvin and Hobbes" },
+    { quote: "Better to remain silent and be thought a fool than to speak out and remove all doubt.", author: "Abraham Lincoln (attributed)" },
+    { quote: "I like rice. Rice is great when you're hungry and you want 2,000 of something.", author: "Mitch Hedberg" },
+    { quote: "My mother always said to me: 'The older you get, the better you get, unless you’re a banana.'", author: "Betty White" },
+    { quote: "Doing nothing is very hard to do. You never know when you're finished.", author: "Leslie Nielsen" },
+    { quote: "Human beings, who are almost unique in having the ability to learn from the experience of others, are also remarkable for their apparent disinclination to do so.", author: "Douglas Adams, Last Chance to See" },
+    { quote: "Behind every great man is a woman rolling her eyes.", author: "Jim Carrey" },
+    { quote: "Outside of a dog, a book is man's best friend. Inside of a dog it's too dark to read.", author: "Groucho Marx" },
+    { quote: "I'm sorry, if you were right, I'd agree with you.", author: "Robin Williams" },
+    { quote: "Trying is the first step toward failure.", author: "Homer Simpson, The Simpsons" },
+    { quote: "I walked into a door. The door was closed. It was a push door. I pulled.", author: "Nick Miller, New Girl" },
+    { quote: "Give a man a fire and he's warm for a day, but set fire to him and he's warm for the rest of his life.", author: "Terry Pratchett, Jingo" },
+    { quote: "Don't sweat the petty things and don't pet the sweaty things.", author: "George Carlin" },
+    { quote: "The capacity for friendship is God's way of apologizing for our families.", author: "Jay McInerney, The Last of the Savages" },
+    { quote: "I’m killing time while I wait for life to shower me with meaning and happiness.", author: "Calvin (Bill Watterson), Calvin and Hobbes" },
+    { quote: "The secret of life is honesty and fair dealing. If you can fake that, you've got it made.", author: "Groucho Marx" },
+    { quote: "Go to Heaven for the climate, Hell for the company.", author: "Mark Twain" },
+    { quote: "I used to think I was indecisive, but now I'm not so sure.", author: "Anonymous" },
+    { quote: "Accept who you are. Unless you're a serial killer.", author: "Ellen DeGeneres" },
+    { quote: "My tastes are simple: I am easily satisfied with the best.", author: "Winston Churchill" },
+    { quote: "I am free of all prejudice. I hate everyone equally.", author: "W.C. Fields" },
+    { quote: "Listen to them. Children of the night. What music they make.", author: "Count Dracula, Dracula (1931)" },
+    { quote: "The oldest and strongest emotion of mankind is fear, and the oldest and strongest kind of fear is fear of the unknown.", author: "H.P. Lovecraft, Supernatural Horror in Literature" },
+    { quote: "Here's Johnny!", author: "Jack Torrance, The Shining" },
+    { quote: "Silence lay steadily against the wood and stone of Hill House, and whatever walked there, walked alone.", author: "Shirley Jackson, The Haunting of Hill House" },
+    { quote: "Stars, hide your fires; Let not light see my black and deep desires.", author: "Macbeth (William Shakespeare), Macbeth" },
+    { quote: "I see dead people.", author: "Cole Sear, The Sixth Sense" },
+    { quote: "One, two, Freddy's coming for you. Three, four, better lock your door.", author: "Children's Song, A Nightmare on Elm Street" },
+    { quote: "When there's no more room in hell, the dead will walk the earth.", author: "Peter, Dawn of the Dead" },
+    { quote: "Whatever you do, don't fall asleep.", author: "Nancy Thompson, A Nightmare on Elm Street" },
+    { quote: "Sleep, those little slices of death — how I loathe them.", author: "Edgar Allan Poe" },
+    { quote: "We all float down here.", author: "Pennywise, It" },
+    { quote: "I am the writing on the wall, the whisper in the classroom! Without these things, I am nothing.", author: "Candyman, Candyman" },
+    { quote: "By the pricking of my thumbs, Something wicked this way comes.", author: "Second Witch (William Shakespeare), Macbeth" },
+    { quote: "Deep into that darkness peering, long I stood there wondering, fearing...", author: "Edgar Allan Poe, The Raven" },
+    { quote: "The boundaries which divide Life from Death are at best shadowy and vague.", author: "Edgar Allan Poe, The Premature Burial" },
+    { quote: "I am the one who knocks!", author: "Walter White, Breaking Bad" },
+    { quote: "All work and no play makes Jack a dull boy.", author: "Jack Torrance, The Shining" },
+    { quote: "The horror! The horror!", author: "Kurtz, Heart of Darkness" },
+    { quote: "Hell is empty and all the devils are here.", author: "Ariel (William Shakespeare), The Tempest" },
+    { quote: "They're coming to get you, Barbara.", author: "Johnny, Night of the Living Dead" },
 ];

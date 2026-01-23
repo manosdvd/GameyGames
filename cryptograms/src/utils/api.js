@@ -89,7 +89,7 @@ const getQuoteFromDeck = async () => {
 
     // If empty, rebuild
     if (deck.length === 0) {
-        console.log("Deck exhausted! Reshuffling...");
+        console.info("Deck exhausted! Reshuffling...");
         deck = await createDeck();
     }
 

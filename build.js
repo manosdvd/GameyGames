@@ -42,18 +42,11 @@ try {
     run('npm install && npm run build', cryptoDir);
     copyRecursiveWithLog(path.join(cryptoDir, 'dist'), path.join(distDir, 'cryptograms'));
 
-    // 4. Build Anxiety3 (Manual Copy)
-    console.log('> Copying Anxiety3 (Static)...');
+    // 4. Build Anxiety3 (React)
+    console.log('> Building Anxiety3...');
     const anxietyDir = path.join(__dirname, 'anxiety3');
-    const anxietyDist = path.join(distDir, 'anxiety3');
-    if (!fs.existsSync(anxietyDist)) fs.mkdirSync(anxietyDist);
-
-    fs.readdirSync(anxietyDir).forEach(file => {
-        if (file.endsWith('.html') || file.endsWith('.js')) {
-            // Exclude build artifacts if any, but copy html/js
-            fs.copyFileSync(path.join(anxietyDir, file), path.join(anxietyDist, file));
-        }
-    });
+    run('npm install && npm run build', anxietyDir);
+    copyRecursiveWithLog(path.join(anxietyDir, 'dist'), path.join(distDir, 'anxiety3'));
 
     // 5. Build HexEnergy (Static + Assets)
     console.log('> Building HexEnergy...');

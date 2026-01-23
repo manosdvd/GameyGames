@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Anxiety - Match 3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../timeLimit.js"></script>
+    <script src="../shared/settings.js"></script>
+    <link rel="stylesheet" href="../shared/theme.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto+Mono:wght@400;700&display=swap');
+
+        /* Additional styles from theme check */
+        html,
+        body,
+        #root {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f0f0f;
+            font-family: 'Roboto Mono', monospace;
+            touch-action: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

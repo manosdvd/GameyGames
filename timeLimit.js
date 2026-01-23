@@ -70,6 +70,6 @@
         }
     }, 1000);
 
-    console.log(`Responsible Mode: ${Math.floor(usage / 60)}/${maxMinutes} mins used`);
+
 
 })();
