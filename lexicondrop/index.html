@@ -95,10 +95,14 @@
         /* --- Grid Area --- */
         #grid-container {
             position: relative;
-            background: #1a1a1f;
+            background:
+                radial-gradient(circle at 50% 50%, rgba(0, 243, 255, 0.05) 0%, transparent 70%),
+                linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)),
+                repeating-linear-gradient(45deg, rgba(0, 243, 255, 0.03) 0px, rgba(0, 243, 255, 0.03) 1px, transparent 1px, transparent 10px);
             padding: 8px;
             border-radius: 12px;
-            border: 2px solid #333;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 50px rgba(0, 0, 0, 0.8);
             touch-action: none;
             width: 100%;
             box-sizing: border-box;
@@ -129,20 +133,25 @@
         .tile-inner {
             width: 100%;
             height: 100%;
-            background: linear-gradient(145deg, #f0f0f0, #d0d0d0);
-            border-radius: 6px;
+            background: rgba(10, 10, 25, 0.9);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 4px;
+            /* More angular for cyberpunk */
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #333;
+            color: var(--cyber-text);
             font-weight: 800;
-            box-shadow: 0 3px 0 #999, 0 4px 4px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
             position: relative;
-            transition: transform 0.1s, background 0.1s, box-shadow 0.2s;
+            transition: transform 0.1s, background 0.1s, box-shadow 0.2s, border-color 0.2s;
+            backdrop-filter: blur(2px);
         }
 
         .tile-inner .letter {
             font-size: 1.3rem;
+            font-family: 'Orbitron', 'Segoe UI', sans-serif;
+            text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
         }
 
         .tile-inner .score-val {
@@ -155,18 +164,21 @@
 
         /* Selection States */
         .tile-wrapper.selected .tile-inner {
-            background: linear-gradient(145deg, #5b9de6, #3a80d2);
-            color: white;
-            box-shadow: 0 3px 0 #1e4b7a, 0 0 12px var(--secondary);
+            background: rgba(0, 243, 255, 0.15);
+            border-color: var(--cyber-cyan);
+            color: #fff;
+            box-shadow: 0 0 15px var(--cyber-cyan), inset 0 0 10px rgba(0, 243, 255, 0.2);
             transform: translateY(1px) scale(0.95);
         }
 
+        /* Last selected tile (the head) */
         .tile-wrapper.last-selected .tile-inner {
-            background: white;
-            color: var(--secondary);
-            border: 2px solid var(--secondary);
+            background: var(--cyber-cyan);
+            color: #000;
+            border: 2px solid #fff;
             transform: translateY(1px) scale(1.1);
             z-index: 10;
+            box-shadow: 0 0 20px var(--cyber-cyan);
         }
 
         /* HINT STATE */
@@ -187,25 +199,29 @@
         }
 
         #current-word-display {
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
+            background: rgba(0, 10, 20, 0.8);
+            color: var(--cyber-text);
             padding: 12px;
             text-align: center;
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             font-weight: 700;
-            border-radius: 8px;
+            border-radius: 4px;
             min-height: 2rem;
-            border: 2px solid #444;
-            letter-spacing: 2px;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            letter-spacing: 3px;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
         }
 
         #current-word-display.valid {
-            background-color: rgba(46, 204, 113, 0.2);
+            background-color: rgba(46, 204, 113, 0.1);
             border-color: var(--success);
             color: var(--success);
-            box-shadow: 0 0 15px rgba(46, 204, 113, 0.3);
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
             transform: scale(1.02);
+            text-shadow: 0 0 15px var(--success);
         }
 
         .btn-group {
