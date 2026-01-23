@@ -67,7 +67,11 @@ try {
     console.log('> Building Gem Rush (Bejewelled)...');
     copyRecursiveWithLog(path.join(__dirname, 'bejewelled'), path.join(distDir, 'bejewelled'));
 
-    // 8. Copy Shared Scripts/Assets
+    // 8. Build Lexicon Drop (Static + Assets)
+    console.log('> Building Lexicon Drop (Static)...');
+    copyRecursiveWithLog(path.join(__dirname, 'lexicondrop'), path.join(distDir, 'lexicondrop'));
+
+    // 9. Copy Shared Scripts/Assets
     console.log('> Copying Shared Assets...');
     copyRecursiveWithLog(path.join(__dirname, 'shared'), path.join(distDir, 'shared'));
 
