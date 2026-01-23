@@ -8,11 +8,11 @@
     --cyber-magenta: #ff00ff;
     --cyber-yellow: #ffe600;
     --cyber-text: #e0e0e0;
-    
+
     /* Neon Glows */
     --neon-cyan-glow: 0 0 10px var(--cyber-cyan), 0 0 20px var(--cyber-cyan);
     --neon-magenta-glow: 0 0 10px var(--cyber-magenta), 0 0 20px var(--cyber-magenta);
-    
+
     /* Borders */
     --cyber-border: 1px solid var(--cyber-cyan);
 }
@@ -56,7 +56,9 @@ body {
 }
 
 /* Headers */
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     font-family: 'Orbitron', sans-serif;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -82,8 +84,8 @@ h1, h2, h3 {
 /* Game Grid */
 .game-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
     margin-bottom: 3rem;
 }
 
@@ -91,12 +93,14 @@ h1, h2, h3 {
 .cyber-card {
     background-color: var(--cyber-surface);
     border: 1px solid var(--cyber-cyan);
-    border-radius: 4px; /* Slightly rounded, tech feel */
+    border-radius: 4px;
+    /* Slightly rounded, tech feel */
     overflow: hidden;
     transition: all 0.3s ease;
     position: relative;
     cursor: pointer;
-    clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%); /* Angled corner */
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
+    /* Angled corner */
 }
 
 .cyber-card:hover {
@@ -111,7 +115,7 @@ h1, h2, h3 {
 }
 
 .card-media {
-    height: 150px;
+    height: 120px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -132,20 +136,43 @@ h1, h2, h3 {
 }
 
 .card-icon {
-    font-size: 4rem;
+    font-size: 3rem;
     color: rgba(255, 255, 255, 0.8);
     z-index: 2;
 }
 
 /* Unique Card Backdrops */
-.bg-anxiety { background: radial-gradient(circle, #4a0000 0%, #000 70%); }
-.bg-dyslexia { background: radial-gradient(circle, #002a4a 0%, #000 70%); }
-.bg-discalculia { background: radial-gradient(circle, #4a3a00 0%, #000 70%); }
-.bg-lexicon { background: radial-gradient(circle, #2a004a 0%, #000 70%); }
-.bg-crypto { background: repeating-linear-gradient(45deg, #0a0a0a, #0a0a0a 10px, #111 10px, #111 20px); }
-.bg-hex { background: radial-gradient(circle, #004a1f 0%, #000 70%); }
-.bg-wordle { background-color: #121213; }
-.bg-gem { background: linear-gradient(135deg, #220022 0%, #002211 100%); }
+.bg-anxiety {
+    background: radial-gradient(circle, #4a0000 0%, #000 70%);
+}
+
+.bg-dyslexia {
+    background: radial-gradient(circle, #002a4a 0%, #000 70%);
+}
+
+.bg-discalculia {
+    background: radial-gradient(circle, #4a3a00 0%, #000 70%);
+}
+
+.bg-lexicon {
+    background: radial-gradient(circle, #2a004a 0%, #000 70%);
+}
+
+.bg-crypto {
+    background: repeating-linear-gradient(45deg, #0a0a0a, #0a0a0a 10px, #111 10px, #111 20px);
+}
+
+.bg-hex {
+    background: radial-gradient(circle, #004a1f 0%, #000 70%);
+}
+
+.bg-wordle {
+    background-color: #121213;
+}
+
+.bg-gem {
+    background: linear-gradient(135deg, #220022 0%, #002211 100%);
+}
 
 .card-content {
     padding: 1.5rem;
@@ -280,12 +307,12 @@ h1, h2, h3 {
     transition: .4s;
 }
 
-input:checked + .slider {
+input:checked+.slider {
     background-color: rgba(0, 243, 255, 0.2);
     border-color: var(--cyber-cyan);
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
     transform: translateX(30px);
     background-color: var(--cyber-cyan);
     box-shadow: 0 0 10px var(--cyber-cyan);
