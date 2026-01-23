@@ -1,18 +1,22 @@
 < !DOCTYPE html>
+    <!DOCTYPE html>
     <html lang="en">
 
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <title>Lexicon Drop</title>
+        <script src="../timeLimit.js"></script>
+        <script src="../shared/settings.js"></script>
+        <link rel="stylesheet" href="../shared/theme.css">
         <style>
             :root {
-                --bg-color: #121214;
-                --panel-bg: #23232a;
-                --accent: #ff0055;
-                --secondary: #4a90e2;
-                --gold: #f1c40f;
-                --text-color: #ecf0f1;
+                --bg-color: var(--cyber-bg);
+                --panel-bg: var(--cyber-surface);
+                --accent: var(--cyber-magenta);
+                --secondary: var(--cyber-cyan);
+                --gold: var(--cyber-yellow);
+                --text-color: var(--cyber-text);
                 --success: #2ecc71;
             }
 
@@ -490,30 +494,31 @@
     </head>
 
     <body>
-        <div id="game-container">
-            <header>
-                <div class="stat-box"><span>SCORE</span><span id="score" class="stat-value">0</span></div>
-                <div style="flex: 1; margin: 0 15px;">
-                    <div
-                        style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px; font-weight:700; color:#888;">
-                        <span>LVL <span id="level" style="color:white">1</span></span><span>GOAL <span id="target-score"
-                                style="color:white">100</span></span>
-                    </div>
-                    <div class="target-bar-container">
-                        <div id="target-bar" class="target-bar-fill"></div>
-                    </div>
+        <header>
+            <button class="icon-btn" onclick="window.location.href='../index.html'"
+                style="margin-right:10px; margin-left:0;">&lt;</button>
+            <div class="stat-box"><span>SCORE</span><span id="score" class="stat-value">0</span></div>
+            <div style="flex: 1; margin: 0 15px;">
+                <div
+                    style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px; font-weight:700; color:#888;">
+                    <span>LVL <span id="level" style="color:white">1</span></span><span>GOAL <span id="target-score"
+                            style="color:white">100</span></span>
                 </div>
-                <div class="stat-box"><span>$</span><span id="money" class="stat-value">0</span></div><button
-                    class="icon-btn" onclick="game.openSettings()">⚙️</button>
-            </header>
-            <div id="grid-container">
-                <div id="grid"></div>
+                <div class="target-bar-container">
+                    <div id="target-bar" class="target-bar-fill"></div>
+                </div>
             </div>
-            <div id="controls">
-                <div id="current-word-display">_</div>
-                <div class="btn-group"><button id="clear-btn" onclick="game.clearSelection()">Clear</button><button
-                        id="submit-btn" onclick="game.submitWord()">Submit</button></div>
-            </div>
+            <div class="stat-box"><span>$</span><span id="money" class="stat-value">0</span></div><button
+                class="icon-btn" onclick="game.openSettings()">⚙️</button>
+        </header>
+        <div id="grid-container">
+            <div id="grid"></div>
+        </div>
+        <div id="controls">
+            <div id="current-word-display">_</div>
+            <div class="btn-group"><button id="clear-btn" onclick="game.clearSelection()">Clear</button><button
+                    id="submit-btn" onclick="game.submitWord()">Submit</button></div>
+        </div>
         </div>
         <div id="modal-overlay">
             < !-- Settings Modal -->
