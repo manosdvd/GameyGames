@@ -16,6 +16,29 @@
     <div class="app-container">
         <h1 class="main-title">NEURO_HUB</h1>
 
+        <!-- Responsible Gaming Settings -->
+        <div class="settings-panel" style="margin-top: 0; margin-bottom: 3rem;">
+            <div class="setting-item">
+                <div>
+                    <div style="font-weight: bold; color: var(--cyber-text);">RESPONSIBLE_MODE</div>
+                    <div style="font-size: 0.8rem; color: #888;">Daily Playtime Limit Protocol</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="responsibleToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div id="timeLimitConfig" style="display: none;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--cyber-cyan);">DAILY_LIMIT
+                    (MINUTES)</label>
+                <div style="display: flex; gap: 1rem;">
+                    <input type="number" id="timeLimitInput" value="60" min="5" max="300" class="cyber-input">
+                    <button id="saveSettings" class="cyber-btn">SAVE_CONFIG</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Section: Neuro Games -->
         <h2 class="section-title">NEURO_MODULES</h2>
         <div class="game-grid">
@@ -124,28 +147,7 @@
 
         </div>
 
-        <!-- Responsible Gaming Settings -->
-        <div class="settings-panel">
-            <div class="setting-item">
-                <div>
-                    <div style="font-weight: bold; color: var(--cyber-text);">RESPONSIBLE_MODE</div>
-                    <div style="font-size: 0.8rem; color: #888;">Daily Playtime Limit Protocol</div>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" id="responsibleToggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
 
-            <div id="timeLimitConfig" style="display: none;">
-                <label style="display: block; margin-bottom: 0.5rem; color: var(--cyber-cyan);">DAILY_LIMIT
-                    (MINUTES)</label>
-                <div style="display: flex; gap: 1rem;">
-                    <input type="number" id="timeLimitInput" value="60" min="5" max="300" class="cyber-input">
-                    <button id="saveSettings" class="cyber-btn">SAVE_CONFIG</button>
-                </div>
-            </div>
-        </div>
 
         <button class="cyber-fab" aria-label="Add Game">
             <span class="material-symbols-outlined" style="font-size: 2rem;">add</span>
