@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Courier+Prime:wght@400;700&display=swap"
         rel="stylesheet">
     <script src="../timeLimit.js"></script>
+    <script src="dictionary.js"></script>
     <style>
         body {
             margin: 0;
@@ -244,7 +245,7 @@
             const [startLevel, setStartLevel] = useState(1);
 
             // Dictionary
-            const [dictionary, setDictionary] = useState(new Set());
+            const [dictionary, setDictionary] = useState(new Set(window.COMMON_WORDS_SEED ? window.COMMON_WORDS_SEED.split(' ') : []));
             const [dictLoaded, setDictLoaded] = useState(false);
             const [loadingError, setLoadingError] = useState(null);
 
@@ -259,8 +260,11 @@
                         return res.text();
                     })
                     .then(text => {
-                        const words = new Set(text.split('\n').map(w => w.trim().toUpperCase()).filter(w => w.length >= 3));
-                        setDictionary(words);
+                        setDictionary(prev => {
+                            const next = new Set(prev);
+                            text.split('\n').map(w => w.trim().toUpperCase()).filter(w => w.length >= 3).forEach(w => next.add(w));
+                            return next;
+                        });
                         setDictLoaded(true);
                     })
                     .catch(err => {
