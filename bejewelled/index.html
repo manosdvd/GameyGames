@@ -7,12 +7,14 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Gem Rush</title>
     <script src="../timeLimit.js"></script>
+    <script src="../shared/settings.js"></script>
+    <link rel="stylesheet" href="../shared/theme.css">
     <style>
         :root {
-            --bg-color: #0d0d15;
-            --grid-bg: #1a1a24;
-            --accent: #ff00de;
-            --text: #fff;
+            --bg-color: var(--cyber-bg);
+            --grid-bg: var(--cyber-surface);
+            --accent: var(--cyber-magenta);
+            --text: var(--cyber-text);
             --gem-size: 50px;
         }
 
@@ -590,6 +592,7 @@
         const A = window.AudioContext || window.webkitAudioContext;
         const ac = new A();
         function playSound(t) {
+            if (window.GameSettings && !window.GameSettings.get().sound) return;
             if (ac.state === 'suspended') ac.resume();
             let o = ac.createOscillator(), g = ac.createGain();
             o.connect(g); g.connect(ac.destination);
