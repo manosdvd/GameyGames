@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hex Energy</title>
+    <script src="../timeLimit.js"></script>
+    <script src="../shared/settings.js"></script>
+    <link rel="stylesheet" href="../shared/theme.css">
     <style>
         :root {
             --bg-color: #050505;
@@ -913,7 +916,7 @@
 
         function handleTap(tile) {
             if (isInputLocked) return;
-            if (navigator.vibrate) navigator.vibrate(5);
+            if (window.GameSettings?.get().haptics && navigator.vibrate) navigator.vibrate(5);
 
             // Record history before move? No, we record the tile coord so we can reverse it.
             // Actually, we just need to know WHICH tile was rotated.
@@ -1043,7 +1046,7 @@
             // Simple score: (Optimal Moves / Actual Moves) * 1000 - TimePenalty
             // For now just show "Stabilized".
 
-            if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 200]);
+            if (window.GameSettings?.get().haptics && navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 200]);
             endNodes.forEach(sink => spawnParticles(sink));
             setTimeout(() => victoryEl.classList.add('visible'), 800);
         }

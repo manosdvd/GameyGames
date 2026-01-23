@@ -38,3 +38,21 @@
     background: rgba(5, 5, 16, 0.95);
     backdrop-filter: blur(10px);
 }
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--cyber-cyan);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn:hover {
+    transform: scale(1.1);
+    color: var(--cyber-magenta);
+    text-shadow: var(--cyber-glow-magenta);
+}
