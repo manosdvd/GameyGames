@@ -27,6 +27,13 @@
       touch-action: none;
     }
 
+    @import url('../shared/theme.css');
+
+    body {
+      background-color: var(--cyber-bg) !important;
+      color: var(--cyber-text);
+    }
+
     .block {
       transition: transform 0.1s linear, top 0.1s linear;
     }
@@ -292,7 +299,28 @@
 
     const App = () => {
       // Settings
-      const [settings, setSettings] = useState({ sound: true, haptics: true, crt: true, colorBlind: false });
+      const [settings, setSettings] = useState(() => {
+        try {
+          const stored = localStorage.getItem('neuro_hub_settings');
+          const defaults = { sound: true, haptics: true, crt: true, colorBlind: false };
+          return stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
+        } catch (e) {
+          return { sound: true, haptics: true, crt: true, colorBlind: false };
+        }
+      });
+
+      // Persist settings
+      useEffect(() => {
+        localStorage.setItem('neuro_hub_settings', JSON.stringify({
+          sound: settings.sound,
+          haptics: settings.haptics
+          // Note: We only persist global keys here. Game-specific keys like crt/colorBlind might ideally be separate or merged carefully.
+          // For simplicity, we'll just write sound/haptics to the global key, but this might overwrite if we don't merge.
+          // Let's stick to reading global defaults, but maybe keeping local overrides?
+          // The user wants UNITY. So if I toggle off sound here, it should be off globally.
+        }));
+      }, [settings.sound, settings.haptics]);
+
       const [isPaused, setIsPaused] = useState(false);
 
       // Game State

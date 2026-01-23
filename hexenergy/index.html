@@ -344,6 +344,7 @@
         }
     </style>
     <script src="../timeLimit.js"></script>
+    <script src="../shared/settings.js"></script>
 </head>
 
 <body>
@@ -364,7 +365,8 @@
     <div id="bottom-ui">
         <button class="control-btn" onclick="undoLastMove()">Undo</button>
         <button class="control-btn" onclick="resetPuzzle()">Reset</button>
-        <button class="control-btn" onclick="newPuzzle()">New</button>
+        <button class="control-btn" onclick="openSetup()">New</button>
+        <button class="control-btn" onclick="toggleSettingsOverlay()">Settings</button>
         <div class="hud-pill-small">
             <span class="seed-label">Moves</span>
             <span id="moves-lbl" class="hud-value">0</span>
@@ -442,14 +444,17 @@
         class SoundManager {
             constructor() {
                 this.ctx = null;
-                this.enabled = true;
+            }
+
+            get enabled() {
+                return window.GameSettings ? window.GameSettings.get().sound : true;
             }
 
             init() {
                 if (!this.enabled) return;
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (!AudioContext) return;
-                this.ctx = new AudioContext();
+                if (!this.ctx) this.ctx = new AudioContext();
             }
 
             playTone(freq, type, duration, vol = 0.1) {
@@ -1114,6 +1119,48 @@
                 bgDrops[i]++;
             }
             requestAnimationFrame(drawBg);
+        }
+
+        function toggleSettingsOverlay() {
+            const overlay = document.getElementById('start-overlay') || createOverlay();
+            overlay.style.opacity = '1';
+            overlay.style.pointerEvents = 'all';
+
+            const soundState = window.GameSettings ? window.GameSettings.get().sound : true;
+            const hapticState = window.GameSettings ? window.GameSettings.get().haptics : true;
+
+            // Simple Settings UI
+            overlay.innerHTML = `
+                 <div style="background:var(--ui-bg); padding:30px; border-radius:10px; border:1px solid var(--cyber-cyan); width:300px; text-align:center; box-shadow: 0 0 20px rgba(0,243,255,0.2);">
+                    <h1 style="font-size:2rem; color:var(--cyber-cyan); margin-bottom:2rem; font-family:'Orbitron', sans-serif;">SETTINGS</h1>
+                    
+                    <button onclick="window.GameSettings.toggle('sound'); toggleSettingsOverlay();" style="width:100%; margin-bottom:15px; padding:12px; background:rgba(0,0,0,0.5); border:1px solid var(--cyber-cyan); color:var(--cyber-cyan); cursor:pointer; font-family:'Orbitron', sans-serif; text-transform:uppercase;">
+                        SOUND: <span style="color:${soundState ? 'var(--cyber-cyan)' : '#555'}">${soundState ? 'ON' : 'OFF'}</span>
+                    </button>
+                    
+                    <button onclick="window.GameSettings.toggle('haptics'); toggleSettingsOverlay();" style="width:100%; margin-bottom:25px; padding:12px; background:rgba(0,0,0,0.5); border:1px solid var(--cyber-cyan); color:var(--cyber-cyan); cursor:pointer; font-family:'Orbitron', sans-serif; text-transform:uppercase;">
+                        HAPTICS: <span style="color:${hapticState ? 'var(--cyber-cyan)' : '#555'}">${hapticState ? 'ON' : 'OFF'}</span>
+                    </button>
+                    
+                    <button onclick="closeOverlay()" style="width:100%; background:var(--cyber-cyan); color:#000; padding:12px; border:none; font-weight:bold; cursor:pointer; font-family:'Orbitron', sans-serif;">CLOSE</button>
+                 </div>
+            `;
+        }
+
+        function createOverlay() {
+            const div = document.createElement('div');
+            div.id = 'start-overlay';
+            div.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,5,10,0.85); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; backdrop-filter:blur(5px); opacity:0; transition:opacity 0.3s; pointer-events:none;';
+            document.body.appendChild(div);
+            return div;
+        }
+
+        function closeOverlay() {
+            const overlay = document.getElementById('start-overlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
+            }
         }
 
         window.onload = () => {

@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Roboto:wght@300;400;500&display=swap');
+
+:root {
+    /* Core Palette */
+    --cyber-bg: #050510;
+    --cyber-surface: #0a0a1f;
+    --cyber-cyan: #00f3ff;
+    --cyber-magenta: #ff00ff;
+    --cyber-yellow: #ffe600;
+    --cyber-text: #e0e0e0;
+
+    /* Functional */
+    --cyber-glow-cyan: 0 0 10px var(--cyber-cyan);
+    --cyber-glow-magenta: 0 0 10px var(--cyber-magenta);
+    --cyber-border-radius: 4px;
+}
+
+/* Common UI */
+.cyber-btn {
+    background: transparent;
+    border: 1px solid var(--cyber-cyan);
+    color: var(--cyber-cyan);
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: var(--cyber-border-radius);
+}
+
+.cyber-btn:hover {
+    background: var(--cyber-cyan);
+    color: var(--cyber-bg);
+    box-shadow: var(--cyber-glow-cyan);
+}
+
+.cyber-overlay {
+    background: rgba(5, 5, 16, 0.95);
+    backdrop-filter: blur(10px);
+}
