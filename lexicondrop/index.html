@@ -111,13 +111,11 @@
             align-items: center;
             flex: 1;
             min-height: 0;
-            /* Critical for grid scaling */
             margin-bottom: 0;
         }
 
         #grid {
             position: relative;
-            /* JS handles width/height */
         }
 
         .tile-wrapper {
@@ -136,7 +134,6 @@
             background: rgba(10, 10, 25, 0.9);
             border: 1px solid rgba(0, 243, 255, 0.2);
             border-radius: 4px;
-            /* More angular for cyberpunk */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -171,7 +168,6 @@
             transform: translateY(1px) scale(0.95);
         }
 
-        /* Last selected tile (the head) */
         .tile-wrapper.last-selected .tile-inner {
             background: var(--cyber-cyan);
             color: #000;
@@ -181,7 +177,6 @@
             box-shadow: 0 0 20px var(--cyber-cyan);
         }
 
-        /* HINT STATE */
         .tile-wrapper.hint-neighbor .tile-inner {
             border: 2px solid var(--gold);
             box-shadow: 0 0 10px rgba(241, 196, 15, 0.4);
@@ -213,15 +208,44 @@
             text-transform: uppercase;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             text-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+            cursor: default;
+            user-select: none;
+            position: relative;
         }
 
+        /* Valid State - Now acts as a button */
         #current-word-display.valid {
-            background-color: rgba(46, 204, 113, 0.1);
+            background-color: rgba(46, 204, 113, 0.2);
             border-color: var(--success);
+            border-width: 2px;
             color: var(--success);
             box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
             transform: scale(1.02);
             text-shadow: 0 0 15px var(--success);
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        /* Press effect for the word box */
+        #current-word-display.valid:active {
+            transform: scale(0.95);
+            background-color: rgba(46, 204, 113, 0.4);
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.6);
+        }
+
+        /* Optional: Add a "SUBMIT" label hint when valid */
+        #current-word-display.valid::after {
+            content: "TAP TO SUBMIT";
+            display: block;
+            position: absolute;
+            bottom: 2px;
+            left: 0;
+            width: 100%;
+            font-size: 0.6rem;
+            letter-spacing: 1px;
+            color: var(--success);
+            font-family: 'Segoe UI', sans-serif;
+            opacity: 0.8;
         }
 
         .btn-group {
@@ -247,25 +271,13 @@
             box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
         }
 
-        #submit-btn {
-            background: var(--secondary);
-            color: white;
-        }
-
-        #submit-btn:disabled {
-            background: #555;
-            color: #888;
-            box-shadow: none;
-            transform: translateY(2px);
-        }
-
         #clear-btn {
             background: #333;
             color: #ccc;
             border: 1px solid #555;
+            flex: 1; /* Occupy full width */
         }
 
-        /* Settings Button */
         .icon-btn {
             background: transparent;
             box-shadow: none;
@@ -282,7 +294,7 @@
             transform: scale(0.9);
         }
 
-        /* --- Modals --- */
+        /* --- Modals & Rest of CSS --- */
         #modal-overlay {
             position: fixed;
             top: 0;
@@ -341,7 +353,6 @@
             margin-top: 5px;
         }
 
-        /* --- Settings Toggle --- */
         .setting-row {
             display: flex;
             justify-content: space-between;
@@ -411,22 +422,10 @@
             transform: translateX(24px);
         }
 
-        /* --- Particles & Effects --- */
         @keyframes pop {
-            0% {
-                transform: scale(1);
-                opacity: 1;
-            }
-
-            50% {
-                transform: scale(1.3);
-                opacity: 0.8;
-            }
-
-            100% {
-                transform: scale(0);
-                opacity: 0;
-            }
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
         }
 
         .popping {
@@ -445,15 +444,8 @@
         }
 
         @keyframes fly {
-            0% {
-                transform: translate(0, 0) scale(1);
-                opacity: 1;
-            }
-
-            100% {
-                transform: translate(var(--vx), var(--vy)) scale(0);
-                opacity: 0;
-            }
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--vx), var(--vy)) scale(0); opacity: 0; }
         }
 
         .float-text {
@@ -481,30 +473,14 @@
         }
 
         @keyframes floatUp {
-            0% {
-                transform: translateY(0);
-                opacity: 0;
-            }
-
-            20% {
-                opacity: 1;
-                transform: translateY(-10px);
-            }
-
-            100% {
-                transform: translateY(-60px);
-                opacity: 0;
-            }
+            0% { transform: translateY(0); opacity: 0; }
+            20% { opacity: 1; transform: translateY(-10px); }
+            100% { transform: translateY(-60px); opacity: 0; }
         }
 
         @media (max-width: 360px) {
-            .tile-inner .letter {
-                font-size: 1.1rem;
-            }
-
-            .tile-inner .score-val {
-                font-size: 0.5rem;
-            }
+            .tile-inner .letter { font-size: 1.1rem; }
+            .tile-inner .score-val { font-size: 0.5rem; }
         }
     </style>
 </head>
@@ -530,197 +506,93 @@
     <div id="grid-container">
         <div id="grid"></div>
     </div>
+    
     <div id="controls">
-        <div id="current-word-display">_</div>
-        <div class="btn-group"><button id="clear-btn" onclick="game.clearSelection()">Clear</button><button
-                id="submit-btn" onclick="game.submitWord()">Submit</button></div>
+        <div id="current-word-display" onclick="game.submitWord()">_</div>
+        <div class="btn-group">
+            <button id="clear-btn" onclick="game.clearSelection()">Clear Selection</button>
+        </div>
     </div>
-    </div>
+    
     <div id="modal-overlay">
-        < !-- Settings Modal -->
-            <div class="modal-content" id="settings-modal" style="display:none; text-align:left;">
-                <h2 style="color:var(--text-color); margin:0 0 15px 0; text-align:center;">Settings</h2>
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Sound Effects</div>
-                        <div class="setting-desc">Play audio tones</div>
-                    </div><label class="switch"><input type="checkbox" id="toggle-sound"
-                            onchange="game.toggleOption('sound', this.checked)"><span class="slider"></span></label>
-                </div>
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Haptics</div>
-                        <div class="setting-desc">Vibration feedback</div>
-                    </div><label class="switch"><input type="checkbox" id="toggle-haptics"
-                            onchange="game.toggleOption('haptics', this.checked)"><span class="slider"></span></label>
-                </div>
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Real-Time Check</div>
-                        <div class="setting-desc">Turns green if word is valid</div>
-                    </div><label class="switch"><input type="checkbox" id="toggle-realtime"
-                            onchange="game.toggleOption('realtime', this.checked)"><span class="slider"></span></label>
-                </div>
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Next Letter Hint</div>
-                        <div class="setting-desc">Highlight valid letter connections</div>
-                    </div><label class="switch"><input type="checkbox" id="toggle-hints"
-                            onchange="game.toggleOption('hints', this.checked)"><span class="slider"></span></label>
-                </div><button onclick="document.getElementById('modal-overlay').style.display='none'"
-                    style="background:var(--secondary); width:100%; margin-top:20px;">Close</button>
+        <div class="modal-content" id="settings-modal" style="display:none; text-align:left;">
+            <h2 style="color:var(--text-color); margin:0 0 15px 0; text-align:center;">Settings</h2>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Sound Effects</div>
+                    <div class="setting-desc">Play audio tones</div>
+                </div><label class="switch"><input type="checkbox" id="toggle-sound"
+                        onchange="game.toggleOption('sound', this.checked)"><span class="slider"></span></label>
             </div>
-            < !-- Shop Modal -->
-                <div class="modal-content" id="level-complete-modal" style="display:none">
-                    <h2 style="color:var(--gold); margin:0 0 5px 0;">LEVEL COMPLETE</h2>
-                    <p style="margin: 5px 0; color: #ccc;">Current Funds: <span id="shop-money-val"
-                            style="color:var(--gold); font-weight:bold;"></span></p>
-                    <p>Pick a Relic:</p>
-                    <div class="shop-items" id="shop-container"></div><button onclick="game.startNextLevel()"
-                        style="background:var(--secondary); width:100%;">Next Level</button>
-                </div>
-                < !-- Game Over Modal -->
-                    <div class="modal-content" id="game-over-modal" style="display:none">
-                        <h2 style="color: #e74c3c; margin:0 0 10px 0;">GAME OVER</h2>
-                        <p>Final Score: <span id="final-score"
-                                style="color:var(--gold); font-weight:bold; font-size:1.5rem;">0</span></p><button
-                            onclick="location.reload()" style="background:var(--secondary); width:100%;">Try
-                            Again</button>
-                    </div>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Haptics</div>
+                    <div class="setting-desc">Vibration feedback</div>
+                </div><label class="switch"><input type="checkbox" id="toggle-haptics"
+                        onchange="game.toggleOption('haptics', this.checked)"><span class="slider"></span></label>
+            </div>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Real-Time Check</div>
+                    <div class="setting-desc">Turns green if word is valid</div>
+                </div><label class="switch"><input type="checkbox" id="toggle-realtime"
+                        onchange="game.toggleOption('realtime', this.checked)"><span class="slider"></span></label>
+            </div>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Next Letter Hint</div>
+                    <div class="setting-desc">Highlight valid letter connections</div>
+                </div><label class="switch"><input type="checkbox" id="toggle-hints"
+                        onchange="game.toggleOption('hints', this.checked)"><span class="slider"></span></label>
+            </div><button onclick="document.getElementById('modal-overlay').style.display='none'"
+                style="background:var(--secondary); width:100%; margin-top:20px;">Close</button>
+        </div>
+        <div class="modal-content" id="level-complete-modal" style="display:none">
+            <h2 style="color:var(--gold); margin:0 0 5px 0;">LEVEL COMPLETE</h2>
+            <p style="margin: 5px 0; color: #ccc;">Current Funds: <span id="shop-money-val"
+                    style="color:var(--gold); font-weight:bold;"></span></p>
+            <p>Pick a Relic:</p>
+            <div class="shop-items" id="shop-container"></div><button onclick="game.startNextLevel()"
+                style="background:var(--secondary); width:100%;">Next Level</button>
+        </div>
+        <div class="modal-content" id="game-over-modal" style="display:none">
+            <h2 style="color: #e74c3c; margin:0 0 10px 0;">GAME OVER</h2>
+            <p>Final Score: <span id="final-score"
+                    style="color:var(--gold); font-weight:bold; font-size:1.5rem;">0</span></p><button
+                onclick="location.reload()" style="background:var(--secondary); width:100%;">Try
+                Again</button>
+        </div>
     </div>
     <script src="../shared/dictionary.js"></script>
-    <script>const SCRABBLE_DATA = [{
-            char: 'A', score: 1, count: 9
-        }
-
-            ,
-        {
-            char: 'B', score: 3, count: 2
-        }
-
-            ,
-        {
-            char: 'C', score: 3, count: 2
-        }
-
-            ,
-        {
-            char: 'D', score: 2, count: 4
-        }
-
-            ,
-        {
-            char: 'E', score: 1, count: 12
-        }
-
-            ,
-        {
-            char: 'F', score: 4, count: 2
-        }
-
-            ,
-        {
-            char: 'G', score: 2, count: 3
-        }
-
-            ,
-        {
-            char: 'H', score: 4, count: 2
-        }
-
-            ,
-        {
-            char: 'I', score: 1, count: 9
-        }
-
-            ,
-        {
-            char: 'J', score: 8, count: 1
-        }
-
-            ,
-        {
-            char: 'K', score: 5, count: 1
-        }
-
-            ,
-        {
-            char: 'L', score: 1, count: 4
-        }
-
-            ,
-        {
-            char: 'M', score: 3, count: 2
-        }
-
-            ,
-        {
-            char: 'N', score: 1, count: 6
-        }
-
-            ,
-        {
-            char: 'O', score: 1, count: 8
-        }
-
-            ,
-        {
-            char: 'P', score: 3, count: 2
-        }
-
-            ,
-        {
-            char: 'Q', score: 10, count: 1
-        }
-
-            ,
-        {
-            char: 'R', score: 1, count: 6
-        }
-
-            ,
-        {
-            char: 'S', score: 1, count: 4
-        }
-
-            ,
-        {
-            char: 'T', score: 1, count: 6
-        }
-
-            ,
-        {
-            char: 'U', score: 1, count: 4
-        }
-
-            ,
-        {
-            char: 'V', score: 4, count: 2
-        }
-
-            ,
-        {
-            char: 'W', score: 4, count: 2
-        }
-
-            ,
-        {
-            char: 'X', score: 8, count: 1
-        }
-
-            ,
-        {
-            char: 'Y', score: 4, count: 2
-        }
-
-            ,
-        {
-            char: 'Z', score: 10, count: 1
-        }
-
+    <script>
+        const SCRABBLE_DATA = [
+            { char: 'A', score: 1, count: 9 },
+            { char: 'B', score: 3, count: 2 },
+            { char: 'C', score: 3, count: 2 },
+            { char: 'D', score: 2, count: 4 },
+            { char: 'E', score: 1, count: 12 },
+            { char: 'F', score: 4, count: 2 },
+            { char: 'G', score: 2, count: 3 },
+            { char: 'H', score: 4, count: 2 },
+            { char: 'I', score: 1, count: 9 },
+            { char: 'J', score: 8, count: 1 },
+            { char: 'K', score: 5, count: 1 },
+            { char: 'L', score: 1, count: 4 },
+            { char: 'M', score: 3, count: 2 },
+            { char: 'N', score: 1, count: 6 },
+            { char: 'O', score: 1, count: 8 },
+            { char: 'P', score: 3, count: 2 },
+            { char: 'Q', score: 10, count: 1 },
+            { char: 'R', score: 1, count: 6 },
+            { char: 'S', score: 1, count: 4 },
+            { char: 'T', score: 1, count: 6 },
+            { char: 'U', score: 1, count: 4 },
+            { char: 'V', score: 4, count: 2 },
+            { char: 'W', score: 4, count: 2 },
+            { char: 'X', score: 8, count: 1 },
+            { char: 'Y', score: 4, count: 2 },
+            { char: 'Z', score: 10, count: 1 }
         ];
-
-        // Dictionary loaded from dictionary.js
 
         class Game {
             constructor() {
@@ -728,35 +600,24 @@
                 this.grid = [];
                 this.selectedTiles = [];
                 this.isDragging = false;
-
                 this.score = 0;
                 this.money = 0;
                 this.level = 1;
                 this.targetScore = 300;
-
                 this.modifiers = {
-
                     globalMult: 1,
-                    letterBonus: {}
-
-                    ,
+                    letterBonus: {},
                     bombMode: false
-                }
+                };
 
-                    ;
-
-                // Sync with global settings
                 const global = window.GameSettings ? window.GameSettings.get() : { sound: true, haptics: true };
                 this.options = {
                     realtime: true, hints: false, sound: global.sound, haptics: global.haptics
-                }
-
-                    ;
+                };
 
                 this.dictionary = new Set(window.COMMON_WORDS_SEED ? window.COMMON_WORDS_SEED.split(' ') : []);
                 this.fetchExpandedDictionary();
                 this.letterBag = [];
-
                 this.audioCtx = null;
 
                 this.gridEl = document.getElementById('grid');
@@ -766,8 +627,8 @@
                 this.targetEl = document.getElementById('target-score');
                 this.wordDisplay = document.getElementById('current-word-display');
                 this.targetBar = document.getElementById('target-bar');
-                this.submitBtn = document.getElementById('submit-btn');
-
+                // Removed explicit submitBtn reference
+                
                 this.initLevel();
                 this.setupInputHandlers();
 
@@ -783,17 +644,11 @@
                     const container = document.getElementById('grid-container');
                     if (!container) return;
                     const rect = container.getBoundingClientRect();
-                    // Leave a tiny padding from edge
                     const size = Math.min(rect.width, rect.height) - 10;
                     this.gridEl.style.width = size + 'px';
                     this.gridEl.style.height = size + 'px';
-
-                    // Force update of tile wrappers too?
-                    // No, wrappers use %, so they scale automatically with parent!
                 };
-
                 window.addEventListener('resize', resize);
-                // Call immediately
                 setTimeout(resize, 0);
             }
 
@@ -801,37 +656,27 @@
                 try {
                     const res = await fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt');
                     const text = await res.text();
-
                     text.split(/\r?\n/).forEach(w => {
                         if (w.length >= 3) this.dictionary.add(w.toUpperCase());
                     });
-                }
-
-                catch (e) { }
+                } catch (e) { }
             }
 
             setupInputHandlers() {
                 const grid = this.gridEl;
-
-                // Mouse/Touch Start
                 grid.addEventListener('pointerdown', (e) => {
                     e.preventDefault();
                     this.handleInputStart(e);
                     grid.setPointerCapture(e.pointerId);
                 });
-
-                // Move
                 grid.addEventListener('pointermove', (e) => {
                     e.preventDefault();
                     this.handleInputMove(e);
                 });
-
-                // End
                 grid.addEventListener('pointerup', (e) => {
                     this.handleDragEnd(e);
                     grid.releasePointerCapture(e.pointerId);
                 });
-
                 grid.addEventListener('pointercancel', (e) => {
                     this.handleDragEnd(e);
                     grid.releasePointerCapture(e.pointerId);
@@ -841,45 +686,28 @@
             getGridCoords(e, enforceCircular = false) {
                 const rect = this.gridEl.getBoundingClientRect();
                 if (rect.width === 0 || rect.height === 0) return null;
-
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
-
                 const cellSize = rect.width / this.gridSize;
-
                 const c = Math.floor(x / cellSize);
                 const r = Math.floor(y / cellSize);
-
                 if (r < 0 || r >= this.gridSize || c < 0 || c >= this.gridSize) return null;
 
                 if (enforceCircular) {
                     const centerX = (c * cellSize) + (cellSize / 2);
                     const centerY = (r * cellSize) + (cellSize / 2);
                     const dist = Math.hypot(x - centerX, y - centerY);
-
                     if (dist > (cellSize * 0.42)) {
                         return null;
                     }
                 }
-
-                return {
-                    r,
-                    c
-                }
-
-                    ;
+                return { r, c };
             }
 
             handleInputStart(e) {
                 const coords = this.getGridCoords(e, false);
                 if (!coords) return;
-
-                const {
-                    r,
-                    c
-                }
-
-                    = coords;
+                const { r, c } = coords;
 
                 if (this.modifiers.bombMode) {
                     this.detonateBomb(r, c);
@@ -887,28 +715,18 @@
                 }
 
                 this.isDragging = true;
-
                 const existingIndex = this.selectedTiles.findIndex(t => t.r === r && t.c === c);
-
                 if (existingIndex !== -1) {
                     this.handleBacktrack(existingIndex);
                     return;
                 }
 
                 const last = this.selectedTiles[this.selectedTiles.length - 1];
-
-                if (last && this.isAdjacent(last, {
-                    r, c
-
-                })) {
+                if (last && this.isAdjacent(last, { r, c })) {
                     this.addTileToSelection(r, c);
-                }
-
-                else if (!last) {
+                } else if (!last) {
                     this.addTileToSelection(r, c);
-                }
-
-                else {
+                } else {
                     this.clearSelection();
                     this.addTileToSelection(r, c);
                 }
@@ -916,35 +734,22 @@
 
             handleInputMove(e) {
                 if (!this.isDragging) return;
-
                 const coords = this.getGridCoords(e, true);
                 if (!coords) return;
-
-                const {
-                    r,
-                    c
-                }
-
-                    = coords;
+                const { r, c } = coords;
 
                 const last = this.selectedTiles[this.selectedTiles.length - 1];
                 if (!last) return;
                 if (last.r === r && last.c === c) return;
 
                 const existingIndex = this.selectedTiles.findIndex(t => t.r === r && t.c === c);
-
                 if (existingIndex !== -1) {
                     if (existingIndex !== this.selectedTiles.length - 1) {
                         this.handleBacktrack(existingIndex);
                     }
-
                     return;
                 }
-
-                if (this.isAdjacent(last, {
-                    r, c
-
-                })) {
+                if (this.isAdjacent(last, { r, c })) {
                     this.addTileToSelection(r, c);
                 }
             }
@@ -955,14 +760,11 @@
                     this.playTone(150, 'sawtooth', 0);
                     return;
                 }
-
                 const toRemove = this.selectedTiles.slice(index + 1);
                 this.selectedTiles = this.selectedTiles.slice(0, index + 1);
-
                 toRemove.forEach(t => {
                     t.data.el.classList.remove('selected', 'last-selected');
                 });
-
                 this.updateSelectionVisuals();
                 this.calculateWord();
                 this.playTone(200, 'triangle');
@@ -981,11 +783,8 @@
 
             initBag() {
                 this.letterBag = [];
-
                 SCRABBLE_DATA.forEach(d => {
-                    for (let i = 0; i < d.count; i++) this.letterBag.push({
-                        ...d
-                    });
+                    for (let i = 0; i < d.count; i++) this.letterBag.push({ ...d });
                 });
                 this.shuffleBag();
             }
@@ -1002,7 +801,6 @@
             fillGrid() {
                 this.gridEl.innerHTML = '';
                 this.grid = Array(this.gridSize).fill(null).map(() => Array(this.gridSize).fill(null));
-
                 for (let r = 0; r < this.gridSize; r++) {
                     for (let c = 0; c < this.gridSize; c++) {
                         this.spawnTile(r, c);
@@ -1015,41 +813,22 @@
                 const wrapper = document.createElement('div');
                 wrapper.className = 'tile-wrapper';
                 wrapper.style.left = (c * 12.5) + '%';
-
                 if (dropHeight > 0) {
                     wrapper.style.top = (-dropHeight * 12.5) + '%';
                     void wrapper.offsetWidth;
-
                     setTimeout(() => {
                         wrapper.style.top = (r * 12.5) + '%';
-                    }
-
-                        , 50);
-                }
-
-                else {
+                    }, 50);
+                } else {
                     wrapper.style.top = (r * 12.5) + '%';
                 }
 
                 const inner = document.createElement('div');
                 inner.className = 'tile-inner';
-
-                inner.innerHTML = `<span class="letter">${data.char
-                    }
-
-    </span><span class="score-val">${data.score
-                    }
-
-    </span>`;
-
+                inner.innerHTML = `<span class="letter">${data.char}</span><span class="score-val">${data.score}</span>`;
                 wrapper.appendChild(inner);
 
-                this.grid[r][c] = {
-                    ...data,
-                    el: wrapper
-                }
-
-                    ;
+                this.grid[r][c] = { ...data, el: wrapper };
                 this.gridEl.appendChild(wrapper);
             }
 
@@ -1062,20 +841,14 @@
             addTileToSelection(r, c) {
                 const tileObj = this.grid[r][c];
                 if (!tileObj) return;
-
-                this.selectedTiles.push({
-                    r, c, data: tileObj
-                });
+                this.selectedTiles.push({ r, c, data: tileObj });
                 tileObj.el.classList.add('selected');
                 this.updateSelectionVisuals();
                 this.calculateWord();
 
-                // MUSICAL SCALE LOGIC (Pentatonic-ish start at 261.63Hz Middle C)
-                // Steps: 0, 2, 4, 7, 9, 12, 14, 16...
                 const count = this.selectedTiles.length;
                 const baseFreq = 261.63;
-                const scaleFactor = 1 + (count * 0.1); // Simple ascending scale
-
+                const scaleFactor = 1 + (count * 0.1); 
                 this.playTone(baseFreq * scaleFactor, 'sine');
                 this.triggerHaptic(10);
             }
@@ -1087,7 +860,6 @@
 
             updateSelectionVisuals() {
                 this.selectedTiles.forEach(t => t.data.el.classList.remove('last-selected'));
-
                 if (this.selectedTiles.length > 0) {
                     this.selectedTiles[this.selectedTiles.length - 1].data.el.classList.add('last-selected');
                 }
@@ -1100,14 +872,12 @@
                 this.triggerHaptic(15);
             }
 
-            /* --- SETTINGS & HINT LOGIC --- */
             toggleOption(key, val) {
                 this.options[key] = val;
-                // Sync back to global
                 if (window.GameSettings && (key === 'sound' || key === 'haptics')) {
                     window.GameSettings.set(key, val);
                 }
-                this.calculateWord(); // Re-trigger visual updates
+                this.calculateWord(); 
             }
 
             openSettings() {
@@ -1120,28 +890,19 @@
             }
 
             applyHints() {
-
-                // Clear old hints
                 for (let r = 0; r < this.gridSize; r++) {
                     for (let c = 0; c < this.gridSize; c++) {
                         if (this.grid[r][c]) this.grid[r][c].el.classList.remove('hint-neighbor');
                     }
                 }
-
                 if (!this.options.hints || this.selectedTiles.length === 0) return;
-
                 const last = this.selectedTiles[this.selectedTiles.length - 1];
                 const currentWord = this.selectedTiles.map(t => t.data.char).join('');
-
-                // Check neighbors
                 for (let r = last.r - 1; r <= last.r + 1; r++) {
                     for (let c = last.c - 1; c <= last.c + 1; c++) {
                         if (r >= 0 && r < this.gridSize && c >= 0 && c < this.gridSize) {
-
-                            // Must be valid tile and not already selected
                             if (this.grid[r][c] && !this.selectedTiles.some(t => t.r === r && t.c === c)) {
                                 const newWord = currentWord + this.grid[r][c].char;
-
                                 if (this.dictionary.has(newWord)) {
                                     this.grid[r][c].el.classList.add('hint-neighbor');
                                 }
@@ -1158,70 +919,44 @@
             }
 
             spawnParticles(rect) {
-                // Burst of confetti
                 const count = 8;
-
                 for (let i = 0; i < count; i++) {
                     const p = document.createElement('div');
                     p.className = 'particle';
-
-                    // Random center pos based on tile
                     const x = rect.left + rect.width / 2;
                     const y = rect.top + rect.height / 2;
-
                     p.style.left = x + 'px';
                     p.style.top = y + 'px';
-
-                    // Random Colors
-                    const colors = ['#f1c40f',
-                        '#e74c3c',
-                        '#3498db',
-                        '#2ecc71',
-                        '#9b59b6'];
+                    const colors = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6'];
                     p.style.background = colors[Math.floor(Math.random() * colors.length)];
-
-                    // Random Velocity
                     const angle = Math.random() * Math.PI * 2;
                     const velocity = 50 + Math.random() * 50;
                     const vx = Math.cos(angle) * velocity + 'px';
                     const vy = Math.sin(angle) * velocity + 'px';
-
                     p.style.setProperty('--vx', vx);
                     p.style.setProperty('--vy', vy);
-
                     document.body.appendChild(p);
                     setTimeout(() => p.remove(), 600);
                 }
             }
 
-            /* --------------------------- */
-
             calculateWord() {
-                // Apply Hints if enabled
                 this.applyHints();
-
                 if (this.selectedTiles.length === 0) {
                     this.wordDisplay.textContent = "_";
                     this.wordDisplay.classList.remove('valid');
-                    this.submitBtn.disabled = true;
-                    this.submitBtn.style.opacity = 0.5;
                     return;
                 }
 
                 const word = this.selectedTiles.map(t => t.data.char).join('');
-
-                // Real-time Check
                 if (this.options.realtime && (this.dictionary.has(word) || this.dictionary.has(word.toUpperCase()))) {
                     this.wordDisplay.classList.add('valid');
-                }
-
-                else {
+                } else {
                     this.wordDisplay.classList.remove('valid');
                 }
 
                 let score = 0;
                 let mult = this.modifiers.globalMult;
-
                 this.selectedTiles.forEach(t => {
                     let s = t.data.score;
                     if (this.modifiers.letterBonus[t.data.char]) s += this.modifiers.letterBonus[t.data.char];
@@ -1230,53 +965,30 @@
                 if (word.length >= 5) mult += 0.5;
                 if (word.length >= 7) mult += 0.5;
                 const final = Math.floor(score * mult);
-
-                this.wordDisplay.textContent = `${word
-                    }
-
-    (${final
-                    })`;
-                this.submitBtn.disabled = word.length < 3;
-                this.submitBtn.style.opacity = word.length < 3 ? 0.5 : 1;
+                this.wordDisplay.textContent = `${word} (${final})`;
             }
 
             submitWord() {
                 const word = this.selectedTiles.map(t => t.data.char).join('');
-
                 if (this.dictionary.has(word) || this.dictionary.has(word.toUpperCase())) {
                     const finalScore = parseInt(this.wordDisplay.textContent.split('(')[1]);
                     this.score += finalScore;
                     this.money += Math.floor(finalScore / 10);
-
                     const lastTile = this.selectedTiles[this.selectedTiles.length - 1].data.el;
-
-                    // Feedback Logic
                     if (word.length >= 5) {
                         let msg = "NICE!";
                         if (word.length === 6) msg = "SWEET!";
                         if (word.length === 7) msg = "AWESOME!";
                         if (word.length >= 8) msg = "GODLIKE!";
                         this.showFloat(msg, lastTile, 'feedback-text');
-
-                        setTimeout(() => this.showFloat(`+${finalScore
-                            }
-
-                    `, lastTile), 300);
+                        setTimeout(() => this.showFloat(`+${finalScore}`, lastTile), 300);
+                    } else {
+                        this.showFloat(`+${finalScore}`, lastTile);
                     }
-
-                    else {
-                        this.showFloat(`+${finalScore
-                            }
-
-                `, lastTile);
-                    }
-
-                    this.playTone(523.25, 'triangle', 0.1); // High C
+                    this.playTone(523.25, 'triangle', 0.1); 
                     this.triggerHaptic([50, 30, 50]);
                     this.removeTiles();
-                }
-
-                else {
+                } else {
                     this.shakeBoard();
                     this.playTone(150, 'sawtooth', 0.3);
                     this.triggerHaptic([30, 30, 30, 30]);
@@ -1286,22 +998,16 @@
             removeTiles() {
                 this.selectedTiles.forEach(t => {
                     const inner = t.data.el.querySelector('.tile-inner');
-
-                    // JUICE: Spawn particles
                     if (inner) {
                         const rect = inner.getBoundingClientRect();
                         this.spawnParticles(rect);
                         inner.classList.add('popping');
                     }
-
                     const r = t.r;
                     const c = t.c;
-
                     setTimeout(() => {
                         if (t.data.el.parentNode) t.data.el.remove();
-                    }
-
-                        , 300);
+                    }, 300);
                     this.grid[r][c] = null;
                 });
                 this.selectedTiles = [];
@@ -1312,49 +1018,35 @@
             applyGravity() {
                 for (let c = 0; c < this.gridSize; c++) {
                     let writePos = this.gridSize - 1;
-
                     for (let r = this.gridSize - 1; r >= 0; r--) {
                         if (this.grid[r][c]) {
                             const tile = this.grid[r][c];
-
                             if (r !== writePos) {
                                 this.grid[writePos][c] = tile;
                                 this.grid[r][c] = null;
                                 tile.el.style.top = (writePos * 12.5) + '%';
                             }
-
                             writePos--;
                         }
                     }
-
                     let dropCount = 0;
-
                     while (writePos >= 0) {
                         dropCount++;
                         this.spawnTile(writePos, c, dropCount);
                         writePos--;
                     }
                 }
-
                 this.updateUI();
                 this.checkLevel();
             }
 
             updateUI() {
                 this.scoreEl.innerText = this.score;
-
-                this.moneyEl.innerText = `${this.money
-                    }
-
-    `;
+                this.moneyEl.innerText = `${this.money}`;
                 this.levelEl.innerText = this.level;
                 this.targetEl.innerText = this.targetScore;
                 const pct = Math.min(100, (this.score / this.targetScore) * 100);
-
-                this.targetBar.style.width = `${pct
-                    }
-
-    %`;
+                this.targetBar.style.width = `${pct}%`;
             }
 
             checkLevel() {
@@ -1367,88 +1059,40 @@
                 const modal = document.getElementById('modal-overlay');
                 const shopDiv = document.getElementById('shop-container');
                 const moneyDisplay = document.getElementById('shop-money-val');
-
                 modal.style.display = 'flex';
                 document.getElementById('level-complete-modal').style.display = 'block';
                 document.getElementById('game-over-modal').style.display = 'none';
                 document.getElementById('settings-modal').style.display = 'none';
                 shopDiv.innerHTML = '';
-
-                moneyDisplay.innerText = `$${this.money
-                    }
-
-    `;
-
-                const items = [{
-                    name: "Vowel Boost", desc: "+2 Score to A,E,I,O,U", cost: 15, fn: () => this.buffChars(['A', 'E', 'I', 'O', 'U'])
-                }
-
-                    ,
-                {
-                    name: "Heavy Hitters", desc: "+5 Score to J,Q,X,Z", cost: 20, fn: () => this.buffChars(['J', 'Q', 'X', 'Z'])
-                }
-
-                    ,
-                {
-                    name: "Combo Master", desc: "+20% Score Mult", cost: 40, fn: () => this.modifiers.globalMult += 0.2
-                }
-
-                    ,
-                {
-                    name: "Common Buff", desc: "+1 Score to T,N,S,R,H", cost: 25, fn: () => this.buffChars(['T', 'N', 'S', 'R', 'H'])
-                }
-
-                    ,
-                {
-
-                    name: "Bomb",
-                    desc: "Tap to clear 3x3",
-                    cost: 10,
-                    fn: () => {
+                moneyDisplay.innerText = `$${this.money}`;
+                const items = [
+                    { name: "Vowel Boost", desc: "+2 Score to A,E,I,O,U", cost: 15, fn: () => this.buffChars(['A', 'E', 'I', 'O', 'U']) },
+                    { name: "Heavy Hitters", desc: "+5 Score to J,Q,X,Z", cost: 20, fn: () => this.buffChars(['J', 'Q', 'X', 'Z']) },
+                    { name: "Combo Master", desc: "+20% Score Mult", cost: 40, fn: () => this.modifiers.globalMult += 0.2 },
+                    { name: "Common Buff", desc: "+1 Score to T,N,S,R,H", cost: 25, fn: () => this.buffChars(['T', 'N', 'S', 'R', 'H']) },
+                    { name: "Bomb", desc: "Tap to clear 3x3", cost: 10, fn: () => {
                         this.modifiers.bombMode = true;
                         document.body.style.cursor = 'crosshair';
-                    }
-                }
-
+                    }}
                 ];
-
                 items.sort(() => Math.random() - 0.5).slice(0, 4).forEach(item => {
                     const el = document.createElement('div');
                     el.className = 'shop-item';
-
-                    el.innerHTML = `<h4>${item.name
-                        }
-
-        </h4><p>${item.desc
-                        }
-
-        </p><div class="cost" >$${item.cost
-                        }
-
-        </div>`;
-
+                    el.innerHTML = `<h4>${item.name}</h4><p>${item.desc}</p><div class="cost" >$${item.cost}</div>`;
                     el.onclick = () => {
                         if (this.money >= item.cost) {
                             this.money -= item.cost;
-
-                            moneyDisplay.innerText = `$${this.money
-                                }
-
-                `;
+                            moneyDisplay.innerText = `$${this.money}`;
                             this.updateUI();
                             item.fn();
                             this.playTone(800, 'sine');
                             el.style.opacity = 0.2;
                             el.style.pointerEvents = 'none';
-                        }
-
-                        else {
+                        } else {
                             el.style.animation = 'shake 0.3s';
                             setTimeout(() => el.style.animation = '', 300);
                         }
-                    }
-
-                        ;
+                    };
                     shopDiv.appendChild(el);
                 });
             }
@@ -1471,37 +1115,29 @@
                 this.playTone(100, 'sawtooth', 0.5);
                 this.modifiers.bombMode = false;
                 document.body.style.cursor = 'default';
-
                 for (let i = r - 1; i <= r + 1; i++) {
                     for (let j = c - 1; j <= c + 1; j++) {
                         if (i >= 0 && i < this.gridSize && j >= 0 && j < this.gridSize) {
                             if (this.grid[i][j]) {
                                 const t = this.grid[i][j];
                                 const inner = t.el.querySelector('.tile-inner');
-
                                 if (inner) {
                                     this.spawnParticles(inner.getBoundingClientRect());
                                     inner.classList.add('popping');
                                 }
-
                                 setTimeout(() => t.el.remove(), 300);
                                 this.grid[i][j] = null;
                             }
                         }
                     }
                 }
-
                 setTimeout(() => this.applyGravity(), 350);
                 this.triggerHaptic(200);
             }
 
             showFloat(text, el, className = '') {
                 const f = document.createElement('div');
-
-                f.className = `float-text ${className
-                    }
-
-    `;
+                f.className = `float-text ${className}`;
                 f.textContent = text;
                 f.style.left = el.style.left;
                 f.style.top = el.style.top;
@@ -1511,12 +1147,9 @@
 
             shakeBoard() {
                 this.gridEl.classList.add('shaking');
-
                 setTimeout(() => {
                     this.gridEl.classList.remove('shaking'); this.clearSelection();
-                }
-
-                    , 400);
+                }, 400);
             }
 
             playTone(freq, type, delay = 0) {
@@ -1534,9 +1167,7 @@
                 osc.stop(this.audioCtx.currentTime + delay + 0.2);
             }
         }
-
         window.game = new Game();
     </script>
 </body>
-
 </html>
