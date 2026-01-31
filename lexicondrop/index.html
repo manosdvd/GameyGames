@@ -5,9 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Lexicon Drop</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Lexend:wght@400;700;900&family=Orbitron:wght@400;700;900&family=Roboto+Slab:wght@400;700;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/opendyslexic@latest/open-dyslexic.css" rel="stylesheet">
     
     <script src="../timeLimit.js"></script>
@@ -22,26 +23,52 @@
             --gold: #f1c40f;
             --text-color: #e0e0e0;
             --success: #2ecc71;
+            
+            /* Base Values */
+            --tile-font-size: 1.2rem;
+            --tile-font-weight: 800;
+            --letter-spacing: 0px;
+        }
 
-            /* Default Cyber Settings */
+        /* --- FONT MODES --- */
+        
+        /* Default: Cyber */
+        body.font-cyber {
             --font-main: 'Orbitron', sans-serif;
             --letter-spacing: 0px;
             --tile-font-size: 1.2rem;
             --tile-font-weight: 800;
         }
 
-        /* --- Font Modes --- */
-        body.mode-lexend {
+        /* Clean Sans (High Legibility) */
+        body.font-clean {
             --font-main: 'Lexend', Verdana, sans-serif;
             --letter-spacing: 1px;
-            --tile-font-size: 1.8rem;
+            --tile-font-size: 1.5rem;
             --tile-font-weight: 700;
         }
 
-        body.mode-dyslexic {
-            --font-main: 'OpenDyslexic', 'Comic Sans MS', sans-serif;
-            --letter-spacing: 1px;
+        /* Slab Serif (Distinguishable Shapes) */
+        body.font-slab {
+            --font-main: 'Roboto Slab', 'Courier New', serif;
+            --letter-spacing: 0px;
             --tile-font-size: 1.4rem;
+            --tile-font-weight: 800;
+        }
+
+        /* Friendly/Informal (Good for Dyslexia) */
+        body.font-friendly {
+            --font-main: 'Comic Neue', 'Comic Sans MS', cursive;
+            --letter-spacing: 1px;
+            --tile-font-size: 1.6rem;
+            --tile-font-weight: 700;
+        }
+
+        /* Dedicated Dyslexic */
+        body.font-dyslexic {
+            --font-main: 'OpenDyslexic', 'Comic Sans MS', sans-serif;
+            --letter-spacing: 2px;
+            --tile-font-size: 1.1rem;
             --tile-font-weight: 400;
         }
 
@@ -414,6 +441,11 @@
             padding: 12px 0;
             border-bottom: 1px solid #333;
         }
+        .setting-row.column-layout {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
         .setting-row:last-child { border-bottom: none; }
         .setting-label { font-size: 1rem; color: #eee; font-weight: bold; }
         .setting-desc { font-size: 0.75rem; color: #999; text-align: left; }
@@ -431,14 +463,28 @@
         input:checked+.slider { background-color: var(--secondary); }
         input:checked+.slider:before { transform: translateX(24px); }
 
-        .mode-btn {
-            background: #333;
-            color: #fff;
-            padding: 8px 16px;
-            border-radius: 4px;
-            border: 1px solid #555;
+        /* Font Selection Grid */
+        .font-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: 100%;
+        }
+        .font-option {
+            background: #222;
+            border: 1px solid #444;
+            color: #aaa;
+            padding: 10px 5px;
+            border-radius: 6px;
             cursor: pointer;
-            width: 120px;
+            font-size: 0.8rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .font-option.active {
+            background: var(--secondary);
+            color: #000;
+            border-color: #fff;
             font-weight: bold;
         }
 
@@ -485,12 +531,13 @@
         }
         @media (max-width: 360px) {
             :root { --tile-font-size: 1rem; }
-            body.mode-lexend { --tile-font-size: 1.4rem; }
+            body.font-clean { --tile-font-size: 1.2rem; }
+            body.font-friendly { --tile-font-size: 1.2rem; }
         }
     </style>
 </head>
 
-<body>
+<body class="font-cyber">
     <div id="game-container">
         <header>
             <button class="icon-btn" onclick="window.location.href='../index.html'" title="Back">&lt;</button>
@@ -522,12 +569,13 @@
         <div class="modal-content" id="settings-modal" style="display:none; text-align:left;">
             <h2 style="color:var(--text-color); margin:0 0 15px 0; text-align:center;">Settings</h2>
             
-            <div class="setting-row">
+            <div class="setting-row column-layout">
                 <div>
                     <div class="setting-label">Font Style</div>
-                    <div class="setting-desc">Appearance of letters</div>
+                    <div class="setting-desc">Choose a typeface that works for you</div>
                 </div>
-                <button id="font-cycle-btn" class="mode-btn" onclick="game.cycleFontMode()">CYBER</button>
+                <div class="font-grid" id="font-selector">
+                    </div>
             </div>
 
             <div class="setting-row">
@@ -626,7 +674,7 @@
                 const global = window.GameSettings ? window.GameSettings.get() : { sound: true, haptics: true };
                 
                 // Load persisted settings
-                const savedFontMode = localStorage.getItem('lexicon_font_mode') || 'cyber';
+                const savedFontMode = localStorage.getItem('lexicon_font_mode') || 'font-cyber';
                 const savedColorMode = localStorage.getItem('lexicon_color_mode') === 'true';
 
                 this.options = {
@@ -637,6 +685,15 @@
                     fontMode: savedFontMode,
                     colors: savedColorMode
                 };
+                
+                // Font Definitions
+                this.fontModes = [
+                    { id: 'font-cyber', label: 'CYBER', font: 'Orbitron' },
+                    { id: 'font-clean', label: 'CLEAN', font: 'Lexend' },
+                    { id: 'font-slab', label: 'SLAB', font: 'Roboto Slab' },
+                    { id: 'font-friendly', label: 'FRIENDLY', font: 'Comic Neue' },
+                    { id: 'font-dyslexic', label: 'DYSLEXIC', font: 'OpenDyslexic' }
+                ];
 
                 this.dictionary = new Set(window.COMMON_WORDS_SEED ? window.COMMON_WORDS_SEED.split(' ') : []);
                 this.fetchExpandedDictionary();
@@ -650,11 +707,11 @@
                 this.targetEl = document.getElementById('target-score');
                 this.wordDisplay = document.getElementById('current-word-display');
                 this.targetBar = document.getElementById('target-bar');
-                this.fontBtn = document.getElementById('font-cycle-btn');
                 
                 this.initLevel();
                 this.setupInputHandlers();
                 this.setupGlobalInput();
+                this.renderFontSelector();
 
                 // Apply initial settings
                 document.getElementById('toggle-sound').checked = this.options.sound;
@@ -939,26 +996,35 @@
                 this.calculateWord(); 
             }
 
-            cycleFontMode() {
-                const modes = ['cyber', 'lexend', 'dyslexic'];
-                let idx = modes.indexOf(this.options.fontMode);
-                idx = (idx + 1) % modes.length;
-                this.options.fontMode = modes[idx];
+            renderFontSelector() {
+                const container = document.getElementById('font-selector');
+                container.innerHTML = '';
+                this.fontModes.forEach(mode => {
+                    const btn = document.createElement('div');
+                    btn.className = `font-option ${this.options.fontMode === mode.id ? 'active' : ''}`;
+                    btn.textContent = mode.label;
+                    btn.style.fontFamily = mode.font;
+                    btn.onclick = () => this.setFontMode(mode.id);
+                    container.appendChild(btn);
+                });
+            }
+
+            setFontMode(modeId) {
+                this.options.fontMode = modeId;
                 this.applyFontMode();
-                localStorage.setItem('lexicon_font_mode', this.options.fontMode);
+                localStorage.setItem('lexicon_font_mode', modeId);
+                this.renderFontSelector(); // Re-render to update 'active' class
             }
 
             applyFontMode() {
-                document.body.classList.remove('mode-lexend', 'mode-dyslexic');
-                let label = "CYBER";
-                if (this.options.fontMode === 'lexend') {
-                    document.body.classList.add('mode-lexend');
-                    label = "HIGH VIS";
-                } else if (this.options.fontMode === 'dyslexic') {
-                    document.body.classList.add('mode-dyslexic');
-                    label = "DYSLEXIA";
-                }
-                this.fontBtn.textContent = label;
+                // Remove old classes
+                document.body.className = document.body.className.replace(/font-\w+/g, "").trim();
+                
+                // Add new class
+                document.body.classList.add(this.options.fontMode);
+                
+                // Keep color mode if active
+                if(this.options.colors) document.body.classList.add('mode-colored');
             }
             
             applyColorMode() {
@@ -976,6 +1042,7 @@
                 setModal.style.display = 'block';
                 document.getElementById('level-complete-modal').style.display = 'none';
                 document.getElementById('game-over-modal').style.display = 'none';
+                this.renderFontSelector(); 
             }
 
             applyHints() {
