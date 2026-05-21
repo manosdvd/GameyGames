@@ -36,7 +36,7 @@ export default function Timer({ solved, loading, initialSeconds = 0, onTimeUpdat
     };
 
     return (
-        <div className="flex items-center gap-1.5 text-slate-500 font-medium px-3 py-1 bg-slate-100 rounded-full text-xs sm:text-sm border border-slate-200">
+        <div className="flex items-center gap-1.5 text-cyber-text/70 font-medium px-3 py-1 bg-cyber-bg rounded-full text-xs sm:text-sm border border-cyber-cyan/30">
             <TimerIcon size={14} />
             <span className="tabular-nums">{formatTime(seconds)}</span>
         </div>

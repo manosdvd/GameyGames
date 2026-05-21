@@ -15,6 +15,19 @@
     --cyber-border-radius: 4px;
 }
 
+/* Global Styles */
+body {
+    background-color: var(--cyber-bg);
+    color: var(--cyber-text);
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Orbitron', sans-serif;
+}
+
 /* Common UI */
 .cyber-btn {
     background: transparent;
@@ -55,4 +68,59 @@
     transform: scale(1.1);
     color: var(--cyber-magenta);
     text-shadow: var(--cyber-glow-magenta);
+}
+
+/* Unified Header & Back Button */
+.cyber-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: var(--cyber-surface);
+    border-bottom: 1px solid var(--cyber-cyan);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    font-family: 'Orbitron', sans-serif;
+    position: relative;
+    z-index: 50;
+}
+
+.back-btn {
+    background: transparent;
+    color: var(--cyber-cyan);
+    border: 1px solid var(--cyber-cyan);
+    padding: 6px 12px;
+    border-radius: var(--cyber-border-radius);
+    cursor: pointer;
+    text-transform: uppercase;
+    font-family: 'Orbitron', sans-serif;
+    transition: all 0.2s;
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.back-btn:hover {
+    background: var(--cyber-cyan);
+    color: var(--cyber-bg);
+    box-shadow: var(--cyber-glow-cyan);
+}
+
+.hud-pill {
+    background: var(--cyber-surface);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    display: flex;
+    gap: 15px;
+    color: #888;
+    align-items: center;
+}
+
+.hud-value {
+    color: var(--cyber-cyan);
+    transition: color 0.3s;
 }

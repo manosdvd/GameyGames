@@ -87,23 +87,6 @@
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
 
-        #back-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-weight: bold;
-            pointer-events: auto;
-            transition: all 0.2s;
-        }
-
-        #back-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.1);
-        }
-
         /* --- Game Board --- */
         #game-wrapper {
             width: 100%;
@@ -288,7 +271,7 @@
 <body>
     <div id="bg"></div>
     <div id="ui-layer">
-        <button id="back-btn" onclick="window.location.href='../index.html'"> &lt; </button>
+        <button class="back-btn" onclick="window.location.href='../index.html'" style="pointer-events:auto;"> &lt; </button>
         <div class="score-box">
             <div class="label">Score</div>
             <div class="value" id="score">0</div>
@@ -613,6 +596,22 @@
                 o.type = 'sawtooth'; o.frequency.setValueAtTime(150, n); o.frequency.linearRampToValueAtTime(100, n + 0.2);
                 g.gain.setValueAtTime(0.1, n); g.gain.linearRampToValueAtTime(0, n + 0.2);
                 o.start(n); o.stop(n + 0.2);
+            } else if (t === 'big_match') {
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(523.25, n); // C5
+                o.frequency.linearRampToValueAtTime(1046.50, n + 0.35); // C6
+                g.gain.setValueAtTime(0.15, n);
+                g.gain.exponentialRampToValueAtTime(0.001, n + 0.45);
+                o.start(n); o.stop(n + 0.45);
+
+                const o2 = ac.createOscillator(), g2 = ac.createGain();
+                o2.connect(g2); g2.connect(ac.destination);
+                o2.type = 'sine';
+                o2.frequency.setValueAtTime(659.25, n); // E5
+                o2.frequency.linearRampToValueAtTime(1318.51, n + 0.35); // E6
+                g2.gain.setValueAtTime(0.08, n);
+                g2.gain.exponentialRampToValueAtTime(0.001, n + 0.45);
+                o2.start(n); o2.stop(n + 0.45);
             } else if (t === 'clink') {
                 // Short high ping
                 o.type = 'triangle';

@@ -33,7 +33,7 @@ function addQuote(text, author) {
     if (qt.length < MIN_LENGTH || qt.length > MAX_LENGTH) return;
 
     // Basic character validation
-    if (/[^a-zA-Z0-9\s.,'?!;:"\-]/.test(qt)) {
+    if (/[^a-zA-Z0-9\s.,'?!;:"-]/.test(qt)) {
         // Strict regex for cryptograms
     }
 

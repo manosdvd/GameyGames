@@ -74,7 +74,7 @@ export default function App() {
         return duplicates;
     }, [userGuesses]);
 
-    const startNewGame = useCallback(async (isRetry = false) => {
+    const startNewGame = useCallback(async () => {
         setLoading(true);
         setSolved(false);
         setUserGuesses({});
@@ -166,7 +166,7 @@ export default function App() {
                 setCursorIndex(firstUnfilled);
             }
         }
-    }, [loading, solved, originalQuote, getLetterIndices, cipher, userGuesses]); // Careful with dependencies to avoid sticky focusing
+    }, [loading, solved, originalQuote, getLetterIndices, cipher, userGuesses]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Handle Navigation
     const moveCursor = useCallback((direction) => {
@@ -332,7 +332,6 @@ export default function App() {
         // 1. Try to hint the CURRENTLY selected character
         if (selectedEncryptedChar && !hintedChars.has(selectedEncryptedChar)) {
             const correctPlain = reverseCipher[selectedEncryptedChar];
-            const currentGuess = userGuesses[selectedEncryptedChar];
 
             // Only hint if it's not arguably already correct (though usually hints lock it in)
             // Actually, hints should allow you to lock in even if you guessed right, or correct you if wrong.
@@ -447,17 +446,17 @@ export default function App() {
 
     if (!hasStarted) {
         return (
-            <div className="h-screen w-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center p-4 z-50 fixed inset-0">
+            <div className="h-screen w-screen bg-cyber-bg flex flex-col items-center justify-center p-4 z-50 fixed inset-0">
                 <div className="text-center max-w-md">
-                    <h1 className="text-4xl font-black text-slate-800 dark:text-white mb-6 tracking-tight">CRYPTOGRAMS</h1>
-                    <p className="text-slate-500 dark:text-slate-400 mb-8">Decipher the quotes. Unlock the wisdom.</p>
+                    <h1 className="text-4xl font-black text-cyber-cyan mb-6 tracking-tight">CRYPTOGRAMS</h1>
+                    <p className="text-cyber-text mb-8">Decipher the quotes. Unlock the wisdom.</p>
                     <button
                         onClick={handleStart}
                         className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 active:scale-95"
                     >
                         START GAME
                     </button>
-                    <p className="mt-8 text-xs text-slate-400">Tap to enter full screen</p>
+                    <p className="mt-8 text-xs text-cyber-text/50">Tap to enter full screen</p>
                 </div>
             </div>
         );
@@ -465,7 +464,7 @@ export default function App() {
 
     return (
         <div
-            className="h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans selection:bg-blue-200 dark:selection:bg-blue-900 flex flex-col overflow-hidden"
+            className="h-screen bg-cyber-bg text-cyber-text font-sans selection:bg-cyber-magenta flex flex-col overflow-hidden"
             onClick={() => setCursorIndex(null)}
         >
             <Header
@@ -478,22 +477,22 @@ export default function App() {
                 toggleTheme={toggleTheme}
             />
 
-            <main className="flex-grow overflow-y-auto w-full bg-slate-50 dark:bg-slate-900 relative">
+            <main className="flex-grow overflow-y-auto w-full bg-cyber-bg relative">
                 <div className="max-w-4xl mx-auto px-4 py-6 pb-64">
 
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-slate-400 animate-pulse">
+                        <div className="flex flex-col items-center justify-center h-64 text-cyber-text/50 animate-pulse">
                             <p>Fetching a thought...</p>
                         </div>
                     ) : (
                         <>
                             <div className="flex justify-between items-center mb-4 px-2">
-                                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <div className="text-xs font-semibold text-cyber-text/50 uppercase tracking-wider">
                                     High Score: <span className="text-amber-500">{highScore.toLocaleString()}</span>
                                 </div>
                             </div>
 
-                            <div className="w-full bg-white dark:bg-slate-800 p-4 sm:p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 min-h-[150px] flex flex-col justify-center mb-6">
+                            <div className="w-full bg-cyber-surface p-4 sm:p-8 rounded-xl shadow-sm border border-cyber-cyan/20 min-h-[150px] flex flex-col justify-center mb-6">
                                 <QuoteDisplay
                                     quote={originalQuote}
                                     cipher={cipher}
@@ -512,32 +511,32 @@ export default function App() {
                         ${solved ? 'opacity-100 max-h-96 translate-y-0' : 'opacity-0 max-h-0 translate-y-4'}
                     `}>
                                     <div className="flex flex-col items-center gap-4">
-                                        <div className="inline-flex items-center gap-2 text-green-700 dark:text-green-400 font-medium px-4 py-2 bg-green-50 dark:bg-green-900/30 rounded-full border border-green-200 dark:border-green-800">
+                                        <div className="inline-flex items-center gap-2 text-green-700 font-medium px-4 py-2 bg-green-50 rounded-full border border-green-200">
                                             <Trophy size={18} />
                                             <span>Solved! &mdash; <span className="font-bold">{author}</span></span>
                                         </div>
 
                                         {scoreData && (
-                                            <div className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl p-4 w-full max-w-sm">
-                                                <div className="flex items-center justify-center gap-2 text-2xl font-black text-slate-800 dark:text-white mb-1">
+                                            <div className="bg-cyber-bg border border-cyber-cyan/20 rounded-xl p-4 w-full max-w-sm">
+                                                <div className="flex items-center justify-center gap-2 text-2xl font-black text-cyber-text mb-1">
                                                     {isNewHighScore && <Star className="text-amber-500 fill-amber-500 animate-spin-slow" />}
                                                     <span>{scoreData.finalScore.toLocaleString()}</span>
                                                 </div>
-                                                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wide mb-3">
+                                                <div className="text-xs text-cyber-text/50 font-medium uppercase tracking-wide mb-3">
                                                     {isNewHighScore ? "New High Score!" : "Final Score"}
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
+                                                <div className="grid grid-cols-2 gap-2 text-xs text-cyber-text">
                                                     <div className="flex justify-between">
                                                         <span>Accuracy:</span>
                                                         <span className="font-mono">{scoreData.baseScore}</span>
                                                     </div>
-                                                    <div className="flex justify-between text-red-500 dark:text-red-400">
+                                                    <div className="flex justify-between text-red-500">
                                                         <span>Hints:</span>
                                                         <span className="font-mono">-{scoreData.penalty}</span>
                                                     </div>
                                                 </div>
-                                                <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600 flex justify-between items-center text-xs font-bold text-blue-600 dark:text-blue-400">
+                                                <div className="mt-2 pt-2 border-t border-cyber-cyan/20 flex justify-between items-center text-xs font-bold text-blue-600">
                                                     <span className="flex items-center gap-1"><Zap size={12} /> Speed Bonus</span>
                                                     <span>x{scoreData.multiplier.toFixed(1)} ({scoreData.rank})</span>
                                                 </div>
@@ -558,7 +557,7 @@ export default function App() {
                                 </div>
                             )}
 
-                            <footer className="mt-8 text-center text-slate-400 text-xs">
+                            <footer className="mt-8 text-center text-cyber-text/50 text-xs">
                                 Cryptogram Challenge • Data provided by {source || 'Unknown'}
                             </footer>
                         </>
@@ -569,7 +568,7 @@ export default function App() {
             {!solved && !loading && (
                 <>
                     <div
-                        className="flex-none bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 w-full pb-12"
+                        className="flex-none bg-cyber-surface border-t border-cyber-cyan shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 w-full pb-12"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <GameControls

@@ -236,6 +236,13 @@
             const [isPaused, setIsPaused] = useState(false);
             const [levelAnim, setLevelAnim] = useState(false);
 
+            // Definition State
+            const [lastSubmittedWord, setLastSubmittedWord] = useState(null);
+            const [definitionLoading, setDefinitionLoading] = useState(false);
+            const [lastDefinition, setLastDefinition] = useState(null);
+            const [lastPhonetic, setLastPhonetic] = useState(null);
+            const [lastPartOfSpeech, setLastPartOfSpeech] = useState(null);
+
             // Board State
             const [previewRow, setPreviewRow] = useState(Array(8).fill(null));
             const [previewIndex, setPreviewIndex] = useState(0);
@@ -256,23 +263,40 @@
 
             // Load Dictionary
             useEffect(() => {
-                fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt')
-                    .then(res => {
-                        if (!res.ok) throw new Error('Failed to load dictionary');
-                        return res.text();
-                    })
-                    .then(text => {
-                        setDictionary(prev => {
-                            const next = new Set(prev);
-                            text.split('\n').map(w => w.trim().toUpperCase()).filter(w => w.length >= 3).forEach(w => next.add(w));
-                            return next;
-                        });
-                        setDictLoaded(true);
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        setLoadingError("Failed to load dictionary. Check connection.");
+                let words = [];
+                if (window.LEXICON_WORDS) {
+                    words = typeof window.LEXICON_WORDS === 'string'
+                        ? window.LEXICON_WORDS.split(' ')
+                        : window.LEXICON_WORDS;
+                }
+
+                if (words.length > 0) {
+                    setDictionary(prev => {
+                        const next = new Set(prev);
+                        words.map(w => w.trim().toUpperCase()).filter(w => w.length >= 3).forEach(w => next.add(w));
+                        return next;
                     });
+                    setDictLoaded(true);
+                } else {
+                    fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt')
+                        .then(res => {
+                            if (!res.ok) throw new Error('Failed to load dictionary');
+                            return res.text();
+                        })
+                        .then(text => {
+                            setDictionary(prev => {
+                                const next = new Set(prev);
+                                text.split('\n').map(w => w.trim().toUpperCase()).filter(w => w.length >= 3).forEach(w => next.add(w));
+                                return next;
+                            });
+                            setDictLoaded(true);
+                        })
+                        .catch(err => {
+                            console.warn("Failed to load dictionary online fallback:", err);
+                            // Do not set blocking loading error; fall back to the window.COMMON_WORDS_SEED which is already preloaded
+                            setDictLoaded(true);
+                        });
+                }
             }, []);
 
             // Audio Context
@@ -383,6 +407,11 @@
                 setParticles([]);
                 setFloatingTexts([]);
                 setIsPaused(false);
+                setLastSubmittedWord(null);
+                setDefinitionLoading(false);
+                setLastDefinition(null);
+                setLastPhonetic(null);
+                setLastPartOfSpeech(null);
             };
 
             // Effects
@@ -519,6 +548,47 @@
                 playSound('select');
             };
 
+            const fetchDefinition = async (word) => {
+                setLastSubmittedWord(word);
+                setDefinitionLoading(true);
+                setLastDefinition(null);
+                setLastPhonetic(null);
+                setLastPartOfSpeech(null);
+
+                try {
+                    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+                    if (!response.ok) {
+                        throw new Error('Definition not found');
+                    }
+                    const data = await response.json();
+                    if (data && data[0]) {
+                        const entry = data[0];
+                        const phonetic = entry.phonetic || (entry.phonetics && entry.phonetics.find(p => p.text)?.text) || '';
+                        
+                        let firstDef = '';
+                        let pos = '';
+                        if (entry.meanings && entry.meanings.length > 0) {
+                            const meaning = entry.meanings[0];
+                            pos = meaning.partOfSpeech || '';
+                            if (meaning.definitions && meaning.definitions.length > 0) {
+                                firstDef = meaning.definitions[0].definition || '';
+                            }
+                        }
+                        
+                        setLastPhonetic(phonetic);
+                        setLastPartOfSpeech(pos);
+                        setLastDefinition(firstDef || 'No definition available.');
+                    } else {
+                        setLastDefinition('No entry details available.');
+                    }
+                } catch (err) {
+                    console.warn("Failed to fetch definition for", word, err);
+                    setLastDefinition('A valid English word of ' + word.length + ' letters.');
+                } finally {
+                    setDefinitionLoading(false);
+                }
+            };
+
             const submitWord = () => {
                 if (currentWord.length < 3) {
                     playSound('error');
@@ -548,6 +618,7 @@
                     setBoard(nb);
                     setCurrentWord([]);
                     showFloatingText(currentWord[0].row, currentWord[0].col, `${word} +${wordScore}`, '#FBBF24');
+                    fetchDefinition(word);
                 } else {
                     playSound('error');
                     setShake(true); setTimeout(() => setShake(false), 300);
@@ -587,7 +658,7 @@
                         <div className="flex justify-between items-center mb-2">
                             <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                    <a href="../index.html" className="text-gray-500 hover:text-white"><IconBack /></a>
+                                    <a href="../index.html" className="back-btn"><IconBack /></a>
                                     <h1 className="text-2xl font-black text-blue-500 tracking-tighter leading-none" style={{ fontFamily: '"Black Ops One", cursive' }}>DYSLEXIA</h1>
                                 </div>
                                 <div className="text-xs text-gray-400 flex gap-3 items-center mt-1">
@@ -637,6 +708,49 @@
                                     </div>
                                 )
                             })}
+                        </div>
+                    </div>
+
+                    {/* Word Definition Space */}
+                    <div className="flex-none px-4 py-2 bg-gray-900 border-b border-gray-800">
+                        <div className={`bg-black/50 border rounded-lg p-2.5 flex flex-col justify-center min-h-[70px] transition-all duration-500 relative overflow-hidden ${
+                            !lastSubmittedWord 
+                                ? 'border-gray-800' 
+                                : definitionLoading 
+                                    ? 'border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
+                                    : 'border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.15)]'
+                        }`}>
+                            {!lastSubmittedWord ? (
+                                <div className="text-center text-xs text-gray-500 font-mono tracking-wider">
+                                    [ SUBMIT A WORD TO DECODE DEFINITION ]
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold text-green-400 font-mono tracking-wider">{lastSubmittedWord}</span>
+                                            {lastPartOfSpeech && (
+                                                <span className="text-[9px] uppercase font-black px-1.5 py-0.5 bg-blue-900/60 text-blue-300 rounded border border-blue-700/30">
+                                                    {lastPartOfSpeech}
+                                                </span>
+                                            )}
+                                            {lastPhonetic && (
+                                                <span className="text-xs text-gray-400 font-mono">{lastPhonetic}</span>
+                                            )}
+                                        </div>
+                                        {definitionLoading && (
+                                            <span className="text-[10px] text-blue-400 animate-pulse font-mono font-bold">DECODING...</span>
+                                        )}
+                                    </div>
+                                    <div className="text-xs text-gray-300 font-mono line-clamp-2 leading-relaxed">
+                                        {definitionLoading ? (
+                                            <span className="text-gray-500 animate-pulse">Connecting to semantic server...</span>
+                                        ) : (
+                                            lastDefinition
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

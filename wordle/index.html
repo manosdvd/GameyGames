@@ -11,12 +11,10 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="../timeLimit.js"></script>
     <script src="../shared/settings.js"></script>
+    <script src="../shared/dictionary.js"></script>
     <link rel="stylesheet" href="../shared/theme.css">
     <style>
         body {
-            background-color: var(--cyber-bg);
-            color: var(--cyber-text);
-            font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
             margin: 0;
             overflow: hidden;
             touch-action: manipulation;
@@ -148,22 +146,43 @@
             const [message, setMessage] = useState(null);
             const [stats, setStats] = useState({ played: 0, wins: 0, streak: 0 });
 
-            useEffect(() => {
+             useEffect(() => {
                 // Load Stats
                 const savedStats = localStorage.getItem('wordle_stats');
                 if (savedStats) setStats(JSON.parse(savedStats));
 
-                // Fetch Dictionary
-                fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt')
-                    .then(res => res.text())
-                    .then(text => {
-                        const words = text.split('\n')
-                            .map(w => w.trim().toUpperCase())
-                            .filter(w => w.length === 5);
-                        const dict = new Set(words);
-                        setDictionary(dict);
-                        startNewGame(Array.from(words));
-                    });
+                // Load local compiled dictionary if available
+                let words = [];
+                if (window.WORDLE_WORDS) {
+                    words = typeof window.WORDLE_WORDS === 'string'
+                        ? window.WORDLE_WORDS.split(' ')
+                        : window.WORDLE_WORDS;
+                }
+
+                if (words.length > 0) {
+                    const dict = new Set(words);
+                    setDictionary(dict);
+                    startNewGame(words);
+                } else {
+                    // Fetch fallback
+                    fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt')
+                        .then(res => res.text())
+                        .then(text => {
+                            const fetchedWords = text.split('\n')
+                                .map(w => w.trim().toUpperCase())
+                                .filter(w => w.length === 5);
+                            const dict = new Set(fetchedWords);
+                            setDictionary(dict);
+                            startNewGame(Array.from(fetchedWords));
+                        })
+                        .catch(err => {
+                            console.error("Failed to fetch dictionary fallback, loading emergency backup:", err);
+                            const emergencyWords = ["ABOUT", "ABOVE", "ACUTE", "AGENT", "ALIVE", "ANGER", "APPLE", "BEACH", "BLIND", "BRAIN", "BREAD", "CABLE", "CHAIR", "CHEST", "CHIEF", "CLASS", "CLOCK", "COACH", "DANCE", "DRAFT", "DRAMA", "DREAM", "DRESS", "DRINK", "DRIVE", "EARTH", "EMPTY", "EVENT", "FAITH", "FIELD", "FIGHT", "FIRST", "FLOOR", "FOCUS", "FORCE", "FRAME", "FRONT", "FRUIT", "GLASS", "GLOVE", "GRACE", "GREAT", "GREEN", "GROUP", "GUIDE", "HEART", "HEAVY", "HOUSE", "IMAGE", "INDEX", "INPUT", "JUDGE", "KNIFE", "LIGHT", "LIMIT", "LUNCH", "MARCH", "MATCH", "METAL", "MODEL", "MONEY", "MONTH", "MOTOR", "MOUTH", "MUSIC", "NIGHT", "NOISE", "NORTH", "NOVEL", "NURSE", "OFFER", "ORDER", "OTHER", "OWNER", "PANEL", "PAPER", "PARTY", "PEACE", "PHASE", "PHONE", "PHOTO", "PIECE", "PILOT", "PITCH", "PLACE", "PLAIN", "PLANE", "PLANT", "PLATE", "POINT", "POUND", "POWER", "PRESS", "PRICE", "PRIDE", "PRIZE", "PROUD", "QUEEN", "QUICK", "QUIET", "RADIO", "RAISE", "RANGE", "RATIO", "REPLY", "RIGHT", "RIVER", "ROUGH", "ROUND", "ROUTE", "ROYAL", "RULER", "SCALE", "SCENE", "SCOPE", "SCORE", "SENSE", "SHAPE", "SHARE", "SHIFT", "SHIRT", "SHOCK", "SHOOT", "SIGHT", "SKILL", "SLEEP", "SLIDE", "SMALL", "SMART", "SMILE", "SMOKE", "SOUND", "SOUTH", "SPACE", "SPARE", "SPEAK", "SPEED", "SPEND", "STAGE", "STAND", "START", "STATE", "STEAM", "STEEL", "STICK", "STILL", "STONE", "STORE", "STORM", "STORY", "STRIP", "STUDY", "STYLE", "SUGAR", "SUITE", "SWEET", "TABLE", "TASTE", "THEME", "THERE", "THING", "THINK", "TIGHT", "TITLE", "TOTAL", "TOUCH", "TOWER", "TRACK", "TRADE", "TRAIN", "TREND", "TRIAL", "TRUST", "TRUTH", "TWICE", "UNCLE", "UNDER", "UNION", "UNITY", "VALUE", "VIDEO", "VISIT", "VOICE", "WASTE", "WATCH", "WATER", "WHILE", "WHITE", "WHOLE", "WOMAN", "WORLD", "WRITE", "WRONG", "YOUTH"];
+                            const dict = new Set(emergencyWords);
+                            setDictionary(dict);
+                            startNewGame(emergencyWords);
+                        });
+                }
             }, []);
 
             const startNewGame = (wordsArray = null) => {
@@ -328,10 +347,10 @@
             };
 
             return (
-                <div className="flex flex-col h-[100dvh] w-full max-w-md mx-auto relative bg-[#121213] overflow-hidden">
+                <div className="flex flex-col h-[100dvh] w-full max-w-md mx-auto relative bg-transparent overflow-hidden">
                     {/* Header */}
-                    <div className="flex-none flex items-center justify-between px-4 py-2 border-b border-[#3a3a3c] h-12">
-                        <a href="../index.html" className="text-gray-400 hover:text-white">
+                    <div className="flex-none flex items-center justify-between px-4 py-2 border-b border-[#00f3ff] h-12">
+                        <a href="../index.html" className="text-cyan-400 hover:text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
                         </a>
                         <h1 className="text-2xl md:text-3xl font-extrabold tracking-wider">WORDLE</h1>

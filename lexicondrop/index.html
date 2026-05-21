@@ -13,6 +13,7 @@
     
     <script src="../timeLimit.js"></script>
     <script src="../shared/settings.js"></script>
+    <script src="../shared/dictionary.js"></script>
     <link rel="stylesheet" href="../shared/theme.css">
     <style>
         :root {
@@ -540,7 +541,7 @@
 <body class="font-cyber">
     <div id="game-container">
         <header>
-            <button class="icon-btn" onclick="window.location.href='../index.html'" title="Back">&lt;</button>
+            <button class="back-btn" onclick="window.location.href='../index.html'" title="Back">&lt;</button>
             <div class="stat-box"><span>SCORE</span><span id="score" class="stat-value">0</span></div>
             <div class="level-info">
                 <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px; font-weight:700; color:#888;">
@@ -754,12 +755,27 @@
 
             async fetchExpandedDictionary() {
                 try {
-                    const res = await fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt');
-                    const text = await res.text();
-                    text.split(/\r?\n/).forEach(w => {
-                        if (w.length >= 3) this.dictionary.add(w.toUpperCase());
-                    });
-                } catch (e) { }
+                    let words = [];
+                    if (window.LEXICON_WORDS) {
+                        words = typeof window.LEXICON_WORDS === 'string'
+                            ? window.LEXICON_WORDS.split(' ')
+                            : window.LEXICON_WORDS;
+                    }
+
+                    if (words.length > 0) {
+                        words.forEach(w => {
+                            if (w.length >= 3) this.dictionary.add(w.toUpperCase());
+                        });
+                    } else {
+                        const res = await fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt');
+                        const text = await res.text();
+                        text.split(/\r?\n/).forEach(w => {
+                            if (w.length >= 3) this.dictionary.add(w.toUpperCase());
+                        });
+                    }
+                } catch (e) {
+                    console.warn("Failed to fetch expanded dictionary fallback:", e);
+                }
             }
 
             setupInputHandlers() {

@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // FAB interaction
-    const fab = document.querySelector('.fab');
+    const fab = document.querySelector('.cyber-fab');
     if (fab) {
         fab.addEventListener('click', () => {
             alert('Add Game feature coming soon!');

@@ -1,8 +1,29 @@
 {
     "name": "game-hub",
-    "private": true,
+    "version": "1.0.0",
+    "description": "GameyGames Collection",
+    "author": "Manos",
+    "main": "electron-main.js",
     "scripts": {
-        "build": "node build.js"
+        "build": "node build.js",
+        "start": "electron .",
+        "pack": "electron-builder --dir",
+        "dist": "electron-builder"
     },
-    "devDependencies": {}
+    "build": {
+        "appId": "com.gameygames.app",
+        "productName": "GameyGames",
+        "directories": {
+            "buildResources": "build"
+        },
+        "files": [
+            "dist/**/*",
+            "electron-main.js",
+            "package.json"
+        ]
+    },
+    "devDependencies": {
+        "electron": "^42.2.0",
+        "electron-builder": "^26.8.1"
+    }
 }

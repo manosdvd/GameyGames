@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import './style.css';
 
 // --- Icons ---
@@ -55,7 +56,7 @@ const getThresholdForLevel = (lvl: number) => {
 
 export default function App() {
     // Settings
-    const [settings, setSettings] = useState(() => {
+    const [settings] = useState(() => {
         try {
             const stored = localStorage.getItem('neuro_hub_settings');
             const defaults = { sound: true, haptics: true, crt: true, colorBlind: false };
@@ -80,7 +81,7 @@ export default function App() {
     const [score, setScore] = useState(0);
     const [highScore, setHighScore] = useState(parseInt(localStorage.getItem('anxiety_highscore') || '0'));
     const [level, setLevel] = useState(1);
-    const [startLevel, setStartLevel] = useState(1);
+    const [startLevel] = useState(1);
     const [levelScore, setLevelScore] = useState(0);
     const [gameOver, setGameOver] = useState(false);
     const [gameStarted, setGameStarted] = useState(false);
@@ -92,7 +93,7 @@ export default function App() {
     const [comboChain, setComboChain] = useState(0);
     const [tickRate, setTickRate] = useState(1200);
     const [previewIndex, setPreviewIndex] = useState(0);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // --- Helpers ---
     const triggerHaptic = (pattern: number | number[]) => {
@@ -119,10 +120,10 @@ export default function App() {
         playTone(baseFreq, 'sine', 0.3, 0.2);
         playTone(baseFreq * 1.5, 'triangle', 0.1, 0.1);
     };
-    const playExplosionSound = () => {
-        playTone(100, 'sawtooth', 0.4, 0.3);
-        setTimeout(() => playTone(80, 'square', 0.4, 0.3), 50);
-    };
+    // const playExplosionSound = () => {
+    //     playTone(100, 'sawtooth', 0.4, 0.3);
+    //     setTimeout(() => playTone(80, 'square', 0.4, 0.3), 50);
+    // };
     const playDropSound = () => playTone(100, 'square', 0.1, 0.05);
     const playTickSound = (i: number) => playTone(400 + (i * 100), 'sawtooth', 0.05, 0.05);
     const playSwapSound = () => playTone(600, 'sine', 0.1, 0.1);
@@ -520,7 +521,7 @@ export default function App() {
                                         </div>
                                     )}
                                     {particles.filter(p => p.r === r && p.c === c).map(p => (
-                                        <div key={p.id} className="particle w-3 h-3 rounded-full z-30" style={{ backgroundColor: p.color, left: '50%', top: '50%', '--tx': p.tx, '--ty': p.ty, boxShadow: `0 0 10px ${p.color}` }}></div>
+                                        <div key={p.id} className="particle w-3 h-3 rounded-full z-30" style={{ backgroundColor: p.color, left: '50%', top: '50%', '--tx': p.tx, '--ty': p.ty, boxShadow: `0 0 10px ${p.color}` } as CSSProperties}></div>
                                     ))}
                                     {floatingTexts.filter(t => t.r === r && t.c === c).map(t => (
                                         <div key={t.id} className="floating-score" style={{ color: t.color, left: '50%', top: '50%', transform: `translate(${t.offsetX}px, ${t.offsetY}px)` }}>
@@ -541,7 +542,7 @@ export default function App() {
                         <h2 className="text-4xl font-black text-white mb-2" style={{ fontFamily: '"Black Ops One"' }}>{gameOver ? 'PANIC OVER' : 'PAUSED'}</h2>
                         {gameOver && <p className="text-xl text-red-400 mb-6">SCORE: {score}</p>}
 
-                        <button onClick={initGame} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded mb-3">
+                        <button onClick={gameOver ? initGame : togglePause} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded mb-3">
                             {gameOver ? 'TRY AGAIN' : 'RESUME'}
                         </button>
                         <button onClick={() => window.location.href = '../index.html'} className="w-full py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold rounded">
