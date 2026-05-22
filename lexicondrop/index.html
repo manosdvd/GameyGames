@@ -757,9 +757,9 @@
                 try {
                     let words = [];
                     if (window.LEXICON_WORDS) {
-                        words = typeof window.LEXICON_WORDS === 'string'
-                            ? window.LEXICON_WORDS.split(' ')
-                            : window.LEXICON_WORDS;
+                        words = typeof window.LEXICON_WORDS === 'object' && !Array.isArray(window.LEXICON_WORDS)
+                            ? Object.keys(window.LEXICON_WORDS)
+                            : (typeof window.LEXICON_WORDS === 'string' ? window.LEXICON_WORDS.split(' ') : window.LEXICON_WORDS);
                     }
 
                     if (words.length > 0) {
@@ -1157,9 +1157,46 @@
                     } else {
                         this.showFloat(`+${finalScore}`, lastTile);
                     }
-                    this.playTone(523.25, 'triangle', 0.1); 
+                    this.playTone(523.25, 'triangle', 0.1);
                     this.triggerHaptic([50, 30, 50]);
                     this.removeTiles();
+
+                    const wUpper = word.toUpperCase();
+                    let def = window.LEXICON_WORDS && typeof window.LEXICON_WORDS === 'object' ? window.LEXICON_WORDS[wUpper] : "";
+                    if (!def && window.COMMON_WORDS_SEED && typeof window.COMMON_WORDS_SEED === 'object') def = window.COMMON_WORDS_SEED[wUpper] || "";
+                    
+                    let defEl = document.getElementById('definition-display');
+                    if(!defEl) {
+                        defEl = document.createElement('div');
+                        defEl.id = 'definition-display';
+                        defEl.style.cssText = 'font-size: 0.8rem; color: #aaa; text-align: left; margin-top: 5px; opacity: 0; transition: opacity 0.3s; width: 100%; padding: 5px 10px; box-sizing: border-box; display: flex; flex-direction: column; font-family: monospace; line-height: 1.2; background: rgba(0,0,0,0.5); border-radius: 5px;';
+                        document.getElementById('controls').appendChild(defEl);
+                    }
+                    if (def) {
+                        const shortDef = def.split('. ')[0] + (def.includes('. ') ? '.' : '');
+                        const hasMore = def.includes('. ');
+                        defEl.innerHTML = `
+                            <div style="overflow-y: auto; max-height: none;"><span style="color:var(--success); font-weight:bold;">${wUpper}</span>: <span id="def-text">${shortDef}</span></div>
+                            ${hasMore ? `<div style="text-align: right; margin-top: 2px;">
+                                <button id="def-expand-btn" style="background:none;border:none;color:#4ade80;cursor:pointer;font-size:0.8em;padding:0; font-weight:bold;">[EXPAND]</button>
+                            </div>` : ''}
+                        `;
+                        defEl.style.opacity = 1;
+                        if (hasMore) {
+                            document.getElementById('def-expand-btn').onclick = function() {
+                                const txt = document.getElementById('def-text');
+                                if (this.innerText === '[EXPAND]') {
+                                    txt.innerText = def;
+                                    this.innerText = '[COLLAPSE]';
+                                    defEl.firstElementChild.style.maxHeight = '100px';
+                                } else {
+                                    txt.innerText = shortDef;
+                                    this.innerText = '[EXPAND]';
+                                    defEl.firstElementChild.style.maxHeight = 'none';
+                                }
+                            };
+                        }
+                    }
                 } else {
                     this.shakeBoard();
                     this.playTone(150, 'sawtooth', 0.3);

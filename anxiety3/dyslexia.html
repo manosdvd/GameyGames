@@ -79,19 +79,10 @@
             grid-template-columns: repeat(8, 1fr);
             grid-template-rows: repeat(12, 1fr);
             gap: 2px;
-            /* Default: Fit height (Landscape/Desktop) */
-            height: 100%;
-            width: auto;
-            aspect-ratio: 2/3;
             margin: 0 auto;
-        }
-
-        /* Responsive: Fit width (Mobile/Portrait) */
-        @media (max-aspect-ratio: 2/3) {
-            .grid-container {
-                width: 100%;
-                height: auto;
-            }
+            max-width: 100%;
+            max-height: 100%;
+            aspect-ratio: 2 / 3;
         }
 
         .particle {
@@ -242,6 +233,7 @@
             const [lastDefinition, setLastDefinition] = useState(null);
             const [lastPhonetic, setLastPhonetic] = useState(null);
             const [lastPartOfSpeech, setLastPartOfSpeech] = useState(null);
+            const [defExpanded, setDefExpanded] = useState(false);
 
             // Board State
             const [previewRow, setPreviewRow] = useState(Array(8).fill(null));
@@ -412,6 +404,7 @@
                 setLastDefinition(null);
                 setLastPhonetic(null);
                 setLastPartOfSpeech(null);
+                setDefExpanded(false);
             };
 
             // Effects
@@ -553,6 +546,7 @@
                 setDefinitionLoading(false);
                 setLastPhonetic(null);
                 setLastPartOfSpeech(null);
+                setDefExpanded(false);
 
                 let def = "A valid English word of " + word.length + " letters.";
                 const wUpper = word.toUpperCase();
@@ -721,13 +715,20 @@
                                             <span className="text-[10px] text-blue-400 animate-pulse font-mono font-bold">DECODING...</span>
                                         )}
                                     </div>
-                                    <div className="text-xs text-gray-300 font-mono line-clamp-2 leading-relaxed">
+                                    <div className={`text-xs text-gray-300 font-mono leading-relaxed ${defExpanded ? 'overflow-y-auto max-h-32' : ''}`}>
                                         {definitionLoading ? (
                                             <span className="text-gray-500 animate-pulse">Connecting to semantic server...</span>
                                         ) : (
-                                            lastDefinition
+                                            lastDefinition ? (defExpanded ? lastDefinition : (lastDefinition.split('. ')[0] + (lastDefinition.includes('. ') ? '.' : ''))) : ''
                                         )}
                                     </div>
+                                    {lastDefinition && lastDefinition.includes('. ') && (
+                                        <div className="text-right mt-1">
+                                            <button onClick={() => setDefExpanded(!defExpanded)} className="text-[10px] text-blue-400 font-bold hover:text-blue-300 transition-colors">
+                                                [{defExpanded ? 'COLLAPSE' : 'EXPAND'}]
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

@@ -78,17 +78,17 @@ try {
             const commonObj = {};
             commonSeed.split(' ').forEach(w => {
                 if(!w) return;
-                commonObj[w] = dictObj[w] || ('A valid English word of ' + w.length + ' letters.');
+                if(dictObj[w]) commonObj[w] = dictObj[w];
             });
 
             const wordleObj = {};
             words.filter(w => w.length === 5).forEach(w => {
-                wordleObj[w] = dictObj[w] || ('A valid English word of ' + w.length + ' letters.');
+                if(dictObj[w]) wordleObj[w] = dictObj[w];
             });
 
             const lexiconObj = {};
             words.filter(w => w.length >= 3 && w.length <= 8).forEach(w => {
-                lexiconObj[w] = dictObj[w] || ('A valid English word of ' + w.length + ' letters.');
+                if(dictObj[w]) lexiconObj[w] = dictObj[w];
             });
 
             const jsContent = `window.COMMON_WORDS_SEED = ${JSON.stringify(commonObj)};\nwindow.WORDLE_WORDS = ${JSON.stringify(wordleObj)};\nwindow.LEXICON_WORDS = ${JSON.stringify(lexiconObj)};\n`;
