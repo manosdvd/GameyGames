@@ -280,8 +280,13 @@
         .gem.power-cross .gem-inner { box-shadow: 0 0 20px #ff0, inset 0 0 15px #ff0; }
         .gem.power-cross::after { content: '✛'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: yellow; font-size: 1.8rem; text-shadow: 0 0 5px black; z-index: 5; pointer-events:none;}
 
-        .gem.power-color { animation: spin-colors 2s linear infinite; }
-        .gem.power-color .gem-inner { background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red) !important; border-radius: 50% !important; box-shadow: inset 0 0 10px rgba(255,255,255,0.8), 0 0 20px #fff; clip-path:none;}
+        .gem.power-color .gem-inner { 
+            animation: spin-colors 2s linear infinite;
+            background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red) !important; 
+            border-radius: 50% !important; 
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.8), 0 0 20px #fff; 
+            clip-path:none;
+        }
         @keyframes spin-colors { 100% { transform: rotate(360deg); } }
         
         .gem.power-mega-bomb .gem-inner { box-shadow: 0 0 30px #f0f, inset 0 0 25px #f0f; animation: pulse-mega 0.5s infinite; }

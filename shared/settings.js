@@ -118,8 +118,21 @@ class GlobalScoreManager {
     }
 
     notify() {
-        this.listeners.forEach(l => l(this.score));
-    }
+        this.listeners.forEach(l => l(this.score));}
 }
 
+// Export singleton
 window.GlobalScore = new GlobalScoreManager();
+
+// Standardize Fullscreen API
+function requestFullScreen() {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().then(() => {
+            // Once successfully in fullscreen, remove the listeners so we don't trap the user forever
+            document.removeEventListener('pointerdown', requestFullScreen);
+            document.removeEventListener('keydown', requestFullScreen);
+        }).catch(() => {});
+    }
+}
+document.addEventListener('pointerdown', requestFullScreen);
+document.addEventListener('keydown', requestFullScreen);
