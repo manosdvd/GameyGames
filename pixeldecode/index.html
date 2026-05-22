@@ -121,14 +121,14 @@
 
         .col-hints {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(var(--n, 5), 1fr);
             gap: 2px;
             margin-bottom: 5px;
         }
         
         .row-hints {
             display: grid;
-            grid-template-rows: repeat(5, 1fr);
+            grid-template-rows: repeat(var(--n, 5), 1fr);
             gap: 2px;
             margin-right: 5px;
         }
@@ -157,8 +157,8 @@
 
         #pixel-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: repeat(5, 1fr);
+            grid-template-columns: repeat(var(--n, 5), 1fr);
+            grid-template-rows: repeat(var(--n, 5), 1fr);
             gap: 2px;
             background: #222;
             border: 2px solid var(--cyber-cyan);
@@ -166,8 +166,8 @@
         }
 
         .pixel-cell {
-            width: clamp(30px, 8vw, 50px);
-            height: clamp(30px, 8vw, 50px);
+            width: clamp(15px, calc(65vw / var(--n, 5)), 40px);
+            height: clamp(15px, calc(65vw / var(--n, 5)), 40px);
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(0, 243, 255, 0.1);
             cursor: pointer;
@@ -309,7 +309,15 @@
 
     <div id="game-wrapper">
         <div id="game-container">
-            <div class="empty-corner">
+            <div class="empty-corner" style="flex-direction: column; gap: 10px; align-items: flex-end;">
+                <select id="gridScaleSelect" class="cyber-btn" style="background: transparent; color: var(--cyber-cyan); border-color: var(--cyber-cyan); padding: 4px 8px; cursor: pointer;">
+                    <option value="5" style="background: #111;">5x5</option>
+                    <option value="6" style="background: #111;">6x6</option>
+                    <option value="7" style="background: #111;">7x7</option>
+                    <option value="8" style="background: #111;">8x8</option>
+                    <option value="9" style="background: #111;">9x9</option>
+                    <option value="10" style="background: #111;">10x10</option>
+                </select>
                 <!-- Mobile toggle for Fill / X since right click is hard -->
                 <button class="toggle-btn" id="btnToggleMode">FILL</button>
             </div>
@@ -333,7 +341,7 @@
     </div>
 
     <script>
-        const N = 5;
+        let N = 5;
         let solution = [];
         let playerGrid = [];
         let inputMode = 'fill'; // 'fill' or 'x'
@@ -346,6 +354,13 @@
         const scoreCountEl = document.getElementById('scoreCount');
         const btnToggleMode = document.getElementById('btnToggleMode');
         const winOverlayEl = document.getElementById('win-overlay');
+        const gridScaleSelect = document.getElementById('gridScaleSelect');
+
+        gridScaleSelect.addEventListener('change', (e) => {
+            N = parseInt(e.target.value);
+            document.documentElement.style.setProperty('--n', N);
+            generatePuzzle();
+        });
 
         scoreCountEl.innerText = puzzlesSolved;
 

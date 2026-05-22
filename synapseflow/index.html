@@ -136,29 +136,38 @@
         /* --- Grid Cells --- */
         .tile {
             position: absolute;
+            cursor: pointer;
+            transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .tile-inner {
+            width: calc(100% - 8px);
+            height: calc(100% - 8px);
             background: rgba(5, 5, 20, 0.9);
             border: 1px solid rgba(0, 243, 255, 0.4);
             border-radius: 6px;
-            cursor: pointer;
-            transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.8rem;
+            font-size: clamp(1rem, calc(30vmin / var(--grid-size, 4)), 2rem);
             font-weight: 700;
             color: var(--cyber-cyan);
             text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
             box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.1);
+            transition: all 0.15s;
         }
 
-        .tile:hover {
+        .tile:hover .tile-inner {
             border-color: var(--cyber-magenta);
             box-shadow: inset 0 0 15px rgba(255, 0, 255, 0.2);
+        }
+        
+        .tile:hover {
             z-index: 5;
         }
         
-        .tile.correct {
+        .tile.correct .tile-inner {
             border-color: var(--cyber-yellow);
             color: var(--cyber-yellow);
             text-shadow: 0 0 10px rgba(255, 230, 0, 0.8);
@@ -424,6 +433,7 @@
         // --- Game Logic ---
         function initGame() {
             N = parseInt(sizeSelectEl.value, 10);
+            document.documentElement.style.setProperty('--grid-size', N);
             winOverlayEl.classList.remove('show');
             moves = 0;
             moveCountEl.innerText = moves;
@@ -547,10 +557,7 @@
                 el.style.height = `${100 / N}%`;
                 el.style.transformOrigin = 'top left';
                 // Add an inner div for the actual visual tile to handle gap easily without complex math
-                el.innerHTML = val === 0 ? '' : `<div style="width: calc(100% - ${gap}px); height: calc(100% - ${gap}px); display: flex; align-items: center; justify-content: center; background: inherit; border: inherit; border-radius: inherit; box-shadow: inherit; text-shadow: inherit;">${val}</div>`;
-                el.style.background = 'transparent';
-                el.style.border = 'none';
-                el.style.boxShadow = 'none';
+                el.innerHTML = val === 0 ? '' : `<div class="tile-inner">${val}</div>`;
                 
                 const x = currentIdx % N;
                 const y = Math.floor(currentIdx / N);
