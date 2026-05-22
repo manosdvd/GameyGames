@@ -44,19 +44,56 @@ try {
         }
     }
 
+    const localDictPath = path.join(__dirname, 'dictionary_compact.json');
+    if (!fs.existsSync(localDictPath)) {
+        console.log('  -> Downloading dictionary_compact.json...');
+        try {
+            execSync('curl -s -S -o dictionary_compact.json https://raw.githubusercontent.com/matthewreagan/WebstersEnglishDictionary/master/dictionary_compact.json', { stdio: 'inherit' });
+        } catch (e) {
+            console.warn('  ⚠️ Failed to download dictionary: ' + e.message);
+        }
+    }
+
     let commonSeed = "THE AND FOR ARE BUT NOT YOU ALL ANY CAN HAD HAS HIM HIS HOW MAN NEW NOW OLD ONE OUR OUT SAY SEE SHE SIT TOO USE WAY WHO WHY YES ACT ADD AGE AIR AGO ART ASK BAD BAG BED BET BIG BIT BOX BOY BUS CAR CAT CUP CUT DAD DAY DID DOG DRY EAR EAT EGG END EYE FAR FAT FEW FIT FLY FUN GET GOT GUN GUY GYM HAT HER HIT HOT HUT ICE ILL INK JAR JOB JOY KEY KID KIT LAW LAY LEG LIE LIP LOW MAD MAP MIX MUD NET NOD NOR NUT OFF OIL OWN PAY PEN PET PIE PIG PIN POT PUT RAN RED RIP RUN SAD SAW SEA SET SEX SIN SIT SIX SKY SON SUN TAX TEA TEN TIE TIP TOE TOP TOY TRY TWO VAN WAR WET WIN YES YET ABLE ACID AGED ALSO AREA ARMY AWAY BABY BACK BALL BAND BANK BASE BATH BEAR BEAT BEER BELL BELT BEST BIRD BLOW BLUE BOAT BODY BOND BONE BORN BOSS BOTH BOWL BURN BUSH BUSY CALL CALM CAMP CARD CARE CASE CASH CAST CELL CHAT CHIP CITY CLUB COAL COAT CODE COLD COME COOK COOL COPY CORE COST CREW CROP DARK DATE DEAD DEAL DEAR DEBT DEEP DENY DESK DIET DIRT DISC DISK DOES DONE DOOR DOWN DRAW DRESS DRINK DRIVE DROP DRUG DUST DUTY EACH EARN EAST EASY EDGE ELSE EVEN EVER EVIL EXIT FACE FACT FAIL FAIR FALL FARM FAST FEAR FEED FEEL FEET FELL FILL FILM FIND FINE FIRE FIRM FISH FIVE FLAT FLOW FOOD FOOT FORD FORM FORT FOUR FREE FROM FULL FUND GAIN GAME GATE GAVE GEAR GIFT GIRL GIVE GLAD GOAL GOES GOLD GOLF GONE GOOD GRAY GREW GREY GROW GULF HAIR HALF HALL HAND HANG HARD HARM HATE HAVE HEAD HEAR HEAT HELD HELL HELP HERE HERO HIGH HILL HIRE HOLD HOLE HOLY HOME HOPE HOST HOUR HUGE HUNG HUNT HURT IDEA INCH INTO IRON ITEM JACK JOIN JUMP JUST KEPT KEEP KICK KILL KIND KING KNEE KNEE KNEW KNOW LACK LADY LAID LAKE LAND LANE LAST LATE LEAD LEFT LESS LIFE LIFT LIKE LINE LINK LIST LIVE LOAD LOAN LOCK LONG LOOK LORD LOSS LOST LOTS LOVE LUCK MADE MAIL MAIN MAKE MALE MANY MARK MASS MEAL MEAN MEAT MEET MILE MILK MILL MIND MINE MISS MODE MOOD MOON MORE MOST MOVE MUCH MUST NAME NEAR NECK NEED NEWS NEXT NICE NINE NONE NOSE NOTE OKAY ONCE ONLY OPEN ORAL OVER PACE PACK PAGE PAID PAIN PAIR PARK PART PASS PAST PATH PEAK PICK PILE PINK PIPE PLAN PLAY PLOT PLUS POET POOL POOR POST PULL PURE PUSH QUIT RACE RAIN RANK RARE RATE READ REAL REAR RELY RENT REST RICE RICH RIDE RING RISE RISK ROAD ROCK ROLE ROLL ROOF ROOM ROOT ROSE RULE RUSH SAFE SAID SAKE SALE SALT SAME SAND SAVE SEAT SEED SEEK SEEM SEEN SELF SELL SEND SENT SETS SHED SHIP SHOE SHOP SHUT SICK SIDE SIGN SILK SITE SIZE SKIN SLIP SLOW SNOW SOFT SOIL SOLD SOLE SOME SONG SOON SORT SOUL SPOT STAR STAY STEP STOP SUCH SUIT SURE SWIM TAKE TALK TALL TANK TAPE TASK TEAM TEAR TELL TENT TERM TEST TEXT THAN THAT THEM THEN THEY THIN THIS TIDE TILL TIME TINY TOLD TOOK TOOL TOUR TOWN TREE TRIP TRUE TUBE TURN TWIN TYPE UNIT UPON USER USUAL VARY VERY VIEW VILL VOTE WAIT WAKE WALK WALL WANT WARM WASH WAVE WEAR WEEK WELL WENT WERE WEST WHAT WHEN WIDE WIFE WILD WILL WIND WINE WING WIRE WISH WITH WOOD WOOL WORD WORK WARD YARD YEAR ZERO ZONE";
 
     if (fs.existsSync(localWordsPath)) {
         try {
-            console.log('  -> Compiling dictionary file...');
+            console.log('  -> Compiling dictionary file with definitions...');
             const content = fs.readFileSync(localWordsPath, 'utf8');
             const words = content.split(/\r?\n/).map(w => w.trim().toUpperCase()).filter(Boolean);
-            const wordleWords = words.filter(w => w.length === 5).join(' ');
-            const lexiconWords = words.filter(w => w.length >= 3 && w.length <= 8).join(' ');
+            
+            let dictObj = {};
+            if (fs.existsSync(localDictPath)) {
+                try {
+                    const rawDict = fs.readFileSync(localDictPath, 'utf8');
+                    const parsed = JSON.parse(rawDict);
+                    for (let key in parsed) {
+                        dictObj[key.toUpperCase()] = parsed[key];
+                    }
+                } catch(e) {
+                    console.warn('  ⚠️ Failed to parse dictionary_compact.json', e.message);
+                }
+            }
 
-            const jsContent = `window.COMMON_WORDS_SEED = "${commonSeed}";\nwindow.WORDLE_WORDS = "${wordleWords}";\nwindow.LEXICON_WORDS = "${lexiconWords}";\n`;
+            const commonObj = {};
+            commonSeed.split(' ').forEach(w => {
+                if(!w) return;
+                commonObj[w] = dictObj[w] || ('A valid English word of ' + w.length + ' letters.');
+            });
+
+            const wordleObj = {};
+            words.filter(w => w.length === 5).forEach(w => {
+                wordleObj[w] = dictObj[w] || ('A valid English word of ' + w.length + ' letters.');
+            });
+
+            const lexiconObj = {};
+            words.filter(w => w.length >= 3 && w.length <= 8).forEach(w => {
+                lexiconObj[w] = dictObj[w] || ('A valid English word of ' + w.length + ' letters.');
+            });
+
+            const jsContent = `window.COMMON_WORDS_SEED = ${JSON.stringify(commonObj)};\nwindow.WORDLE_WORDS = ${JSON.stringify(wordleObj)};\nwindow.LEXICON_WORDS = ${JSON.stringify(lexiconObj)};\n`;
             fs.writeFileSync(dictionaryPath, jsContent, 'utf8');
-            console.log('  -> shared/dictionary.js successfully compiled offline database!');
+            console.log('  -> shared/dictionary.js successfully compiled offline database with definitions!');
         } catch (err) {
             console.error('  ⚠️ Error parsing word list:', err.message);
         }
