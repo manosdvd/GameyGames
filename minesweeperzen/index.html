@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Minesweeper Zen</title>
+    <script src="../timeLimit.js"></script>
+    <script src="../shared/settings.js"></script>
+    <link rel="stylesheet" href="../shared/theme.css">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --bg-color: var(--cyber-bg);
+            --surface-color: var(--cyber-surface);
+            --text-color: var(--cyber-text);
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100dvh;
+            width: 100vw;
+            position: relative;
+        }
+
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .hud-stats-bar {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+            margin: 20px 0 10px 0;
+            padding: 0 10px;
+            z-index: 10;
+        }
+
+        .hud-stats-bar .hud-pill {
+            flex: 1;
+            justify-content: space-between;
+            min-width: 0;
+            padding: 8px 15px;
+        }
+
+        #game-wrapper {
+            flex: 1;
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            z-index: 10;
+        }
+
+        #game-container {
+            position: relative;
+            background: rgba(10, 10, 31, 0.4);
+            border: 2px solid rgba(255, 0, 0, 0.25);
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toolbar {
+            display: flex;
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: 1px solid var(--cyber-cyan);
+            color: var(--cyber-cyan);
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 4px;
+            padding: 4px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .toggle-btn.mode-flag {
+            border-color: #ff3333;
+            color: #ff3333;
+        }
+
+        #mine-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 2px;
+            background: #222;
+            border: 2px solid #ff3333;
+            padding: 2px;
+        }
+
+        .mine-cell {
+            width: clamp(25px, 7vw, 40px);
+            height: clamp(25px, 7vw, 40px);
+            background: rgba(255,255,255,0.1);
+            border: 1px outset rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: bold;
+            font-family: 'Orbitron', monospace;
+            color: #fff;
+            transition: background 0.1s;
+        }
+
+        .mine-cell:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .mine-cell.open {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+            cursor: default;
+        }
+
+        .mine-cell.flagged {
+            color: #ff3333;
+            text-shadow: 0 0 5px #ff3333;
+        }
+
+        .mine-cell.mine-hit {
+            background: #ff3333;
+            color: #fff;
+            box-shadow: 0 0 15px #ff3333;
+        }
+
+        .mine-cell.open.val-1 { color: #00f3ff; }
+        .mine-cell.open.val-2 { color: #00ff66; }
+        .mine-cell.open.val-3 { color: #ffe600; }
+        .mine-cell.open.val-4 { color: #ff9900; }
+        .mine-cell.open.val-5 { color: #ff3333; }
+        .mine-cell.open.val-6 { color: #ff00ff; }
+        .mine-cell.open.val-7 { color: #fff; }
+        .mine-cell.open.val-8 { color: #000; background: #fff; }
+
+        /* --- Controls --- */
+        .controls-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 25px;
+            padding: 0 15px;
+            z-index: 10;
+        }
+
+        .controls-panel .cyber-btn {
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* --- Overlay --- */
+        #win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 5, 20, 0.96);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        #win-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .win-title {
+            font-size: 3rem;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 10px;
+            letter-spacing: 4px;
+        }
+
+        .win-stats {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.15rem;
+            margin-bottom: 35px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .btn-restart {
+            background: linear-gradient(135deg, #ff3333, #000);
+            border: 1px solid #ff3333;
+            padding: 15px 45px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: white;
+            border-radius: 40px;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(255, 51, 51, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .btn-restart:hover { transform: scale(1.05); }
+        .btn-restart:active { transform: scale(0.95); }
+
+    </style>
+</head>
+
+<body>
+    <div class="scanlines"></div>
+
+    <header class="cyber-header" style="width: 100%;">
+        <a href="../index.html" class="back-btn" id="btnBack"> &lt; HUB </a>
+        <div class="hud-pill">
+            <span>PROTOCOL</span>
+            <span class="hud-value">MINEFIELD</span>
+        </div>
+        <button class="icon-btn" id="btnSoundToggle" aria-label="Toggle Sound" style="pointer-events: auto;">
+            <span class="material-symbols-outlined" id="soundIcon">volume_up</span>
+        </button>
+    </header>
+
+    <div class="hud-stats-bar">
+        <div class="hud-pill">
+            <span class="material-symbols-outlined" style="font-size:1.2rem; color: #ff3333;">flag</span>
+            <span class="hud-value" id="flagCount">10</span>
+        </div>
+        <div class="hud-pill">
+            <span>SAFE ZONES</span>
+            <span class="hud-value" id="safeCount">0 / 54</span>
+        </div>
+    </div>
+
+    <div id="game-wrapper">
+        <div id="game-container">
+            <div class="toolbar">
+                <button class="toggle-btn" id="btnToggleMode">
+                    <span class="material-symbols-outlined" style="font-size:1rem;">search</span> SWEEP
+                </button>
+            </div>
+            <div id="mine-grid"></div>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <button class="cyber-btn" id="btnNew">
+            <span class="material-symbols-outlined" style="font-size: 1.15rem;">cached</span>
+            NEW_FIELD
+        </button>
+    </div>
+
+    <div id="win-overlay">
+        <div class="win-title" id="winTitleText">SIGNAL_INTERRUPTED</div>
+        <div class="win-stats" id="winStatsText">MINE DETONATED</div>
+        <button class="btn-restart" id="btnWinRestart">REBOOT_SYSTEM</button>
+    </div>
+
+    <script>
+        const R = 8;
+        const C = 8;
+        const MINES = 10;
+        
+        let grid = [];
+        let minesObj = {};
+        let opened = 0;
+        let flags = 0;
+        let isFirstClick = true;
+        let isGameOver = false;
+        let inputMode = 'sweep'; // 'sweep' or 'flag'
+        
+        const gridEl = document.getElementById('mine-grid');
+        const flagCountEl = document.getElementById('flagCount');
+        const safeCountEl = document.getElementById('safeCount');
+        const btnToggleMode = document.getElementById('btnToggleMode');
+        const winOverlayEl = document.getElementById('win-overlay');
+        const winTitleTextEl = document.getElementById('winTitleText');
+        const winStatsTextEl = document.getElementById('winStatsText');
+        const btnWinRestart = document.getElementById('btnWinRestart');
+
+        // Sound
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (window.GameSettings && !window.GameSettings.get().sound) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+                
+                if (type === 'click') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(400, now+0.05);
+                    gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now); osc.stop(now + 0.05);
+                } else if (type === 'flag') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now);
+                    gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'cascade') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.02, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'explode') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(100, now);
+                    osc.frequency.linearRampToValueAtTime(20, now + 0.5);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.start(now); osc.stop(now + 0.5);
+                } else if (type === 'win') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.linearRampToValueAtTime(600, now + 0.2);
+                    osc.frequency.linearRampToValueAtTime(800, now + 0.4);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    osc.start(now); osc.stop(now + 0.6);
+                }
+            } catch (e) {}
+        }
+
+        const btnSoundToggle = document.getElementById('btnSoundToggle');
+        const soundIconEl = document.getElementById('soundIcon');
+        function updateSoundButtonDisplay() {
+            if (window.GameSettings) {
+                const soundEnabled = window.GameSettings.get().sound;
+                soundIconEl.innerText = soundEnabled ? 'volume_up' : 'volume_off';
+                btnSoundToggle.style.color = soundEnabled ? 'var(--cyber-cyan)' : '#666';
+            }
+        }
+        btnSoundToggle.addEventListener('click', () => {
+            if (window.GameSettings) {
+                window.GameSettings.toggle('sound');
+                updateSoundButtonDisplay();
+            }
+        });
+        updateSoundButtonDisplay();
+
+        btnToggleMode.addEventListener('click', () => {
+            inputMode = inputMode === 'sweep' ? 'flag' : 'sweep';
+            btnToggleMode.innerHTML = inputMode === 'sweep' ? 
+                '<span class="material-symbols-outlined" style="font-size:1rem;">search</span> SWEEP' : 
+                '<span class="material-symbols-outlined" style="font-size:1rem;">flag</span> FLAG';
+            if (inputMode === 'flag') btnToggleMode.classList.add('mode-flag');
+            else btnToggleMode.classList.remove('mode-flag');
+        });
+
+        gridEl.addEventListener('contextmenu', e => e.preventDefault());
+
+        function initGame() {
+            grid = [];
+            minesObj = {};
+            opened = 0;
+            flags = 0;
+            isFirstClick = true;
+            isGameOver = false;
+            winOverlayEl.classList.remove('show');
+            
+            for(let r=0; r<R; r++){
+                grid.push([]);
+                for(let c=0; c<C; c++){
+                    grid[r].push({
+                        r, c,
+                        isMine: false,
+                        isOpen: false,
+                        isFlagged: false,
+                        neighborMines: 0
+                    });
+                }
+            }
+            updateHUD();
+            renderGrid();
+        }
+
+        function placeMines(firstR, firstC) {
+            let placed = 0;
+            while(placed < MINES) {
+                let r = Math.floor(Math.random() * R);
+                let c = Math.floor(Math.random() * C);
+                
+                // Safe zone: don't place on first click or immediately adjacent
+                if (Math.abs(r - firstR) <= 1 && Math.abs(c - firstC) <= 1) continue;
+                
+                if (!grid[r][c].isMine) {
+                    grid[r][c].isMine = true;
+                    minesObj[`${r},${c}`] = true;
+                    placed++;
+                }
+            }
+            
+            // Calculate neighbors
+            for(let r=0; r<R; r++){
+                for(let c=0; c<C; c++){
+                    if(!grid[r][c].isMine) {
+                        let count = 0;
+                        for(let dr=-1; dr<=1; dr++){
+                            for(let dc=-1; dc<=1; dc++){
+                                if(dr===0 && dc===0) continue;
+                                let nr = r+dr, nc = c+dc;
+                                if(nr>=0 && nr<R && nc>=0 && nc<C && grid[nr][nc].isMine) count++;
+                            }
+                        }
+                        grid[r][c].neighborMines = count;
+                    }
+                }
+            }
+        }
+
+        function renderGrid() {
+            gridEl.innerHTML = '';
+            for(let r=0; r<R; r++){
+                for(let c=0; c<C; c++){
+                    const cell = grid[r][c];
+                    const el = document.createElement('div');
+                    el.className = 'mine-cell';
+                    if (cell.isOpen) {
+                        el.classList.add('open');
+                        if (cell.isMine) {
+                            el.classList.add('mine-hit');
+                            el.innerHTML = '<span class="material-symbols-outlined">emergency</span>';
+                        } else if (cell.neighborMines > 0) {
+                            el.classList.add(`val-${cell.neighborMines}`);
+                            el.innerText = cell.neighborMines;
+                        }
+                    } else if (cell.isFlagged) {
+                        el.classList.add('flagged');
+                        el.innerHTML = '<span class="material-symbols-outlined">flag</span>';
+                    }
+                    
+                    let pressTimer = null;
+                    let isLongPress = false;
+                    
+                    const handleDown = (e) => {
+                        if (isGameOver) return;
+                        if (e.type === 'mousedown' && e.button !== 0) return;
+                        isLongPress = false;
+                        pressTimer = setTimeout(() => {
+                            isLongPress = true;
+                            toggleFlag(r, c);
+                            if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
+                        }, 400);
+                    };
+
+                    const handleUp = (e) => {
+                        if (pressTimer) clearTimeout(pressTimer);
+                        if (isGameOver) return;
+                        if (e.type === 'mouseup' && e.button !== 0) return;
+                        if (!isLongPress) {
+                            if (inputMode === 'flag') toggleFlag(r, c);
+                            else openCell(r, c);
+                        }
+                    };
+
+                    const handleMove = () => {
+                        if (pressTimer) clearTimeout(pressTimer);
+                    };
+
+                    el.addEventListener('touchstart', handleDown, {passive: true});
+                    el.addEventListener('touchend', (e) => {
+                        handleUp(e);
+                        if (e.cancelable) e.preventDefault();
+                    }, {passive: false});
+                    el.addEventListener('touchmove', handleMove, {passive: true});
+                    
+                    el.addEventListener('mousedown', handleDown);
+                    el.addEventListener('mouseup', handleUp);
+                    el.addEventListener('mouseleave', handleMove);
+
+                    el.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        if (isGameOver) return;
+                        if (!isLongPress) toggleFlag(r, c);
+                    });
+                    gridEl.appendChild(el);
+                }
+            }
+        }
+
+        function toggleFlag(r, c) {
+            const cell = grid[r][c];
+            if(cell.isOpen) return;
+            cell.isFlagged = !cell.isFlagged;
+            flags += cell.isFlagged ? 1 : -1;
+            playSound('flag');
+            updateHUD();
+            renderGrid();
+        }
+
+        function openCell(r, c, isCascade = false) {
+            const cell = grid[r][c];
+            if(cell.isOpen || cell.isFlagged) return;
+
+            if(isFirstClick) {
+                isFirstClick = false;
+                placeMines(r, c);
+            }
+
+            cell.isOpen = true;
+            
+            if(cell.isMine) {
+                gameOver(false);
+                return;
+            }
+
+            opened++;
+            if(!isCascade) playSound('click');
+
+            if(cell.neighborMines === 0) {
+                if(isCascade) playSound('cascade'); // gentle sound for cascade
+                for(let dr=-1; dr<=1; dr++){
+                    for(let dc=-1; dc<=1; dc++){
+                        let nr = r+dr, nc = c+dc;
+                        if(nr>=0 && nr<R && nc>=0 && nc<C && !grid[nr][nc].isOpen) {
+                            setTimeout(() => openCell(nr, nc, true), 50); // slight stagger
+                        }
+                    }
+                }
+            }
+
+            updateHUD();
+            if(!isCascade) renderGrid(); // optimization
+            
+            if(opened === (R * C) - MINES) {
+                gameOver(true);
+            }
+        }
+
+        // Stagger re-rendering for cascades
+        setInterval(() => {
+            if(!isGameOver && !isFirstClick) renderGrid();
+        }, 100);
+
+        function updateHUD() {
+            flagCountEl.innerText = MINES - flags;
+            safeCountEl.innerText = `${opened} / ${(R * C) - MINES}`;
+        }
+
+        function gameOver(win) {
+            isGameOver = true;
+            renderGrid(); // Final render to show hit
+            
+            if(win) {
+                if(window.GlobalScore) window.GlobalScore.add(100);
+                playSound('win');
+                winTitleTextEl.innerText = "AREA_SECURED";
+                winTitleTextEl.style.color = "#00ff66";
+                winTitleTextEl.style.textShadow = "0 0 20px #00ff66";
+                winStatsTextEl.innerText = "ALL MINES BYPASSED";
+                winStatsTextEl.style.color = "#00f3ff";
+                btnWinRestart.style.background = "linear-gradient(135deg, #00f3ff, #00ff66)";
+                btnWinRestart.style.color = "#000";
+            } else {
+                playSound('explode');
+                // Reveal all mines gently
+                for(let r=0; r<R; r++){
+                    for(let c=0; c<C; c++){
+                        if(grid[r][c].isMine && !grid[r][c].isFlagged) {
+                            grid[r][c].isOpen = true;
+                        }
+                    }
+                }
+                renderGrid();
+                
+                winTitleTextEl.innerText = "SIGNAL_INTERRUPTED";
+                winTitleTextEl.style.color = "#ff3333";
+                winTitleTextEl.style.textShadow = "0 0 20px #ff3333";
+                winStatsTextEl.innerText = "DETONATION DETECTED";
+                winStatsTextEl.style.color = "#ff3333";
+                btnWinRestart.style.background = "linear-gradient(135deg, #ff3333, #000)";
+                btnWinRestart.style.color = "#fff";
+            }
+            
+            setTimeout(() => {
+                winOverlayEl.classList.add('show');
+            }, win ? 1000 : 1500);
+        }
+
+        document.getElementById('btnNew').addEventListener('click', initGame);
+        btnWinRestart.addEventListener('click', initGame);
+
+        initGame();
+
+    </script>
+</body>
+
+</html>

@@ -64,3 +64,52 @@ class GameSettingsManager {
 
 // Export singleton
 window.GameSettings = new GameSettingsManager();
+
+/**
+ * Global Score Manager
+ * Persists points across all games to localStorage.
+ */
+class GlobalScoreManager {
+    constructor() {
+        this.score = this.load();
+        this.listeners = [];
+    }
+
+    load() {
+        try {
+            const stored = localStorage.getItem('neuro_hub_global_score');
+            return stored ? parseInt(stored, 10) : 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    save() {
+        localStorage.setItem('neuro_hub_global_score', this.score.toString());
+        this.notify();
+    }
+
+    get() {
+        return this.score;
+    }
+
+    add(points) {
+        if (typeof points === 'number' && points > 0) {
+            this.score += points;
+            this.save();
+        }
+    }
+
+    subscribe(callback) {
+        this.listeners.push(callback);
+        // Initial call
+        callback(this.score);
+        return () => this.listeners = this.listeners.filter(l => l !== callback);
+    }
+
+    notify() {
+        this.listeners.forEach(l => l(this.score));
+    }
+}
+
+window.GlobalScore = new GlobalScoreManager();

@@ -110,6 +110,30 @@ try {
     console.log('> Building Lights Out...');
     copyRecursiveWithLog(path.join(__dirname, 'lightsout'), path.join(distDir, 'lightsout'));
 
+    // 8c. Build Synapse Flow (Static + Assets)
+    console.log('> Building Synapse Flow...');
+    copyRecursiveWithLog(path.join(__dirname, 'synapseflow'), path.join(distDir, 'synapseflow'));
+
+    // 8d. Build Cluster Purge (Static + Assets)
+    console.log('> Building Cluster Purge...');
+    copyRecursiveWithLog(path.join(__dirname, 'clusterpurge'), path.join(distDir, 'clusterpurge'));
+
+    // 8e. Build Signal Merge (Static + Assets)
+    console.log('> Building Signal Merge...');
+    copyRecursiveWithLog(path.join(__dirname, 'signalmerge'), path.join(distDir, 'signalmerge'));
+
+    // 8f. Build Memory Pulse (Static + Assets)
+    console.log('> Building Memory Pulse...');
+    copyRecursiveWithLog(path.join(__dirname, 'memorypulse'), path.join(distDir, 'memorypulse'));
+
+    // 8g. Build Pixel Decode (Static + Assets)
+    console.log('> Building Pixel Decode...');
+    copyRecursiveWithLog(path.join(__dirname, 'pixeldecode'), path.join(distDir, 'pixeldecode'));
+
+    // 8h. Build Minesweeper Zen (Static + Assets)
+    console.log('> Building Minesweeper Zen...');
+    copyRecursiveWithLog(path.join(__dirname, 'minesweeperzen'), path.join(distDir, 'minesweeperzen'));
+
     // 9. Copy Shared Scripts/Assets
     console.log('> Copying Shared Assets...');
     copyRecursiveWithLog(path.join(__dirname, 'shared'), path.join(distDir, 'shared'));

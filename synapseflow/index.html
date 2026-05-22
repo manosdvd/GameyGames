@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Synapse Flow</title>
+    <script src="../timeLimit.js"></script>
+    <script src="../shared/settings.js"></script>
+    <link rel="stylesheet" href="../shared/theme.css">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --bg-color: var(--cyber-bg);
+            --surface-color: var(--cyber-surface);
+            --text-color: var(--cyber-text);
+            --grid-size: 4;
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100dvh;
+            width: 100vw;
+            position: relative;
+        }
+
+        /* --- Scanlines Backdrop --- */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* --- HUD Stats Bar --- */
+        .hud-stats-bar {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+            margin: 20px 0 10px 0;
+            padding: 0 10px;
+            z-index: 10;
+        }
+
+        .hud-stats-bar .hud-pill {
+            flex: 1;
+            justify-content: space-between;
+            min-width: 0;
+            padding: 8px 15px;
+        }
+
+        /* --- Options Section --- */
+        .options-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            z-index: 10;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            color: var(--cyber-magenta);
+            text-transform: uppercase;
+        }
+
+        .cyber-select {
+            background: #000;
+            border: 1px solid var(--cyber-cyan);
+            color: var(--cyber-cyan);
+            padding: 4px 12px;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: var(--cyber-border-radius);
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .cyber-select:hover {
+            box-shadow: var(--cyber-glow-cyan);
+        }
+
+        /* --- Main Game Area --- */
+        #game-wrapper {
+            flex: 1;
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            z-index: 10;
+        }
+
+        #game-container {
+            position: relative;
+            background: rgba(10, 10, 31, 0.4);
+            border: 2px solid rgba(0, 243, 255, 0.25);
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            width: min(85vw, 48dvh);
+            height: min(85vw, 48dvh);
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        #game-board {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- Grid Cells --- */
+        .tile {
+            position: absolute;
+            background: rgba(5, 5, 20, 0.9);
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--cyber-cyan);
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+            box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.1);
+        }
+
+        .tile:hover {
+            border-color: var(--cyber-magenta);
+            box-shadow: inset 0 0 15px rgba(255, 0, 255, 0.2);
+            z-index: 5;
+        }
+        
+        .tile.correct {
+            border-color: var(--cyber-yellow);
+            color: var(--cyber-yellow);
+            text-shadow: 0 0 10px rgba(255, 230, 0, 0.8);
+            box-shadow: inset 0 0 15px rgba(255, 230, 0, 0.3), 0 0 10px rgba(255, 230, 0, 0.2);
+        }
+
+        .tile.empty {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* --- Button Controls --- */
+        .controls-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 25px;
+            padding: 0 15px;
+            z-index: 10;
+        }
+
+        .controls-panel .cyber-btn {
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* --- Win Overlay --- */
+        #win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 5, 20, 0.96);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        #win-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .win-title {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 20px var(--cyber-cyan), 0 0 35px var(--cyber-cyan);
+            margin-bottom: 10px;
+            letter-spacing: 4px;
+        }
+
+        .win-stats {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.15rem;
+            color: var(--cyber-magenta);
+            text-shadow: var(--neon-magenta-glow);
+            margin-bottom: 35px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .btn-restart {
+            background: linear-gradient(135deg, var(--cyber-magenta), var(--cyber-cyan));
+            border: none;
+            padding: 15px 45px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: white;
+            border-radius: 40px;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .btn-restart:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 35px rgba(255, 0, 255, 0.6);
+        }
+
+        .btn-restart:active {
+            transform: scale(0.95);
+        }
+
+        /* --- Responsiveness adjustments --- */
+        @media (min-width: 768px) {
+            .hud-stats-bar {
+                margin: 30px 0 20px 0;
+            }
+            .win-title {
+                font-size: 4rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scanlines"></div>
+
+    <!-- Header -->
+    <header class="cyber-header" style="width: 100%;">
+        <a href="../index.html" class="back-btn" id="btnBack"> &lt; HUB </a>
+        <div class="hud-pill">
+            <span>PROTOCOL</span>
+            <span class="hud-value">SLIDE_MATRIX</span>
+        </div>
+        <button class="icon-btn" id="btnSoundToggle" aria-label="Toggle Sound" style="pointer-events: auto;">
+            <span class="material-symbols-outlined" id="soundIcon">volume_up</span>
+        </button>
+    </header>
+
+    <!-- HUD Stats -->
+    <div class="hud-stats-bar">
+        <div class="hud-pill">
+            <span>MOVES</span>
+            <span class="hud-value" id="moveCount">0</span>
+        </div>
+        <div class="hud-pill">
+            <span>CORRECT</span>
+            <span class="hud-value" id="correctCount">0</span>
+        </div>
+    </div>
+
+    <!-- Size Configuration -->
+    <div class="options-panel">
+        <span>MATRIX_SIZE:</span>
+        <select id="sizeSelect" class="cyber-select">
+            <option value="3">3 x 3</option>
+            <option value="4" selected>4 x 4</option>
+            <option value="5">5 x 5</option>
+        </select>
+    </div>
+
+    <!-- Game Board Wrapper -->
+    <div id="game-wrapper">
+        <div id="game-container">
+            <div id="game-board"></div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-panel">
+        <button class="cyber-btn" id="btnNew">
+            <span class="material-symbols-outlined" style="font-size: 1.15rem;">cached</span>
+            SCRAMBLE
+        </button>
+    </div>
+
+    <!-- Win Overlay -->
+    <div id="win-overlay">
+        <div class="win-title">MATRIX_ALIGNED</div>
+        <div class="win-stats" id="winStatsText">
+            SEQUENCE RESTORED IN 42 MOVES
+        </div>
+        <button class="btn-restart" id="btnWinRestart">REBOOT_MATRIX</button>
+    </div>
+
+    <script>
+        // --- Core Setup & State ---
+        let N = 4;
+        let tiles = []; // 1D array representing grid. Value 0 is empty.
+        let moves = 0;
+        
+        const boardEl = document.getElementById('game-board');
+        const moveCountEl = document.getElementById('moveCount');
+        const correctCountEl = document.getElementById('correctCount');
+        const sizeSelectEl = document.getElementById('sizeSelect');
+        const btnNew = document.getElementById('btnNew');
+        const btnSoundToggle = document.getElementById('btnSoundToggle');
+        const soundIconEl = document.getElementById('soundIcon');
+        const winOverlayEl = document.getElementById('win-overlay');
+        const winStatsTextEl = document.getElementById('winStatsText');
+        const btnWinRestart = document.getElementById('btnWinRestart');
+
+        // --- Sound System ---
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (window.GameSettings && !window.GameSettings.get().sound) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const now = audioCtx.currentTime;
+                
+                if (type === 'slide') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'correct') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'win') {
+                    const notes = [440, 554.37, 659.25, 880];
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = 'square';
+                        o.frequency.setValueAtTime(freq, now + idx * 0.1);
+                        g.gain.setValueAtTime(0.05, now + idx * 0.1);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.3);
+                        o.start(now + idx * 0.1);
+                        o.stop(now + idx * 0.1 + 0.3);
+                    });
+                }
+            } catch (e) {
+                console.warn('Audio Context blocked or failed:', e);
+            }
+        }
+
+        function updateSoundButtonDisplay() {
+            if (window.GameSettings) {
+                const soundEnabled = window.GameSettings.get().sound;
+                soundIconEl.innerText = soundEnabled ? 'volume_up' : 'volume_off';
+                btnSoundToggle.style.color = soundEnabled ? 'var(--cyber-cyan)' : '#666';
+            }
+        }
+        btnSoundToggle.addEventListener('click', () => {
+            if (window.GameSettings) {
+                window.GameSettings.toggle('sound');
+                updateSoundButtonDisplay();
+            }
+        });
+        updateSoundButtonDisplay();
+
+        // --- Game Logic ---
+        function initGame() {
+            N = parseInt(sizeSelectEl.value, 10);
+            winOverlayEl.classList.remove('show');
+            moves = 0;
+            moveCountEl.innerText = moves;
+            
+            // Generate solved state
+            tiles = Array.from({length: N * N}, (_, i) => i === N * N - 1 ? 0 : i + 1);
+            
+            // Scramble ensuring solvability
+            let scrambleMoves = N * N * 10;
+            let emptyIdx = N * N - 1;
+            let lastMoveIdx = -1;
+            
+            for (let i = 0; i < scrambleMoves; i++) {
+                let neighbors = getNeighbors(emptyIdx);
+                // Don't undo last move directly
+                if (neighbors.length > 1) {
+                    neighbors = neighbors.filter(n => n !== lastMoveIdx);
+                }
+                let moveIdx = neighbors[Math.floor(Math.random() * neighbors.length)];
+                
+                // Swap
+                tiles[emptyIdx] = tiles[moveIdx];
+                tiles[moveIdx] = 0;
+                lastMoveIdx = emptyIdx;
+                emptyIdx = moveIdx;
+            }
+            
+            renderBoard();
+            updateCorrectCount();
+        }
+
+        function getNeighbors(idx) {
+            const x = idx % N;
+            const y = Math.floor(idx / N);
+            const neighbors = [];
+            if (x > 0) neighbors.push(idx - 1);
+            if (x < N - 1) neighbors.push(idx + 1);
+            if (y > 0) neighbors.push(idx - N);
+            if (y < N - 1) neighbors.push(idx + N);
+            return neighbors;
+        }
+
+        function handleTileClick(idx) {
+            const emptyIdx = tiles.indexOf(0);
+            if (getNeighbors(emptyIdx).includes(idx)) {
+                // Swap
+                tiles[emptyIdx] = tiles[idx];
+                tiles[idx] = 0;
+                moves++;
+                moveCountEl.innerText = moves;
+                
+                const isCorrectNow = tiles[emptyIdx] === emptyIdx + 1;
+                playSound(isCorrectNow ? 'correct' : 'slide');
+                
+                updateVisuals();
+                updateCorrectCount();
+                checkWin();
+            }
+        }
+
+        function updateVisuals() {
+            const domTiles = boardEl.children;
+            const tileWidth = 100 / N;
+            
+            for (let i = 0; i < domTiles.length; i++) {
+                const el = domTiles[i];
+                const val = parseInt(el.dataset.val);
+                const currentIdx = tiles.indexOf(val);
+                
+                const x = currentIdx % N;
+                const y = Math.floor(currentIdx / N);
+                
+                el.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
+                
+                if (val !== 0) {
+                    if (currentIdx + 1 === val) {
+                        el.classList.add('correct');
+                    } else {
+                        el.classList.remove('correct');
+                    }
+                }
+            }
+        }
+
+        function updateCorrectCount() {
+            let correct = 0;
+            for (let i = 0; i < tiles.length; i++) {
+                if (tiles[i] !== 0 && tiles[i] === i + 1) correct++;
+            }
+            correctCountEl.innerText = `${correct} / ${N * N - 1}`;
+        }
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            const gap = 8; // Adjust to match CSS if needed
+            
+            // To animate via transform, we use absolute positioning in CSS
+            const tileWidth = `calc(100% / ${N} - ${gap * (N - 1) / N}px)`;
+            
+            for (let i = 1; i <= N * N; i++) {
+                const val = i === N * N ? 0 : i;
+                const currentIdx = tiles.indexOf(val);
+                
+                const el = document.createElement('div');
+                el.className = 'tile' + (val === 0 ? ' empty' : '');
+                el.dataset.val = val;
+                if (val !== 0) el.innerText = val;
+                
+                // We use transform for layout to enable smooth sliding
+                // Set fixed width/height
+                el.style.width = `calc(100% / ${N} - ${(gap * (N - 1)) / N}px)`;
+                el.style.height = `calc(100% / ${N} - ${(gap * (N - 1)) / N}px)`;
+                
+                // Position logic requires margin management or absolute positioning mapping
+                // Simple absolute mapping:
+                el.style.left = `calc(${currentIdx % N} * (100% / ${N}))`; // roughly
+                
+                // Actually, let's use a simpler transform mapping:
+                // Make all tiles 100% / N and scale down a bit to act as gap
+                el.style.width = `${100 / N}%`;
+                el.style.height = `${100 / N}%`;
+                el.style.transformOrigin = 'top left';
+                // Add an inner div for the actual visual tile to handle gap easily without complex math
+                el.innerHTML = val === 0 ? '' : `<div style="width: calc(100% - ${gap}px); height: calc(100% - ${gap}px); display: flex; align-items: center; justify-content: center; background: inherit; border: inherit; border-radius: inherit; box-shadow: inherit; text-shadow: inherit;">${val}</div>`;
+                el.style.background = 'transparent';
+                el.style.border = 'none';
+                el.style.boxShadow = 'none';
+                
+                const x = currentIdx % N;
+                const y = Math.floor(currentIdx / N);
+                el.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
+                
+                if (val !== 0) {
+                    if (currentIdx + 1 === val) el.classList.add('correct');
+                    el.addEventListener('click', () => handleTileClick(tiles.indexOf(val)));
+                }
+                
+                boardEl.appendChild(el);
+            }
+        }
+
+        function checkWin() {
+            let win = true;
+            for (let i = 0; i < N * N - 1; i++) {
+                if (tiles[i] !== i + 1) {
+                    win = false;
+                    break;
+                }
+            }
+            if (win) {
+                if (window.GlobalScore) window.GlobalScore.add(150);
+                playSound('win');
+                winStatsTextEl.innerText = `SEQUENCE RESTORED IN ${moves} MOVES`;
+                winOverlayEl.classList.add('show');
+            }
+        }
+
+        sizeSelectEl.addEventListener('change', initGame);
+        btnNew.addEventListener('click', initGame);
+        btnWinRestart.addEventListener('click', initGame);
+
+        // --- Touch/Swipe Support ---
+        let startX, startY;
+        boardEl.addEventListener('touchstart', e => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
+        
+        boardEl.addEventListener('touchend', e => {
+            if (!startX || !startY) return;
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+            
+            const dx = endX - startX;
+            const dy = endY - startY;
+            
+            if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+                const emptyIdx = tiles.indexOf(0);
+                let targetIdx = -1;
+                
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    // horizontal
+                    if (dx > 0 && emptyIdx % N > 0) targetIdx = emptyIdx - 1; // swipe right, move tile on left to right
+                    else if (dx < 0 && emptyIdx % N < N - 1) targetIdx = emptyIdx + 1;
+                } else {
+                    // vertical
+                    if (dy > 0 && Math.floor(emptyIdx / N) > 0) targetIdx = emptyIdx - N;
+                    else if (dy < 0 && Math.floor(emptyIdx / N) < N - 1) targetIdx = emptyIdx + N;
+                }
+                
+                if (targetIdx !== -1) {
+                    handleTileClick(targetIdx);
+                }
+            }
+            startX = null;
+            startY = null;
+        });
+
+        // Initialize
+        initGame();
+    </script>
+</body>
+
+</html>

@@ -17,6 +17,12 @@
     <div class="app-container">
         <h1 class="main-title">NEURO_HUB</h1>
 
+        <!-- Global Score Display -->
+        <div id="globalScoreDisplay" style="margin-top: -15px; margin-bottom: 30px; text-align: center; font-family: 'Orbitron', monospace; font-size: 1.5rem; color: var(--cyber-cyan); text-shadow: var(--neon-cyan-glow);">
+            <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 1.8rem; margin-right: 5px; color: var(--cyber-yellow);">bolt</span>
+            <span style="vertical-align: middle;">NEURO_SCORE: <span id="globalScoreValue">0</span></span>
+        </div>
+
         <!-- Responsible Gaming Settings -->
         <div class="settings-panel" style="margin-top: 0; margin-bottom: 3rem;">
             <div class="setting-item">
@@ -160,6 +166,78 @@
                 </div>
             </div>
 
+            <!-- Synapse Flow -->
+            <div class="cyber-card" onclick="window.location.href='synapseflow/index.html'">
+                <div class="card-media bg-synapse">
+                    <span class="material-symbols-outlined card-icon">grid_on</span>
+                </div>
+                <div class="card-content">
+                    <h3 class="card-title">SLIDE_MATRIX</h3>
+                    <p class="card-desc">15-puzzle cognitive slide test.</p>
+                    <button class="play-btn">SHIFT</button>
+                </div>
+            </div>
+
+            <!-- Cluster Purge -->
+            <div class="cyber-card" onclick="window.location.href='clusterpurge/index.html'">
+                <div class="card-media bg-cluster">
+                    <span class="material-symbols-outlined card-icon">bubble_chart</span>
+                </div>
+                <div class="card-content">
+                    <h3 class="card-title">CLUSTER_PURGE</h3>
+                    <p class="card-desc">Color-coded node destruction.</p>
+                    <button class="play-btn">PURGE</button>
+                </div>
+            </div>
+
+            <!-- Signal Merge -->
+            <div class="cyber-card" onclick="window.location.href='signalmerge/index.html'">
+                <div class="card-media bg-signal">
+                    <span class="material-symbols-outlined card-icon">merge_type</span>
+                </div>
+                <div class="card-content">
+                    <h3 class="card-title">SIGNAL_MERGE</h3>
+                    <p class="card-desc">Exponential 2048 accumulation.</p>
+                    <button class="play-btn">MERGE</button>
+                </div>
+            </div>
+
+            <!-- Memory Pulse -->
+            <div class="cyber-card" onclick="window.location.href='memorypulse/index.html'">
+                <div class="card-media bg-memory">
+                    <span class="material-symbols-outlined card-icon">memory</span>
+                </div>
+                <div class="card-content">
+                    <h3 class="card-title">PULSE_MEMORY</h3>
+                    <p class="card-desc">Auditory-visual sequence retention.</p>
+                    <button class="play-btn">PULSE</button>
+                </div>
+            </div>
+
+            <!-- Pixel Decode -->
+            <div class="cyber-card" onclick="window.location.href='pixeldecode/index.html'">
+                <div class="card-media bg-pixel">
+                    <span class="material-symbols-outlined card-icon">grid_3x3</span>
+                </div>
+                <div class="card-content">
+                    <h3 class="card-title">PIXEL_DECODE</h3>
+                    <p class="card-desc">Nonogram logic pixel rendering.</p>
+                    <button class="play-btn">DECODE</button>
+                </div>
+            </div>
+
+            <!-- Minesweeper Zen -->
+            <div class="cyber-card" onclick="window.location.href='minesweeperzen/index.html'">
+                <div class="card-media bg-mine">
+                    <span class="material-symbols-outlined card-icon">sports_esports</span>
+                </div>
+                <div class="card-content">
+                    <h3 class="card-title">MINEFIELD_LOGIC</h3>
+                    <p class="card-desc">Zen-focused proximity deduction.</p>
+                    <button class="play-btn">SWEEP</button>
+                </div>
+            </div>
+
         </div>
 
 
@@ -206,8 +284,16 @@
 
         timeInput.addEventListener('change', () => {
             const val = Math.max(5, parseInt(timeInput.value));
-            localStorage.setItem('maxTimeMinutes', val);
+            timeInput.value = val;
         });
+
+        // Global Score Subscription
+        if (window.GlobalScore) {
+            const scoreDisplay = document.getElementById('globalScoreValue');
+            window.GlobalScore.subscribe((score) => {
+                if (scoreDisplay) scoreDisplay.innerText = score;
+            });
+        }
     </script>
 </body>
 

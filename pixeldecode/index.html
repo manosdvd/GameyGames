@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Pixel Decode</title>
+    <script src="../timeLimit.js"></script>
+    <script src="../shared/settings.js"></script>
+    <link rel="stylesheet" href="../shared/theme.css">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --bg-color: var(--cyber-bg);
+            --surface-color: var(--cyber-surface);
+            --text-color: var(--cyber-text);
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100dvh;
+            width: 100vw;
+            position: relative;
+        }
+
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .hud-stats-bar {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+            margin: 20px 0 10px 0;
+            padding: 0 10px;
+            z-index: 10;
+        }
+
+        .hud-stats-bar .hud-pill {
+            flex: 1;
+            justify-content: space-between;
+            min-width: 0;
+            padding: 8px 15px;
+        }
+
+        #game-wrapper {
+            flex: 1;
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            z-index: 10;
+        }
+
+        #game-container {
+            position: relative;
+            background: rgba(10, 10, 31, 0.6);
+            border: 2px solid rgba(0, 243, 255, 0.25);
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            box-sizing: border-box;
+            display: grid;
+            /* 1 col for row-hints, 1 col for the main grid */
+            grid-template-columns: auto auto;
+            grid-template-rows: auto auto;
+            gap: 5px;
+        }
+
+        .empty-corner {
+            width: 100%; height: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            padding: 5px;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: 1px solid var(--cyber-cyan);
+            color: var(--cyber-cyan);
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle-btn.mode-x {
+            border-color: var(--cyber-magenta);
+            color: var(--cyber-magenta);
+        }
+
+        .col-hints {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            margin-bottom: 5px;
+        }
+        
+        .row-hints {
+            display: grid;
+            grid-template-rows: repeat(5, 1fr);
+            gap: 2px;
+            margin-right: 5px;
+        }
+
+        .hint-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            color: var(--cyber-cyan);
+            text-shadow: 0 0 5px var(--cyber-cyan);
+            padding: 2px;
+            min-width: 30px;
+            min-height: 30px;
+        }
+
+        .row-hints .hint-box {
+            flex-direction: row;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 4px;
+            padding-right: 5px;
+        }
+
+        #pixel-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 2px;
+            background: #222;
+            border: 2px solid var(--cyber-cyan);
+            padding: 2px;
+        }
+
+        .pixel-cell {
+            width: clamp(30px, 8vw, 50px);
+            height: clamp(30px, 8vw, 50px);
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(0, 243, 255, 0.1);
+            cursor: pointer;
+            transition: background 0.1s, box-shadow 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-family: monospace;
+            color: var(--cyber-magenta);
+        }
+
+        .pixel-cell:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .pixel-cell.filled {
+            background: var(--cyber-cyan);
+            box-shadow: 0 0 10px var(--cyber-cyan);
+            border-color: #fff;
+        }
+
+        .pixel-cell.marked-x::after {
+            content: "×";
+        }
+
+        /* --- Button Controls --- */
+        .controls-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 25px;
+            padding: 0 15px;
+            z-index: 10;
+        }
+
+        .controls-panel .cyber-btn {
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* --- Win Overlay --- */
+        #win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 5, 20, 0.96);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        #win-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .win-title {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 20px #00ff66, 0 0 35px #00ff66;
+            margin-bottom: 10px;
+            letter-spacing: 4px;
+        }
+
+        .win-stats {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.15rem;
+            color: var(--cyber-cyan);
+            text-shadow: var(--neon-cyan-glow);
+            margin-bottom: 35px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .btn-restart {
+            background: linear-gradient(135deg, var(--cyber-cyan), #00ff66);
+            border: none;
+            padding: 15px 45px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #000;
+            border-radius: 40px;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .btn-restart:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 35px rgba(0, 255, 102, 0.6);
+        }
+
+        .btn-restart:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scanlines"></div>
+
+    <header class="cyber-header" style="width: 100%;">
+        <a href="../index.html" class="back-btn" id="btnBack"> &lt; HUB </a>
+        <div class="hud-pill">
+            <span>PROTOCOL</span>
+            <span class="hud-value">PIXEL_DECODE</span>
+        </div>
+        <button class="icon-btn" id="btnSoundToggle" aria-label="Toggle Sound" style="pointer-events: auto;">
+            <span class="material-symbols-outlined" id="soundIcon">volume_up</span>
+        </button>
+    </header>
+
+    <div class="hud-stats-bar">
+        <div class="hud-pill">
+            <span>SOLVED</span>
+            <span class="hud-value" id="scoreCount">0</span>
+        </div>
+    </div>
+
+    <div id="game-wrapper">
+        <div id="game-container">
+            <div class="empty-corner">
+                <!-- Mobile toggle for Fill / X since right click is hard -->
+                <button class="toggle-btn" id="btnToggleMode">FILL</button>
+            </div>
+            <div class="col-hints" id="colHints"></div>
+            <div class="row-hints" id="rowHints"></div>
+            <div id="pixel-grid"></div>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <button class="cyber-btn" id="btnNew">
+            <span class="material-symbols-outlined" style="font-size: 1.15rem;">cached</span>
+            NEW_PUZZLE
+        </button>
+    </div>
+
+    <div id="win-overlay">
+        <div class="win-title">DECODED</div>
+        <div class="win-stats" id="winStatsText">IMAGE RECONSTRUCTED</div>
+        <button class="btn-restart" id="btnWinRestart">NEXT_PATTERN</button>
+    </div>
+
+    <script>
+        const N = 5;
+        let solution = [];
+        let playerGrid = [];
+        let inputMode = 'fill'; // 'fill' or 'x'
+        let puzzlesSolved = parseInt(localStorage.getItem('pixelDecodeScore') || '0');
+        let hasWon = false;
+
+        const gridEl = document.getElementById('pixel-grid');
+        const rowHintsEl = document.getElementById('rowHints');
+        const colHintsEl = document.getElementById('colHints');
+        const scoreCountEl = document.getElementById('scoreCount');
+        const btnToggleMode = document.getElementById('btnToggleMode');
+        const winOverlayEl = document.getElementById('win-overlay');
+
+        scoreCountEl.innerText = puzzlesSolved;
+
+        // Sound System
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (window.GameSettings && !window.GameSettings.get().sound) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+                
+                if (type === 'fill') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'square'; osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'x') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now);
+                    gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'clear') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(200, now);
+                    gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'win') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.linearRampToValueAtTime(800, now + 0.2);
+                    osc.frequency.linearRampToValueAtTime(1200, now + 0.4);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    osc.start(now); osc.stop(now + 0.6);
+                }
+            } catch (e) {}
+        }
+
+        const btnSoundToggle = document.getElementById('btnSoundToggle');
+        const soundIconEl = document.getElementById('soundIcon');
+        function updateSoundButtonDisplay() {
+            if (window.GameSettings) {
+                const soundEnabled = window.GameSettings.get().sound;
+                soundIconEl.innerText = soundEnabled ? 'volume_up' : 'volume_off';
+                btnSoundToggle.style.color = soundEnabled ? 'var(--cyber-cyan)' : '#666';
+            }
+        }
+        btnSoundToggle.addEventListener('click', () => {
+            if (window.GameSettings) {
+                window.GameSettings.toggle('sound');
+                updateSoundButtonDisplay();
+            }
+        });
+        updateSoundButtonDisplay();
+
+        btnToggleMode.addEventListener('click', () => {
+            inputMode = inputMode === 'fill' ? 'x' : 'fill';
+            btnToggleMode.innerText = inputMode === 'fill' ? 'FILL' : 'MARK X';
+            if (inputMode === 'x') btnToggleMode.classList.add('mode-x');
+            else btnToggleMode.classList.remove('mode-x');
+        });
+
+        // Block context menu
+        gridEl.addEventListener('contextmenu', e => e.preventDefault());
+
+        function generatePuzzle() {
+            hasWon = false;
+            winOverlayEl.classList.remove('show');
+            solution = [];
+            playerGrid = [];
+            
+            // Generate valid 5x5 that isn't completely empty
+            let sum = 0;
+            while(sum < 5) {
+                solution = [];
+                sum = 0;
+                for(let r=0; r<N; r++){
+                    let row = [];
+                    for(let c=0; c<N; c++){
+                        let val = Math.random() > 0.45 ? 1 : 0;
+                        row.push(val);
+                        sum += val;
+                    }
+                    solution.push(row);
+                }
+            }
+
+            for(let r=0; r<N; r++){
+                playerGrid.push(Array(N).fill(0)); // 0: empty, 1: filled, 2: X
+            }
+
+            renderHints();
+            renderGrid();
+        }
+
+        function calculateHints(line) {
+            const hints = [];
+            let count = 0;
+            for(let i=0; i<line.length; i++) {
+                if (line[i] === 1) count++;
+                else if (count > 0) {
+                    hints.push(count);
+                    count = 0;
+                }
+            }
+            if (count > 0) hints.push(count);
+            if (hints.length === 0) hints.push(0);
+            return hints;
+        }
+
+        function renderHints() {
+            rowHintsEl.innerHTML = '';
+            colHintsEl.innerHTML = '';
+
+            // Rows
+            for(let r=0; r<N; r++) {
+                const hints = calculateHints(solution[r]);
+                const el = document.createElement('div');
+                el.className = 'hint-box';
+                hints.forEach(h => {
+                    const span = document.createElement('span');
+                    span.innerText = h;
+                    el.appendChild(span);
+                });
+                rowHintsEl.appendChild(el);
+            }
+
+            // Cols
+            for(let c=0; c<N; c++) {
+                const colLine = [];
+                for(let r=0; r<N; r++) colLine.push(solution[r][c]);
+                const hints = calculateHints(colLine);
+                const el = document.createElement('div');
+                el.className = 'hint-box';
+                hints.forEach(h => {
+                    const span = document.createElement('span');
+                    span.innerText = h;
+                    el.appendChild(span);
+                });
+                colHintsEl.appendChild(el);
+            }
+        }
+
+        function renderGrid() {
+            gridEl.innerHTML = '';
+            for(let r=0; r<N; r++){
+                for(let c=0; c<N; c++){
+                    const cell = document.createElement('div');
+                    cell.className = 'pixel-cell';
+                    if (playerGrid[r][c] === 1) cell.classList.add('filled');
+                    else if (playerGrid[r][c] === 2) cell.classList.add('marked-x');
+                    
+                    cell.addEventListener('mousedown', (e) => {
+                        if (hasWon) return;
+                        if (e.button === 2 || inputMode === 'x') { // Right click or X mode
+                            toggleCell(r, c, 2);
+                        } else if (e.button === 0) {
+                            toggleCell(r, c, 1);
+                        }
+                    });
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+
+        function toggleCell(r, c, targetState) {
+            if (playerGrid[r][c] === targetState) {
+                playerGrid[r][c] = 0; // Clear
+                playSound('clear');
+            } else {
+                playerGrid[r][c] = targetState;
+                if (targetState === 1) playSound('fill');
+                else playSound('x');
+            }
+            renderGrid();
+            checkWin();
+        }
+
+        function checkWin() {
+            let win = true;
+            for(let r=0; r<N; r++){
+                for(let c=0; c<N; c++){
+                    if (solution[r][c] === 1 && playerGrid[r][c] !== 1) win = false;
+                    if (solution[r][c] === 0 && playerGrid[r][c] === 1) win = false;
+                }
+            }
+            if (win && !hasWon) {
+                hasWon = true;
+                if (window.GlobalScore) window.GlobalScore.add(200);
+                playSound('win');
+                puzzlesSolved++;
+                localStorage.setItem('pixelDecodeScore', puzzlesSolved);
+                scoreCountEl.innerText = puzzlesSolved;
+                winOverlayEl.classList.add('show');
+            }
+        }
+
+        document.getElementById('btnNew').addEventListener('click', generatePuzzle);
+        document.getElementById('btnWinRestart').addEventListener('click', generatePuzzle);
+
+        generatePuzzle();
+
+    </script>
+</body>
+
+</html>
