@@ -136,6 +136,8 @@
         /* --- Grid Cells --- */
         .tile {
             position: absolute;
+            top: 0;
+            left: 0;
             cursor: pointer;
             transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
@@ -175,8 +177,14 @@
         }
 
         .tile.empty {
-            opacity: 0;
             pointer-events: none;
+        }
+
+        .tile.empty .tile-inner {
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px dashed rgba(0, 243, 255, 0.2);
+            box-shadow: none;
+            color: transparent;
         }
 
         /* --- Button Controls --- */
@@ -557,7 +565,7 @@
                 el.style.height = `${100 / N}%`;
                 el.style.transformOrigin = 'top left';
                 // Add an inner div for the actual visual tile to handle gap easily without complex math
-                el.innerHTML = val === 0 ? '' : `<div class="tile-inner">${val}</div>`;
+                el.innerHTML = `<div class="tile-inner">${val === 0 ? '' : val}</div>`;
                 
                 const x = currentIdx % N;
                 const y = Math.floor(currentIdx / N);

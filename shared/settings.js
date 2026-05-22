@@ -73,6 +73,16 @@ class GlobalScoreManager {
     constructor() {
         this.score = this.load();
         this.listeners = [];
+        
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'neuro_hub_global_score') {
+                const newScore = this.load();
+                if (newScore !== this.score) {
+                    this.score = newScore;
+                    this.notify();
+                }
+            }
+        });
     }
 
     load() {

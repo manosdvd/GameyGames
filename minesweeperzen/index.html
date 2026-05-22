@@ -128,18 +128,19 @@
             background: #222;
             border: 2px solid #ff3333;
             padding: 2px;
+            width: 100%;
         }
 
         .mine-cell {
-            width: clamp(25px, 7vw, 40px);
-            height: clamp(25px, 7vw, 40px);
+            aspect-ratio: 1;
+            width: 100%;
             background: rgba(255,255,255,0.1);
             border: 1px outset rgba(255, 255, 255, 0.2);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
+            font-size: clamp(0.6rem, 3vw, 1rem);
             font-weight: bold;
             font-family: 'Orbitron', monospace;
             color: #fff;
@@ -286,6 +287,21 @@
         </div>
     </div>
 
+    <div class="options-panel" style="display: flex; gap: 15px; justify-content: center; margin-bottom: 10px; z-index: 10; color: var(--cyber-cyan); font-family: 'Orbitron', monospace; font-size: 0.85rem;">
+        <div style="display: flex; align-items: center; gap: 5px;">
+            SIZE: 
+            <select id="sizeSelect" class="cyber-select" style="background: #000; border: 1px solid var(--cyber-cyan); color: var(--cyber-cyan); padding: 4px; border-radius: 4px; font-family: 'Orbitron', sans-serif;">
+                <option value="8">8x8</option>
+                <option value="12">12x12</option>
+                <option value="16">16x16</option>
+            </select>
+        </div>
+        <div style="display: flex; align-items: center; gap: 5px;">
+            MINES: 
+            <input type="number" id="minesInput" value="10" min="1" max="99" class="cyber-select" style="background: #000; border: 1px solid var(--cyber-cyan); color: var(--cyber-cyan); padding: 4px; border-radius: 4px; font-family: 'Orbitron', sans-serif; width: 60px; text-align: center;">
+        </div>
+    </div>
+
     <div id="game-wrapper">
         <div id="game-container">
             <div class="toolbar">
@@ -311,9 +327,9 @@
     </div>
 
     <script>
-        const R = 8;
-        const C = 8;
-        const MINES = 10;
+        let R = 8;
+        let C = 8;
+        let MINES = 10;
         
         let grid = [];
         let minesObj = {};
@@ -417,6 +433,22 @@
         gridEl.addEventListener('contextmenu', e => e.preventDefault());
 
         function initGame() {
+            const sizeSelect = document.getElementById('sizeSelect');
+            const minesInput = document.getElementById('minesInput');
+            if (sizeSelect && minesInput) {
+                R = parseInt(sizeSelect.value, 10) || 8;
+                C = R;
+                let desiredMines = parseInt(minesInput.value, 10) || 10;
+                let maxMines = (R * C) - 9;
+                if (desiredMines > maxMines) desiredMines = maxMines;
+                if (desiredMines < 1) desiredMines = 1;
+                MINES = desiredMines;
+                minesInput.value = MINES;
+            }
+
+            gridEl.style.gridTemplateColumns = `repeat(${C}, 1fr)`;
+            gridEl.style.gridTemplateRows = `repeat(${R}, 1fr)`;
+
             grid = [];
             minesObj = {};
             opened = 0;
