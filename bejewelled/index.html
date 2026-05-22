@@ -138,7 +138,7 @@
         }
 
         .gem.match .gem-inner {
-            animation: popOut 0.3s forwards;
+            animation: popOut 0.1s forwards;
         }
 
         @keyframes popOut {
@@ -283,6 +283,10 @@
         .gem.power-color { animation: spin-colors 2s linear infinite; }
         .gem.power-color .gem-inner { background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red) !important; border-radius: 50% !important; box-shadow: inset 0 0 10px rgba(255,255,255,0.8), 0 0 20px #fff; clip-path:none;}
         @keyframes spin-colors { 100% { transform: rotate(360deg); } }
+        
+        .gem.power-mega-bomb .gem-inner { box-shadow: 0 0 30px #f0f, inset 0 0 25px #f0f; animation: pulse-mega 0.5s infinite; }
+        @keyframes pulse-mega { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); filter: hue-rotate(90deg); } }
+        .gem.power-mega-bomb::after { content: '☢'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 2rem; z-index: 5; pointer-events:none; text-shadow: 0 0 10px magenta;}
         
         /* Combo pop */
         #combo-popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); color: #fff; font-weight: 900; font-size: 4rem; text-shadow: 0 0 20px var(--cyber-magenta), 0 0 40px var(--cyber-magenta); z-index: 100; pointer-events: none; opacity: 0; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s; }
@@ -449,8 +453,8 @@
             let g2_type = grid[y2][x2].type;
             let g2_pow = grid[y2][x2].power;
 
-            // Swap animation faster: 150ms
-            await animateSwap(id1, x1, y1, id2, x2, y2, 150);
+            // Swap animation faster: 80ms
+            await animateSwap(id1, x1, y1, id2, x2, y2, 80);
 
             let temp = grid[y1][x1]; grid[y1][x1] = grid[y2][x2]; grid[y2][x2] = temp;
             updateDataset();
@@ -484,7 +488,7 @@
                 }
             } else {
                 playSound('bad');
-                await animateSwap(id1, x2, y2, id2, x1, y1, 150); // Swap back
+                await animateSwap(id1, x2, y2, id2, x1, y1, 80); // Swap back
                 temp = grid[y1][x1]; grid[y1][x1] = grid[y2][x2]; grid[y2][x2] = temp;
                 updateDataset();
                 state = 'IDLE';
@@ -496,12 +500,12 @@
                 let g1 = gems.get(id1);
                 let g2 = gems.get(id2);
                 if(!g1 || !g2) { resolve(); return; }
-                g1.style.transition = `transform ${time}ms cubic-bezier(0.2, 1.0, 0.4, 1.0)`;
-                g2.style.transition = `transform ${time}ms cubic-bezier(0.2, 1.0, 0.4, 1.0)`;
+                g1.style.transition = `transform ${time}ms ease-out`;
+                g2.style.transition = `transform ${time}ms ease-out`;
                 g1.offsetHeight; // reflow
                 g1.style.transform = `translate(${x2 * 100}%, ${y2 * 100}%)`;
                 g2.style.transform = `translate(${x1 * 100}%, ${y1 * 100}%)`;
-                setTimeout(resolve, time + 20);
+                setTimeout(resolve, time);
             });
         }
 
@@ -602,7 +606,9 @@
                 let targetPos = null;
                 
                 // Determine Power
-                if (size >= 5) {
+                if (size > 5) {
+                    powerGenerated = 'MEGA_BOMB';
+                } else if (size === 5) {
                     // Check if it's a straight line
                     let isStraight = g.lines.length === 1;
                     if (isStraight) powerGenerated = 'COLOR';
@@ -669,11 +675,18 @@
                             for(let yy=0;yy<ROWS;yy++) if(!toDestroy.has(`${x},${yy}`)) { toDestroy.add(`${x},${yy}`); chainReaction=true; }
                             playSound('bomb');
                             spawnParticles(x*100+50, y*100+50, grid[y][x].type, 20);
-                        } else if(pow === 'BOMB' || pow === 'CROSS') {
-                            // Bomb is 3x3, Cross is row+col (but let's do 3x3 for BOMB and Row+Col for CROSS)
+                        } else if(pow === 'BOMB' || pow === 'CROSS' || pow === 'MEGA_BOMB') {
+                            // Bomb is 3x3, Cross is row+col, Mega Bomb is 5x5
                             if(pow==='BOMB') {
                                 for(let dy=-1;dy<=1;dy++) {
                                     for(let dx=-1;dx<=1;dx++) {
+                                        let nx = x+dx, ny = y+dy;
+                                        if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS && !toDestroy.has(`${nx},${ny}`)) { toDestroy.add(`${nx},${ny}`); chainReaction=true; }
+                                    }
+                                }
+                            } else if(pow==='MEGA_BOMB') {
+                                for(let dy=-2;dy<=2;dy++) {
+                                    for(let dx=-2;dx<=2;dx++) {
                                         let nx = x+dx, ny = y+dy;
                                         if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS && !toDestroy.has(`${nx},${ny}`)) { toDestroy.add(`${nx},${ny}`); chainReaction=true; }
                                     }
@@ -683,8 +696,8 @@
                                 for(let yy=0;yy<ROWS;yy++) if(!toDestroy.has(`${x},${yy}`)) { toDestroy.add(`${x},${yy}`); chainReaction=true; }
                             }
                             playSound('big_bomb');
-                            spawnParticles(x*100+50, y*100+50, grid[y][x].type, 30);
-                            shakeWrapper(2);
+                            spawnParticles(x*100+50, y*100+50, grid[y][x].type, pow==='MEGA_BOMB'?50:30);
+                            shakeWrapper(pow==='MEGA_BOMB'?3:2);
                         } else if(pow === 'COLOR') {
                             // Already triggered by swap, but if blown up incidentally, destroy random color
                             let c = rnd(GEM_TYPES);
@@ -721,8 +734,8 @@
             
             if(comboCount > 1) showComboText(comboCount);
 
-            // Wait for pop animation: reduced to 120ms
-            await sleep(120);
+            // Wait for pop animation: reduced to 80ms
+            await sleep(80);
 
             pts.forEach(m => {
                 let id = grid[m.y][m.x].id;
@@ -747,7 +760,7 @@
 
                             // Physics Drop - FASTER
                             let dist = (writeY - y);
-                            let time = 100 + (dist * 20); 
+                            let time = 60 + (dist * 12); 
 
                             g.style.transition = `transform ${time}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
                             g.style.transform = `translate(${x * 100}%, ${writeY * 100}%)`;
@@ -766,9 +779,11 @@
                 for (let y = writeY; y >= 0; y--) {
                     let type = rnd(GEM_TYPES);
                     let power = null;
-                    // Rare random powerup if big combo
-                    if (comboCount >= 4 && Math.random() < 0.2) {
-                        power = ['LINE_H','LINE_V','BOMB'][Math.floor(Math.random()*3)];
+                    // Guaranteed powerup on big combo
+                    if (comboCount >= 4) {
+                        power = ['LINE_H','LINE_V','BOMB', 'CROSS', 'COLOR'][Math.floor(Math.random()*5)];
+                    } else if (comboCount >= 3 && Math.random() < 0.5) {
+                        power = ['LINE_H','LINE_V'][Math.floor(Math.random()*2)];
                     }
                     let id = nextId++;
                     let g = createGem(id, type, x, y, power);
@@ -780,7 +795,7 @@
 
                     g.offsetHeight; // Reflow
 
-                    let time = 150 + (y * 20);
+                    let time = 80 + (y * 10);
                     g.style.transition = `transform ${time}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
                     g.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
 
@@ -795,7 +810,7 @@
 
             let newM = findMatchGroups();
             if (newM.length > 0) {
-                await sleep(50); // fast cascade
+                await sleep(20); // super fast cascade
                 await resolveMatches(newM, null);
             } else {
                 state = 'IDLE';
@@ -808,8 +823,13 @@
         function shakeWrapper(intensity=1) {
             let w = document.getElementById('game-wrapper');
             w.classList.remove('shake-anim'); w.offsetHeight; 
-            if(intensity===2) w.style.animationDuration = '0.6s';
-            else w.style.animationDuration = '0.3s';
+            if(intensity===3) {
+                w.style.animationDuration = '0.9s';
+            } else if(intensity===2) {
+                w.style.animationDuration = '0.6s';
+            } else {
+                w.style.animationDuration = '0.3s';
+            }
             w.classList.add('shake-anim');
         }
 

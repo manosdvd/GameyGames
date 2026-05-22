@@ -543,22 +543,20 @@
 
             const fetchDefinition = async (word) => {
                 setLastSubmittedWord(word);
-                setDefinitionLoading(false);
+                setDefinitionLoading(true);
                 setLastPhonetic(null);
                 setLastPartOfSpeech(null);
                 setDefExpanded(false);
 
-                let def = "A valid English word of " + word.length + " letters.";
                 const wUpper = word.toUpperCase();
+                let def = "A valid English word of " + word.length + " letters.";
                 
-                if (window.LEXICON_WORDS && typeof window.LEXICON_WORDS === 'object' && window.LEXICON_WORDS[wUpper]) {
-                    def = window.LEXICON_WORDS[wUpper];
-                } else if (window.WORDLE_WORDS && typeof window.WORDLE_WORDS === 'object' && window.WORDLE_WORDS[wUpper]) {
-                    def = window.WORDLE_WORDS[wUpper];
-                } else if (window.COMMON_WORDS_SEED && typeof window.COMMON_WORDS_SEED === 'object' && window.COMMON_WORDS_SEED[wUpper]) {
-                    def = window.COMMON_WORDS_SEED[wUpper];
+                if (window.DefinitionManager) {
+                    const fetchedDef = await window.DefinitionManager.get(wUpper);
+                    if (fetchedDef) def = fetchedDef;
                 }
 
+                setDefinitionLoading(false);
                 setLastDefinition(def);
             };
 

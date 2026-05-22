@@ -77,6 +77,7 @@
             margin: 0;
             padding: 0;
             width: 100%;
+            height: 100vh;
             height: 100dvh; 
             background-color: var(--bg-color);
             color: var(--text-color);
@@ -1140,7 +1141,7 @@
                 this.wordDisplay.textContent = `${word} (${final})`;
             }
 
-            submitWord() {
+            async submitWord() {
                 const word = this.selectedTiles.map(t => t.data.char).join('');
                 if (this.dictionary.has(word) || this.dictionary.has(word.toUpperCase())) {
                     const finalScore = parseInt(this.wordDisplay.textContent.split('(')[1]);
@@ -1162,8 +1163,6 @@
                     this.removeTiles();
 
                     const wUpper = word.toUpperCase();
-                    let def = window.LEXICON_WORDS && typeof window.LEXICON_WORDS === 'object' ? window.LEXICON_WORDS[wUpper] : "";
-                    if (!def && window.COMMON_WORDS_SEED && typeof window.COMMON_WORDS_SEED === 'object') def = window.COMMON_WORDS_SEED[wUpper] || "";
                     
                     let defEl = document.getElementById('definition-display');
                     if(!defEl) {
@@ -1172,6 +1171,14 @@
                         defEl.style.cssText = 'font-size: 0.8rem; color: #aaa; text-align: left; margin-top: 5px; opacity: 0; transition: opacity 0.3s; width: 100%; padding: 5px 10px; box-sizing: border-box; display: flex; flex-direction: column; font-family: monospace; line-height: 1.2; background: rgba(0,0,0,0.5); border-radius: 5px;';
                         document.getElementById('controls').appendChild(defEl);
                     }
+                    defEl.style.opacity = 1;
+                    defEl.innerHTML = `<div style="text-align:center;">Loading definition...</div>`;
+
+                    let def = "";
+                    if (window.DefinitionManager) {
+                        def = await window.DefinitionManager.get(wUpper);
+                    }
+
                     if (def) {
                         const shortDef = def.split('. ')[0] + (def.includes('. ') ? '.' : '');
                         const hasMore = def.includes('. ');

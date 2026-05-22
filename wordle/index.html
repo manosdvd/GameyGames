@@ -201,7 +201,7 @@
                 setLastDefinition(null);
             };
 
-            const handleKey = (key) => {
+            const handleKey = async (key) => {
                 if (gameStatus !== 'playing') return;
 
                 if (key === 'BACK') {
@@ -226,12 +226,14 @@
                     
                     const wUpper = currentGuess.toUpperCase();
                     setLastSubmittedWord(wUpper);
+                    setLastDefinition("Loading...");
+                    
                     let def = "A valid English word of 5 letters.";
-                    if (window.WORDLE_WORDS && typeof window.WORDLE_WORDS === 'object' && window.WORDLE_WORDS[wUpper]) {
-                        def = window.WORDLE_WORDS[wUpper];
-                    } else if (window.LEXICON_WORDS && typeof window.LEXICON_WORDS === 'object' && window.LEXICON_WORDS[wUpper]) {
-                        def = window.LEXICON_WORDS[wUpper];
+                    if (window.DefinitionManager) {
+                        const fetchedDef = await window.DefinitionManager.get(wUpper);
+                        if (fetchedDef) def = fetchedDef;
                     }
+                    
                     setLastDefinition(def);
                     setDefExpanded(false);
 

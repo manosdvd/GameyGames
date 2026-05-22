@@ -75,25 +75,48 @@ try {
                 }
             }
 
-            const commonObj = {};
+            const commonArr = [];
             commonSeed.split(' ').forEach(w => {
                 if(!w) return;
-                if(dictObj[w]) commonObj[w] = dictObj[w];
+                if(dictObj[w]) commonArr.push(w);
             });
 
-            const wordleObj = {};
+            const wordleArr = [];
             words.filter(w => w.length === 5).forEach(w => {
-                if(dictObj[w]) wordleObj[w] = dictObj[w];
+                if(dictObj[w]) wordleArr.push(w);
             });
 
-            const lexiconObj = {};
+            const lexiconArr = [];
             words.filter(w => w.length >= 3 && w.length <= 8).forEach(w => {
-                if(dictObj[w]) lexiconObj[w] = dictObj[w];
+                if(dictObj[w]) lexiconArr.push(w);
             });
 
-            const jsContent = `window.COMMON_WORDS_SEED = ${JSON.stringify(commonObj)};\nwindow.WORDLE_WORDS = ${JSON.stringify(wordleObj)};\nwindow.LEXICON_WORDS = ${JSON.stringify(lexiconObj)};\n`;
+            const managerScript = `
+window.DefinitionManager = {
+    dict: null,
+    async get(word) {
+        if (!this.dict) {
+            try {
+                const res = await fetch('../shared/dictionary_compact.json');
+                this.dict = await res.json();
+            } catch(e) {
+                console.error("Failed to load dictionary definitions:", e);
+                return null;
+            }
+        }
+        return this.dict[word.toUpperCase()];
+    }
+};
+`;
+
+            const jsContent = `window.COMMON_WORDS_SEED = "${commonArr.join(' ')}";\nwindow.WORDLE_WORDS = "${wordleArr.join(' ')}";\nwindow.LEXICON_WORDS = "${lexiconArr.join(' ')}";\n${managerScript}`;
             fs.writeFileSync(dictionaryPath, jsContent, 'utf8');
-            console.log('  -> shared/dictionary.js successfully compiled offline database with definitions!');
+            console.log('  -> shared/dictionary.js successfully compiled offline fast database!');
+            
+            if (fs.existsSync(localDictPath)) {
+                // Ensure dictionary_compact.json is also deployed to shared for lazy-loading definitions
+                fs.copyFileSync(localDictPath, path.join(__dirname, 'shared', 'dictionary_compact.json'));
+            }
         } catch (err) {
             console.error('  ⚠️ Error parsing word list:', err.message);
         }
