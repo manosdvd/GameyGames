@@ -140,11 +140,12 @@
             left: 0;
             cursor: pointer;
             transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+            padding: 4px; /* Natural symmetric gap */
         }
 
         .tile-inner {
-            width: calc(100% - 8px);
-            height: calc(100% - 8px);
+            width: 100%;
+            height: 100%;
             background: rgba(5, 5, 20, 0.9);
             border: 1px solid rgba(0, 243, 255, 0.4);
             border-radius: 6px;
@@ -169,11 +170,21 @@
             z-index: 5;
         }
         
+        @keyframes correct-flash {
+            0% { transform: scale(1); box-shadow: inset 0 0 15px rgba(255, 230, 0, 0.3), 0 0 10px rgba(255, 230, 0, 0.2); }
+            50% { transform: scale(1.05); box-shadow: inset 0 0 30px rgba(255, 230, 0, 0.8), 0 0 25px rgba(255, 230, 0, 0.8); background: rgba(255, 230, 0, 0.2); }
+            100% { transform: scale(1); box-shadow: inset 0 0 15px rgba(255, 230, 0, 0.3), 0 0 10px rgba(255, 230, 0, 0.2); }
+        }
+        
         .tile.correct .tile-inner {
             border-color: var(--cyber-yellow);
             color: var(--cyber-yellow);
             text-shadow: 0 0 10px rgba(255, 230, 0, 0.8);
             box-shadow: inset 0 0 15px rgba(255, 230, 0, 0.3), 0 0 10px rgba(255, 230, 0, 0.2);
+        }
+
+        .tile.just-correct .tile-inner {
+            animation: correct-flash 0.3s ease-out;
         }
 
         .tile.empty {
@@ -439,6 +450,33 @@
         updateSoundButtonDisplay();
 
         // --- Game Logic ---
+        function isSolvable(arr, gridN) {
+            let invCount = 0;
+            for (let i = 0; i < gridN * gridN - 1; i++) {
+                for (let j = i + 1; j < gridN * gridN; j++) {
+                    if (arr[i] && arr[j] && arr[i] > arr[j]) {
+                        invCount++;
+                    }
+                }
+            }
+            const emptyIdx = arr.indexOf(0);
+            const emptyRowFromBottom = gridN - Math.floor(emptyIdx / gridN);
+            
+            if (gridN % 2 === 1) {
+                return invCount % 2 === 0;
+            } else {
+                return (invCount % 2 === 0 && emptyRowFromBottom % 2 === 1) || 
+                       (invCount % 2 === 1 && emptyRowFromBottom % 2 === 0);
+            }
+        }
+
+        function isSolved() {
+            for (let i = 0; i < N * N - 1; i++) {
+                if (tiles[i] !== i + 1) return false;
+            }
+            return true;
+        }
+
         function initGame() {
             N = parseInt(sizeSelectEl.value, 10);
             document.documentElement.style.setProperty('--grid-size', N);
@@ -446,50 +484,56 @@
             moves = 0;
             moveCountEl.innerText = moves;
             
-            // Generate solved state
-            tiles = Array.from({length: N * N}, (_, i) => i === N * N - 1 ? 0 : i + 1);
-            
-            // Scramble ensuring solvability
-            let scrambleMoves = N * N * 10;
-            let emptyIdx = N * N - 1;
-            let lastMoveIdx = -1;
-            
-            for (let i = 0; i < scrambleMoves; i++) {
-                let neighbors = getNeighbors(emptyIdx);
-                // Don't undo last move directly
-                if (neighbors.length > 1) {
-                    neighbors = neighbors.filter(n => n !== lastMoveIdx);
+            do {
+                // Generate completely random board
+                tiles = Array.from({length: N * N}, (_, i) => i);
+                for (let i = tiles.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
                 }
-                let moveIdx = neighbors[Math.floor(Math.random() * neighbors.length)];
-                
-                // Swap
-                tiles[emptyIdx] = tiles[moveIdx];
-                tiles[moveIdx] = 0;
-                lastMoveIdx = emptyIdx;
-                emptyIdx = moveIdx;
-            }
+            } while (!isSolvable(tiles, N) || isSolved());
             
             renderBoard();
             updateCorrectCount();
         }
 
-        function getNeighbors(idx) {
-            const x = idx % N;
-            const y = Math.floor(idx / N);
-            const neighbors = [];
-            if (x > 0) neighbors.push(idx - 1);
-            if (x < N - 1) neighbors.push(idx + 1);
-            if (y > 0) neighbors.push(idx - N);
-            if (y < N - 1) neighbors.push(idx + N);
-            return neighbors;
+        function getSlidePath(clickedIdx, emptyIdx) {
+            const x1 = clickedIdx % N;
+            const y1 = Math.floor(clickedIdx / N);
+            const x2 = emptyIdx % N;
+            const y2 = Math.floor(emptyIdx / N);
+            
+            const path = [];
+            if (x1 === x2) {
+                // Same column
+                const step = y1 < y2 ? 1 : -1;
+                for (let y = y1; y !== y2; y += step) {
+                    path.push(x1 + y * N);
+                }
+            } else if (y1 === y2) {
+                // Same row
+                const step = x1 < x2 ? 1 : -1;
+                for (let x = x1; x !== x2; x += step) {
+                    path.push(x + y1 * N);
+                }
+            }
+            return path;
         }
 
         function handleTileClick(idx) {
             const emptyIdx = tiles.indexOf(0);
-            if (getNeighbors(emptyIdx).includes(idx)) {
-                // Swap
-                tiles[emptyIdx] = tiles[idx];
+            const path = getSlidePath(idx, emptyIdx);
+            
+            if (path.length > 0) {
+                // Slide all tiles in the path towards the empty space
+                let prevIdx = emptyIdx;
+                for (let i = path.length - 1; i >= 0; i--) {
+                    const currentIdx = path[i];
+                    tiles[prevIdx] = tiles[currentIdx];
+                    prevIdx = currentIdx;
+                }
                 tiles[idx] = 0;
+                
                 moves++;
                 moveCountEl.innerText = moves;
                 
@@ -504,7 +548,6 @@
 
         function updateVisuals() {
             const domTiles = boardEl.children;
-            const tileWidth = 100 / N;
             
             for (let i = 0; i < domTiles.length; i++) {
                 const el = domTiles[i];
@@ -517,10 +560,21 @@
                 el.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
                 
                 if (val !== 0) {
-                    if (currentIdx + 1 === val) {
+                    const isCorrectNow = (currentIdx + 1 === val);
+                    const wasCorrect = el.classList.contains('correct');
+                    
+                    if (isCorrectNow && !wasCorrect) {
                         el.classList.add('correct');
-                    } else {
+                        
+                        // Restart animation if it's already playing
+                        el.classList.remove('just-correct');
+                        void el.offsetWidth; // trigger reflow
+                        el.classList.add('just-correct');
+                        
+                        setTimeout(() => el.classList.remove('just-correct'), 300);
+                    } else if (!isCorrectNow && wasCorrect) {
                         el.classList.remove('correct');
+                        el.classList.remove('just-correct');
                     }
                 }
             }
@@ -536,10 +590,6 @@
 
         function renderBoard() {
             boardEl.innerHTML = '';
-            const gap = 8; // Adjust to match CSS if needed
-            
-            // To animate via transform, we use absolute positioning in CSS
-            const tileWidth = `calc(100% / ${N} - ${gap * (N - 1) / N}px)`;
             
             for (let i = 1; i <= N * N; i++) {
                 const val = i === N * N ? 0 : i;
@@ -548,23 +598,10 @@
                 const el = document.createElement('div');
                 el.className = 'tile' + (val === 0 ? ' empty' : '');
                 el.dataset.val = val;
-                if (val !== 0) el.innerText = val;
                 
-                // We use transform for layout to enable smooth sliding
-                // Set fixed width/height
-                el.style.width = `calc(100% / ${N} - ${(gap * (N - 1)) / N}px)`;
-                el.style.height = `calc(100% / ${N} - ${(gap * (N - 1)) / N}px)`;
-                
-                // Position logic requires margin management or absolute positioning mapping
-                // Simple absolute mapping:
-                el.style.left = `calc(${currentIdx % N} * (100% / ${N}))`; // roughly
-                
-                // Actually, let's use a simpler transform mapping:
-                // Make all tiles 100% / N and scale down a bit to act as gap
                 el.style.width = `${100 / N}%`;
                 el.style.height = `${100 / N}%`;
-                el.style.transformOrigin = 'top left';
-                // Add an inner div for the actual visual tile to handle gap easily without complex math
+                
                 el.innerHTML = `<div class="tile-inner">${val === 0 ? '' : val}</div>`;
                 
                 const x = currentIdx % N;
