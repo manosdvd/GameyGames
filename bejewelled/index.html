@@ -265,6 +265,29 @@
         .btn-play:active {
             transform: scale(0.95);
         }
+    
+        /* Powerup CSS */
+        .gem.power-line-h .gem-inner { box-shadow: 0 0 15px #fff, inset 0 0 10px #fff; }
+        .gem.power-line-h::after { content: '↔'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: bold; font-size: 1.5rem; text-shadow: 0 0 5px black; z-index: 5; pointer-events:none;}
+        
+        .gem.power-line-v .gem-inner { box-shadow: 0 0 15px #fff, inset 0 0 10px #fff; }
+        .gem.power-line-v::after { content: '↕'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: bold; font-size: 1.5rem; text-shadow: 0 0 5px black; z-index: 5; pointer-events:none;}
+
+        .gem.power-bomb .gem-inner { box-shadow: 0 0 20px #f00, inset 0 0 15px #f00; animation: pulse-bomb 0.8s infinite; }
+        @keyframes pulse-bomb { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        .gem.power-bomb::after { content: '💣'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; z-index: 5; pointer-events:none;}
+
+        .gem.power-cross .gem-inner { box-shadow: 0 0 20px #ff0, inset 0 0 15px #ff0; }
+        .gem.power-cross::after { content: '✛'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: yellow; font-size: 1.8rem; text-shadow: 0 0 5px black; z-index: 5; pointer-events:none;}
+
+        .gem.power-color { animation: spin-colors 2s linear infinite; }
+        .gem.power-color .gem-inner { background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red) !important; border-radius: 50% !important; box-shadow: inset 0 0 10px rgba(255,255,255,0.8), 0 0 20px #fff; clip-path:none;}
+        @keyframes spin-colors { 100% { transform: rotate(360deg); } }
+        
+        /* Combo pop */
+        #combo-popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); color: #fff; font-weight: 900; font-size: 4rem; text-shadow: 0 0 20px var(--cyber-magenta), 0 0 40px var(--cyber-magenta); z-index: 100; pointer-events: none; opacity: 0; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s; }
+        #combo-popup.show { transform: translate(-50%, -50%) scale(1); opacity: 1; transition: transform 0.1s, opacity 0.1s; }
+
     </style>
 </head>
 
@@ -286,25 +309,28 @@
             GEM RUSH</div>
         <button class="btn-play" onclick="initGame()">PLAY</button>
     </div>
+    <div id="combo-popup"></div>
     <canvas id="fx-canvas"></canvas>
 
     <script>
         const container = document.getElementById('game-container');
         const scoreEl = document.getElementById('score');
         const fxCanvas = document.getElementById('fx-canvas');
+        const comboPopup = document.getElementById('combo-popup');
         const ctx = fxCanvas.getContext('2d');
 
         // --- Conf ---
         const ROWS = 8, COLS = 8, GEM_TYPES = 7;
 
         // --- State ---
-        let grid = []; // Logical: { type, id }
+        let grid = []; // Logical: { type, id, power }
         let gems = new Map(); // ID -> DOM Element
         let nextId = 1;
         let score = 0;
         let state = 'IDLE';
         let selected = null;
         let touchStart = null;
+        let comboCount = 0;
 
         // --- Init ---
         function resize() { fxCanvas.width = window.innerWidth; fxCanvas.height = window.innerHeight; }
@@ -315,7 +341,7 @@
             document.getElementById('overlay').style.display = 'none';
             if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
             container.innerHTML = '';
-            grid = []; score = 0; updateScore(0);
+            grid = []; score = 0; comboCount = 0; updateScore(0);
             for (let y = 0; y < ROWS; y++) {
                 let row = [];
                 for (let x = 0; x < COLS; x++) {
@@ -325,19 +351,22 @@
                         (y >= 2 && grid[y - 1][x].type === type && grid[y - 2][x].type === type)
                     );
                     let id = nextId++;
-                    let g = createGem(id, type, x, y);
+                    let g = createGem(id, type, x, y, null);
                     gems.set(id, g);
                     container.appendChild(g);
-                    row.push({ type, id });
+                    row.push({ type, id, power: null });
                 }
                 grid.push(row);
             }
             state = 'IDLE';
         }
 
-        function createGem(id, type, x, y) {
+        function createGem(id, type, x, y, power) {
             let d = document.createElement('div');
             d.className = `gem g${type}`;
+            if (power) {
+                d.classList.add(`power-${power.replace('_','-').toLowerCase()}`);
+            }
             d.innerHTML = `<div class="gem-inner"></div>`;
             d.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
             d.dataset.id = id;
@@ -346,13 +375,23 @@
             return d;
         }
 
+        function setGemPower(x, y, power) {
+            let id = grid[y][x].id;
+            grid[y][x].power = power;
+            let g = gems.get(id);
+            if(g) {
+                g.className = `gem g${grid[y][x].type}`;
+                if(power) g.classList.add(`power-${power.replace('_','-').toLowerCase()}`);
+            }
+        }
+
         // --- Input ---
         function handleInputStart(x, y, cx, cy) {
             if (state !== 'IDLE') return;
             touchStart = { x, y, cx, cy };
             document.onmousemove = handleInputMove;
             document.onmouseup = handleInputEnd;
-            document.ontouchmove = (e) => handleInputMove(e.touches[0]);
+            document.ontouchmove = (e) => handleInputMove(e.touches[0], {passive: false});
             document.ontouchend = handleInputEnd;
         }
         function handleInputMove(e) { }
@@ -360,7 +399,7 @@
             if (!touchStart) return;
             let cx, cy;
             if (e.type === 'mouseup') { cx = e.clientX; cy = e.clientY; }
-            else if (e.changedTouches) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; }
+            else if (e.changedTouches && e.changedTouches.length>0) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; }
             else { cx = touchStart.cx; cy = touchStart.cy; }
 
             let dx = cx - touchStart.cx, dy = cy - touchStart.cy;
@@ -369,7 +408,8 @@
             document.onmousemove = null; document.onmouseup = null;
             document.ontouchmove = null; document.ontouchend = null;
 
-            if (Math.sqrt(dx * dx + dy * dy) < 20) handleClick(tx, ty);
+            // threshold tuned from 20 to 10
+            if (Math.sqrt(dx * dx + dy * dy) < 10) handleClick(tx, ty);
             else {
                 if (Math.abs(dx) > Math.abs(dy)) dx > 0 ? trySwap(tx, ty, tx + 1, ty) : trySwap(tx, ty, tx - 1, ty);
                 else dy > 0 ? trySwap(tx, ty, tx, ty + 1) : trySwap(tx, ty, tx, ty - 1);
@@ -399,46 +439,69 @@
         async function trySwap(x1, y1, x2, y2) {
             if (x2 < 0 || x2 >= COLS || y2 < 0 || y2 >= ROWS) return;
             state = 'ANIMATING';
+            comboCount = 0;
 
             let id1 = grid[y1][x1].id;
             let id2 = grid[y2][x2].id;
+            
+            let g1_type = grid[y1][x1].type;
+            let g1_pow = grid[y1][x1].power;
+            let g2_type = grid[y2][x2].type;
+            let g2_pow = grid[y2][x2].power;
 
-            // Simultaneous crisp swap
-            await animateSwap(id1, x1, y1, id2, x2, y2);
+            // Swap animation faster: 150ms
+            await animateSwap(id1, x1, y1, id2, x2, y2, 150);
 
             let temp = grid[y1][x1]; grid[y1][x1] = grid[y2][x2]; grid[y2][x2] = temp;
             updateDataset();
+            
+            // Check Color Bomb logic explicitly
+            let colorBombTrigger = false;
+            let destroySet = new Set();
+            if (g1_pow === 'COLOR' || g2_pow === 'COLOR') {
+                colorBombTrigger = true;
+                if (g1_pow === 'COLOR' && g2_pow === 'COLOR') {
+                    // Both color bombs - destroy whole board
+                    for(let yy=0;yy<ROWS;yy++) for(let xx=0;xx<COLS;xx++) destroySet.add(`${xx},${yy}`);
+                } else if (g1_pow === 'COLOR') {
+                    let targetColor = g2_type;
+                    destroySet.add(`${x2},${y2}`); // destroy the color bomb
+                    for(let yy=0;yy<ROWS;yy++) for(let xx=0;xx<COLS;xx++) if(grid[yy][xx].type === targetColor) destroySet.add(`${xx},${yy}`);
+                } else {
+                    let targetColor = g1_type;
+                    destroySet.add(`${x1},${y1}`);
+                    for(let yy=0;yy<ROWS;yy++) for(let xx=0;xx<COLS;xx++) if(grid[yy][xx].type === targetColor) destroySet.add(`${xx},${yy}`);
+                }
+            }
 
-            let matches = findMatches();
-            if (matches.length > 0) {
-                playSound('match');
-                await resolveMatches(matches);
+            let matchGroups = findMatchGroups();
+            if (matchGroups.length > 0 || colorBombTrigger) {
+                playSound('swap');
+                if(!colorBombTrigger) {
+                    await resolveMatches(matchGroups, {x1, y1, x2, y2});
+                } else {
+                    await resolveDestruction(destroySet);
+                }
             } else {
                 playSound('bad');
-                await animateSwap(id1, x2, y2, id2, x1, y1); // Swap back
+                await animateSwap(id1, x2, y2, id2, x1, y1, 150); // Swap back
                 temp = grid[y1][x1]; grid[y1][x1] = grid[y2][x2]; grid[y2][x2] = temp;
                 updateDataset();
                 state = 'IDLE';
             }
         }
 
-        function animateSwap(id1, x1, y1, id2, x2, y2) {
+        function animateSwap(id1, x1, y1, id2, x2, y2, time) {
             return new Promise(resolve => {
                 let g1 = gems.get(id1);
                 let g2 = gems.get(id2);
-
-                // Set CSS transition
-                g1.style.transition = 'transform 0.25s cubic-bezier(0.2, 1.0, 0.4, 1.0)';
-                g2.style.transition = 'transform 0.25s cubic-bezier(0.2, 1.0, 0.4, 1.0)';
-
-                // Force Reflow
-                g1.offsetHeight;
-
-                // Move
+                if(!g1 || !g2) { resolve(); return; }
+                g1.style.transition = `transform ${time}ms cubic-bezier(0.2, 1.0, 0.4, 1.0)`;
+                g2.style.transition = `transform ${time}ms cubic-bezier(0.2, 1.0, 0.4, 1.0)`;
+                g1.offsetHeight; // reflow
                 g1.style.transform = `translate(${x2 * 100}%, ${y2 * 100}%)`;
                 g2.style.transform = `translate(${x1 * 100}%, ${y1 * 100}%)`;
-
-                setTimeout(resolve, 250);
+                setTimeout(resolve, time + 20);
             });
         }
 
@@ -454,43 +517,218 @@
             }
         }
 
-        function findMatches() {
-            let set = new Set();
+        // --- Advanced Matching Algorithm ---
+        function findMatchGroups() {
+            let hLines = [];
+            let vLines = [];
+            
+            // Horizontal lines
             for (let y = 0; y < ROWS; y++) {
                 for (let x = 0; x < COLS - 2; x++) {
                     let t = grid[y][x].type; if (t === -1) continue;
                     let l = 1; while (x + l < COLS && grid[y][x + l].type === t) l++;
-                    if (l >= 3) { for (let i = 0; i < l; i++) set.add(`${x + i},${y}`); x += l - 1; }
+                    if (l >= 3) {
+                        let line = [];
+                        for (let i = 0; i < l; i++) line.push({x: x + i, y});
+                        hLines.push({ type: t, points: line, dir: 'H' });
+                        x += l - 1;
+                    }
                 }
             }
+            
+            // Vertical lines
             for (let x = 0; x < COLS; x++) {
                 for (let y = 0; y < ROWS - 2; y++) {
                     let t = grid[y][x].type; if (t === -1) continue;
                     let l = 1; while (y + l < ROWS && grid[y + l][x].type === t) l++;
-                    if (l >= 3) { for (let i = 0; i < l; i++) set.add(`${x},${y + i}`); y += l - 1; }
+                    if (l >= 3) {
+                        let line = [];
+                        for (let i = 0; i < l; i++) line.push({x, y: y + i});
+                        vLines.push({ type: t, points: line, dir: 'V' });
+                        y += l - 1;
+                    }
                 }
             }
-            return Array.from(set).map(s => { let [x, y] = s.split(',').map(Number); return { x, y }; });
+            
+            // Group intersecting lines of the same type
+            let allLines = hLines.concat(vLines);
+            let visited = new Set();
+            let groups = [];
+            
+            for(let i = 0; i < allLines.length; i++) {
+                if(visited.has(i)) continue;
+                let clusterLines = [allLines[i]];
+                let clusterPoints = new Set();
+                allLines[i].points.forEach(p => clusterPoints.add(`${p.x},${p.y}`));
+                visited.add(i);
+                
+                let changed = true;
+                while(changed) {
+                    changed = false;
+                    for(let j = 0; j < allLines.length; j++) {
+                        if(visited.has(j)) continue;
+                        if(allLines[j].type !== allLines[i].type) continue;
+                        
+                        let intersects = false;
+                        for(let p of allLines[j].points) {
+                            if(clusterPoints.has(`${p.x},${p.y}`)) { intersects = true; break; }
+                        }
+                        if(intersects) {
+                            allLines[j].points.forEach(p => clusterPoints.add(`${p.x},${p.y}`));
+                            clusterLines.push(allLines[j]);
+                            visited.add(j);
+                            changed = true;
+                        }
+                    }
+                }
+                groups.push({
+                    type: allLines[i].type,
+                    lines: clusterLines,
+                    points: Array.from(clusterPoints).map(s => { let [x,y] = s.split(',').map(Number); return {x,y}; })
+                });
+            }
+            
+            return groups;
         }
 
-        async function resolveMatches(matches) {
-            matches.forEach(m => {
+        async function resolveMatches(matchGroups, swapData) {
+            comboCount++;
+            let destroySet = new Set();
+            let newPowers = [];
+            
+            matchGroups.forEach(g => {
+                let size = g.points.length;
+                let powerGenerated = null;
+                let targetPos = null;
+                
+                // Determine Power
+                if (size >= 5) {
+                    // Check if it's a straight line
+                    let isStraight = g.lines.length === 1;
+                    if (isStraight) powerGenerated = 'COLOR';
+                    else powerGenerated = 'BOMB'; // T, L, or +
+                } else if (size === 4) {
+                    if (g.lines[0].dir === 'H') powerGenerated = 'LINE_H';
+                    else powerGenerated = 'LINE_V';
+                }
+                
+                // Determine Placement
+                if (powerGenerated) {
+                    if (swapData) {
+                        if(g.points.find(p => p.x === swapData.x1 && p.y === swapData.y1)) targetPos = {x: swapData.x1, y: swapData.y1};
+                        else if(g.points.find(p => p.x === swapData.x2 && p.y === swapData.y2)) targetPos = {x: swapData.x2, y: swapData.y2};
+                    }
+                    if(!targetPos) {
+                        // Intersection point
+                        if(g.lines.length > 1) {
+                            let pts0 = g.lines[0].points.map(p=>`${p.x},${p.y}`);
+                            for(let pt of g.lines[1].points) {
+                                if(pts0.includes(`${pt.x},${pt.y}`)) { targetPos = pt; break; }
+                            }
+                        }
+                    }
+                    if(!targetPos) targetPos = g.points[Math.floor(g.points.length/2)];
+                    
+                    newPowers.push({ x: targetPos.x, y: targetPos.y, type: g.type, power: powerGenerated });
+                }
+                
+                g.points.forEach(p => {
+                    if(!targetPos || p.x !== targetPos.x || p.y !== targetPos.y) destroySet.add(`${p.x},${p.y}`);
+                });
+            });
+
+            // Set new powers before destruction visual
+            newPowers.forEach(np => {
+                setGemPower(np.x, np.y, np.power);
+            });
+            
+            await resolveDestruction(destroySet);
+        }
+
+        async function resolveDestruction(destroySet) {
+            let toDestroy = new Set(destroySet);
+            let processed = new Set();
+            let newScore = 0;
+            
+            // Resolve powerups in destruction queue
+            let chainReaction = true;
+            while(chainReaction) {
+                chainReaction = false;
+                let currentBatch = Array.from(toDestroy);
+                for(let ptStr of currentBatch) {
+                    if(processed.has(ptStr)) continue;
+                    processed.add(ptStr);
+                    let [x,y] = ptStr.split(',').map(Number);
+                    if(grid[y] && grid[y][x]) {
+                        let pow = grid[y][x].power;
+                        if(pow === 'LINE_H') {
+                            for(let xx=0;xx<COLS;xx++) if(!toDestroy.has(`${xx},${y}`)) { toDestroy.add(`${xx},${y}`); chainReaction=true; }
+                            playSound('bomb');
+                            spawnParticles(x*100+50, y*100+50, grid[y][x].type, 20);
+                        } else if(pow === 'LINE_V') {
+                            for(let yy=0;yy<ROWS;yy++) if(!toDestroy.has(`${x},${yy}`)) { toDestroy.add(`${x},${yy}`); chainReaction=true; }
+                            playSound('bomb');
+                            spawnParticles(x*100+50, y*100+50, grid[y][x].type, 20);
+                        } else if(pow === 'BOMB' || pow === 'CROSS') {
+                            // Bomb is 3x3, Cross is row+col (but let's do 3x3 for BOMB and Row+Col for CROSS)
+                            if(pow==='BOMB') {
+                                for(let dy=-1;dy<=1;dy++) {
+                                    for(let dx=-1;dx<=1;dx++) {
+                                        let nx = x+dx, ny = y+dy;
+                                        if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS && !toDestroy.has(`${nx},${ny}`)) { toDestroy.add(`${nx},${ny}`); chainReaction=true; }
+                                    }
+                                }
+                            } else {
+                                for(let xx=0;xx<COLS;xx++) if(!toDestroy.has(`${xx},${y}`)) { toDestroy.add(`${xx},${y}`); chainReaction=true; }
+                                for(let yy=0;yy<ROWS;yy++) if(!toDestroy.has(`${x},${yy}`)) { toDestroy.add(`${x},${yy}`); chainReaction=true; }
+                            }
+                            playSound('big_bomb');
+                            spawnParticles(x*100+50, y*100+50, grid[y][x].type, 30);
+                            shakeWrapper(2);
+                        } else if(pow === 'COLOR') {
+                            // Already triggered by swap, but if blown up incidentally, destroy random color
+                            let c = rnd(GEM_TYPES);
+                            for(let yy=0;yy<ROWS;yy++) for(let xx=0;xx<COLS;xx++) if(grid[yy][xx].type === c && !toDestroy.has(`${xx},${yy}`)) { toDestroy.add(`${xx},${yy}`); chainReaction=true; }
+                            playSound('big_bomb');
+                        }
+                    }
+                }
+            }
+
+            let pts = Array.from(toDestroy).map(s=> { let [x,y]=s.split(',').map(Number); return {x,y}; });
+            if(pts.length === 0) {
+                state = 'IDLE';
+                return;
+            }
+
+            // Visual destruction
+            pts.forEach(m => {
                 let id = grid[m.y][m.x].id;
                 let g = gems.get(id);
-                g.classList.add('match');
-                let rect = g.getBoundingClientRect();
-                spawnParticles(rect.x + rect.width / 2, rect.y + rect.height / 2, grid[m.y][m.x].type);
+                if(g) {
+                    g.classList.add('match');
+                    let rect = g.getBoundingClientRect();
+                    spawnParticles(rect.x + rect.width / 2, rect.y + rect.height / 2, grid[m.y][m.x].type, 10);
+                }
             });
-            score += matches.length * 50;
-            if (matches.length > 4) playSound('big_match');
+            
+            // Score calc
+            score += pts.length * 50 * comboCount;
+            if (pts.length > 4 || comboCount > 1) playSound('combo', comboCount);
+            else playSound('match');
             updateScore(score);
-            shakeWrapper();
-            await sleep(300);
+            shakeWrapper(pts.length > 5 ? 2 : 1);
+            
+            if(comboCount > 1) showComboText(comboCount);
 
-            matches.forEach(m => {
+            // Wait for pop animation: reduced to 120ms
+            await sleep(120);
+
+            pts.forEach(m => {
                 let id = grid[m.y][m.x].id;
-                gems.get(id).remove(); gems.delete(id);
-                grid[m.y][m.x] = { type: -1, id: -1 };
+                let g = gems.get(id);
+                if(g) { g.remove(); gems.delete(id); }
+                grid[m.y][m.x] = { type: -1, id: -1, power: null };
             });
             await applyGravity();
         }
@@ -505,22 +743,17 @@
                         if (writeY !== y) {
                             let g = gems.get(grid[y][x].id);
                             grid[writeY][x] = grid[y][x];
-                            grid[y][x] = { type: -1, id: -1 };
+                            grid[y][x] = { type: -1, id: -1, power: null };
 
-                            // Physics Drop
-                            // Using a higher gravity effect: distance squared? 
-                            // Standard ease-in is okay, but bounce at end is better.
+                            // Physics Drop - FASTER
                             let dist = (writeY - y);
-                            let time = 300 + (dist * 50); // scales slightly
+                            let time = 100 + (dist * 20); 
 
-                            g.style.transition = `transform ${time}ms cubic-bezier(0.5, 0.05, 1, 0.5)`;
+                            g.style.transition = `transform ${time}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
                             g.style.transform = `translate(${x * 100}%, ${writeY * 100}%)`;
 
-                            // Bounce & Clink
                             moves.push(
                                 new Promise(r => setTimeout(() => {
-                                    // Slight bounce visual could be complex without keyframes per element
-                                    // Just Sound Clink
                                     playSound('clink');
                                     r();
                                 }, time))
@@ -532,18 +765,23 @@
                 // Spawn
                 for (let y = writeY; y >= 0; y--) {
                     let type = rnd(GEM_TYPES);
+                    let power = null;
+                    // Rare random powerup if big combo
+                    if (comboCount >= 4 && Math.random() < 0.2) {
+                        power = ['LINE_H','LINE_V','BOMB'][Math.floor(Math.random()*3)];
+                    }
                     let id = nextId++;
-                    let g = createGem(id, type, x, y);
+                    let g = createGem(id, type, x, y, power);
                     container.appendChild(g); gems.set(id, g);
-                    grid[y][x] = { type, id };
+                    grid[y][x] = { type, id, power };
 
                     g.style.transition = 'none';
                     g.style.transform = `translate(${x * 100}%, -${(writeY - y + 1) * 100}%)`;
 
                     g.offsetHeight; // Reflow
 
-                    let time = 400 + (y * 50);
-                    g.style.transition = `transform ${time}ms cubic-bezier(0.5, 0.05, 1, 0.5)`;
+                    let time = 150 + (y * 20);
+                    g.style.transition = `transform ${time}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
                     g.style.transform = `translate(${x * 100}%, ${y * 100}%)`;
 
                     moves.push(new Promise(r => setTimeout(() => {
@@ -555,26 +793,38 @@
             updateDataset();
             if (moves.length > 0) await Promise.all(moves);
 
-            let newM = findMatches();
+            let newM = findMatchGroups();
             if (newM.length > 0) {
-                await sleep(150);
-                await resolveMatches(newM);
+                await sleep(50); // fast cascade
+                await resolveMatches(newM, null);
             } else {
                 state = 'IDLE';
+                comboCount = 0;
             }
         }
 
         function updateScore(s) { scoreEl.innerText = s; }
-        function shakeWrapper() {
+        
+        function shakeWrapper(intensity=1) {
             let w = document.getElementById('game-wrapper');
-            w.classList.remove('shake-anim'); w.offsetHeight; w.classList.add('shake-anim');
+            w.classList.remove('shake-anim'); w.offsetHeight; 
+            if(intensity===2) w.style.animationDuration = '0.6s';
+            else w.style.animationDuration = '0.3s';
+            w.classList.add('shake-anim');
         }
+
+        function showComboText(combo) {
+            comboPopup.innerText = combo + "X COMBO!";
+            comboPopup.classList.add('show');
+            setTimeout(() => comboPopup.classList.remove('show'), 800);
+        }
+
         const sleep = ms => new Promise(r => setTimeout(r, ms));
 
         // --- Audio ---
         const A = window.AudioContext || window.webkitAudioContext;
         const ac = new A();
-        function playSound(t) {
+        function playSound(t, param) {
             if (window.GameSettings && !window.GameSettings.get().sound) return;
             if (ac.state === 'suspended') ac.resume();
             let o = ac.createOscillator(), g = ac.createGain();
@@ -596,48 +846,52 @@
                 o.type = 'sawtooth'; o.frequency.setValueAtTime(150, n); o.frequency.linearRampToValueAtTime(100, n + 0.2);
                 g.gain.setValueAtTime(0.1, n); g.gain.linearRampToValueAtTime(0, n + 0.2);
                 o.start(n); o.stop(n + 0.2);
-            } else if (t === 'big_match') {
+            } else if (t === 'bomb' || t === 'big_bomb') {
+                o.type = 'square';
+                o.frequency.setValueAtTime(100, n);
+                o.frequency.exponentialRampToValueAtTime(10, n + 0.5);
+                g.gain.setValueAtTime(t==='big_bomb'?0.3:0.15, n);
+                g.gain.exponentialRampToValueAtTime(0.001, n + 0.5);
+                o.start(n); o.stop(n + 0.5);
+            } else if (t === 'combo') {
+                let base = 440 + (param * 100);
                 o.type = 'triangle';
-                o.frequency.setValueAtTime(523.25, n); // C5
-                o.frequency.linearRampToValueAtTime(1046.50, n + 0.35); // C6
+                o.frequency.setValueAtTime(base, n);
+                o.frequency.linearRampToValueAtTime(base*1.5, n + 0.3);
                 g.gain.setValueAtTime(0.15, n);
-                g.gain.exponentialRampToValueAtTime(0.001, n + 0.45);
-                o.start(n); o.stop(n + 0.45);
-
-                const o2 = ac.createOscillator(), g2 = ac.createGain();
-                o2.connect(g2); g2.connect(ac.destination);
-                o2.type = 'sine';
-                o2.frequency.setValueAtTime(659.25, n); // E5
-                o2.frequency.linearRampToValueAtTime(1318.51, n + 0.35); // E6
-                g2.gain.setValueAtTime(0.08, n);
-                g2.gain.exponentialRampToValueAtTime(0.001, n + 0.45);
-                o2.start(n); o2.stop(n + 0.45);
+                g.gain.exponentialRampToValueAtTime(0.001, n + 0.4);
+                o.start(n); o.stop(n + 0.4);
             } else if (t === 'clink') {
-                // Short high ping
                 o.type = 'triangle';
                 o.frequency.setValueAtTime(1200 + Math.random() * 400, n);
-                g.gain.setValueAtTime(0.02, n); g.gain.exponentialRampToValueAtTime(0.001, n + 0.1);
-                o.start(n); o.stop(n + 0.1);
+                g.gain.setValueAtTime(0.015, n); g.gain.exponentialRampToValueAtTime(0.001, n + 0.08);
+                o.start(n); o.stop(n + 0.08);
             }
         }
 
         // --- FX ---
         let parts = [];
-        function spawnParticles(x, y, t) {
+        function spawnParticles(x, y, t, count=8) {
             let c = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#fa0', '#fff'][t];
-            for (let i = 0; i < 8; i++) { parts.push({ x, y, vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15, l: 1, c }); }
+            if(!c) c = '#fff';
+            for (let i = 0; i < count; i++) { 
+                let speed = 5 + Math.random()*15;
+                let angle = Math.random() * Math.PI * 2;
+                parts.push({ x, y, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, l: 1, c, decay: 0.02 + Math.random()*0.05 }); 
+            }
         }
         function drawFX() {
             ctx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
             for (let i = parts.length - 1; i >= 0; i--) {
-                let p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.8; p.l -= 0.03;
+                let p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.8; p.l -= p.decay;
                 if (p.l <= 0) { parts.splice(i, 1); continue; }
                 ctx.globalAlpha = p.l; ctx.fillStyle = p.c;
-                ctx.beginPath(); ctx.arc(p.x, p.y, 4 * p.l, 0, 7); ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, 6 * p.l, 0, 7); ctx.fill();
             }
             requestAnimationFrame(drawFX);
         }
         drawFX();
+
     </script>
 </body>
 
