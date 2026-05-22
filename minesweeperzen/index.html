@@ -548,30 +548,50 @@
                     
                     let pressTimer = null;
                     let isLongPress = false;
+                    let startX = 0, startY = 0;
+                    let hasMoved = false;
                     
                     const handleDown = (e) => {
                         if (isGameOver) return;
                         if (e.type === 'mousedown' && e.button !== 0) return;
                         isLongPress = false;
+                        hasMoved = false;
+                        
+                        if (e.touches && e.touches.length > 0) {
+                            startX = e.touches[0].clientX;
+                            startY = e.touches[0].clientY;
+                        }
+                        
                         pressTimer = setTimeout(() => {
+                            if (hasMoved) return;
                             isLongPress = true;
                             toggleFlag(r, c);
                             if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
                         }, 400);
                     };
 
+                    const handleMove = (e) => {
+                        if (e.type === 'touchmove' && e.touches && e.touches.length > 0) {
+                            const dx = e.touches[0].clientX - startX;
+                            const dy = e.touches[0].clientY - startY;
+                            if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                                hasMoved = true;
+                                if (pressTimer) clearTimeout(pressTimer);
+                            }
+                        } else {
+                            if (pressTimer) clearTimeout(pressTimer);
+                            hasMoved = true;
+                        }
+                    };
+
                     const handleUp = (e) => {
                         if (pressTimer) clearTimeout(pressTimer);
                         if (isGameOver) return;
                         if (e.type === 'mouseup' && e.button !== 0) return;
-                        if (!isLongPress) {
+                        if (!isLongPress && !hasMoved) {
                             if (inputMode === 'flag') toggleFlag(r, c);
                             else openCell(r, c);
                         }
-                    };
-
-                    const handleMove = () => {
-                        if (pressTimer) clearTimeout(pressTimer);
                     };
 
                     el.addEventListener('touchstart', handleDown, {passive: true});
@@ -602,7 +622,19 @@
             flags += cell.isFlagged ? 1 : -1;
             playSound('flag');
             updateHUD();
-            renderGrid();
+            
+            // Targeted DOM update to avoid destroying the element while the user is still touching it
+            const idx = r * C + c;
+            const el = gridEl.children[idx];
+            if (el) {
+                if (cell.isFlagged) {
+                    el.classList.add('flagged');
+                    el.innerHTML = '<span class="material-symbols-outlined">flag</span>';
+                } else {
+                    el.classList.remove('flagged');
+                    el.innerHTML = '';
+                }
+            }
         }
 
         function openCell(r, c, isCascade = false) {

@@ -307,17 +307,20 @@
         </div>
     </div>
 
+    <!-- Pre-game Menu -->
+    <div id="start-menu" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <h1 style="color: var(--cyber-cyan); font-family: 'Orbitron'; font-size: 3rem; margin-bottom: 20px; text-shadow: var(--neon-cyan-glow);">PIXELGRAM</h1>
+        <div style="background: rgba(0,0,0,0.8); padding: 30px; border: 1px solid var(--cyber-cyan); border-radius: 8px; box-shadow: 0 0 20px rgba(0,243,255,0.2); display: flex; flex-direction: column; gap: 15px; text-align: center; font-family: 'Orbitron';">
+            <h3 style="margin-bottom: 10px;">SELECT GRID SIZE</h3>
+            <button class="cyber-btn" onclick="startGame(5)">5 x 5 (BEGINNER)</button>
+            <button class="cyber-btn" onclick="startGame(8)">8 x 8 (STANDARD)</button>
+            <button class="cyber-btn" onclick="startGame(10)">10 x 10 (ADVANCED)</button>
+        </div>
+    </div>
+
     <div id="game-wrapper">
         <div id="game-container">
-            <div class="empty-corner" style="flex-direction: column; gap: 10px; align-items: flex-end;">
-                <select id="gridScaleSelect" class="cyber-btn" style="background: transparent; color: var(--cyber-cyan); border-color: var(--cyber-cyan); padding: 4px 8px; cursor: pointer;">
-                    <option value="5" style="background: #111;">5x5</option>
-                    <option value="6" style="background: #111;">6x6</option>
-                    <option value="7" style="background: #111;">7x7</option>
-                    <option value="8" style="background: #111;">8x8</option>
-                    <option value="9" style="background: #111;">9x9</option>
-                    <option value="10" style="background: #111;">10x10</option>
-                </select>
+            <div class="empty-corner" style="flex-direction: column; gap: 10px; align-items: flex-end; justify-content: flex-end;">
                 <!-- Mobile toggle for Fill / X since right click is hard -->
                 <button class="toggle-btn" id="btnToggleMode">FILL</button>
             </div>
@@ -354,13 +357,18 @@
         const scoreCountEl = document.getElementById('scoreCount');
         const btnToggleMode = document.getElementById('btnToggleMode');
         const winOverlayEl = document.getElementById('win-overlay');
-        const gridScaleSelect = document.getElementById('gridScaleSelect');
 
-        gridScaleSelect.addEventListener('change', (e) => {
-            N = parseInt(e.target.value);
+        function showStartMenu() {
+            document.getElementById('start-menu').style.display = 'flex';
+            winOverlayEl.classList.remove('show');
+        }
+
+        function startGame(size) {
+            document.getElementById('start-menu').style.display = 'none';
+            N = size;
             document.documentElement.style.setProperty('--n', N);
             generatePuzzle();
-        });
+        }
 
         scoreCountEl.innerText = puzzlesSolved;
 
@@ -573,10 +581,8 @@
             }
         }
 
-        document.getElementById('btnNew').addEventListener('click', generatePuzzle);
-        document.getElementById('btnWinRestart').addEventListener('click', generatePuzzle);
-
-        generatePuzzle();
+        document.getElementById('btnNew').addEventListener('click', showStartMenu);
+        document.getElementById('btnWinRestart').addEventListener('click', showStartMenu);
 
     </script>
 </body>

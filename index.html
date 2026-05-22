@@ -23,25 +23,43 @@
             <span style="vertical-align: middle;">NEURO_SCORE: <span id="globalScoreValue">0</span></span>
         </div>
 
-        <!-- Responsible Gaming Settings -->
-        <div class="settings-panel" style="margin-top: 0; margin-bottom: 3rem;">
-            <div class="setting-item">
+        <!-- Digital Wellbeing Settings -->
+        <div class="settings-panel" style="margin-top: 0; margin-bottom: 3rem; background: rgba(0,0,0,0.6); padding: 20px; border-radius: 8px; border: 1px solid var(--cyber-cyan);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                 <div>
-                    <div style="font-weight: bold; color: var(--cyber-text);">RESPONSIBLE_MODE</div>
-                    <div style="font-size: 0.8rem; color: #888;">Daily Playtime Limit Protocol</div>
+                    <div style="font-weight: 900; color: var(--cyber-cyan); font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined">health_and_safety</span> DIGITAL WELLBEING
+                    </div>
+                    <div style="font-size: 0.85rem; color: #aaa; margin-top: 5px;">ADHD-friendly lockouts to prevent hyperfocus. Settings auto-save.</div>
                 </div>
                 <label class="switch">
-                    <input type="checkbox" id="responsibleToggle">
+                    <input type="checkbox" id="wellbeingToggle">
                     <span class="slider"></span>
                 </label>
             </div>
 
-            <div id="timeLimitConfig" style="display: none;">
-                <label style="display: block; margin-bottom: 0.5rem; color: var(--cyber-cyan);">DAILY_LIMIT
-                    (MINUTES)</label>
-                <div style="display: flex; gap: 1rem;">
-                    <input type="number" id="timeLimitInput" value="60" min="5" max="300" class="cyber-input">
-                    <button id="saveSettings" class="cyber-btn">SAVE_CONFIG</button>
+            <div id="wellbeingConfig" style="display: none; flex-direction: column; gap: 15px; border-top: 1px solid #444; padding-top: 20px; margin-top: 15px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; color: var(--cyber-cyan); margin-bottom: 4px;">TOTAL DAILY LIMIT (MINS)</label>
+                        <input type="number" id="globalLimit" value="60" min="0" class="cyber-input" style="width: 100%;">
+                        <div style="font-size: 0.7rem; color: #666; margin-top: 4px;">0 = Unlimited</div>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; color: var(--cyber-cyan); margin-bottom: 4px;">PER-GAME LIMIT (MINS)</label>
+                        <input type="number" id="gameLimit" value="15" min="0" class="cyber-input" style="width: 100%;">
+                        <div style="font-size: 0.7rem; color: #666; margin-top: 4px;">0 = Unlimited</div>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; color: var(--cyber-cyan); margin-bottom: 4px;">DAILY PLAYS PER GAME</label>
+                        <input type="number" id="playLimit" value="0" min="0" class="cyber-input" style="width: 100%;">
+                        <div style="font-size: 0.7rem; color: #666; margin-top: 4px;">0 = Unlimited. E.g., 1 = Play once per day.</div>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; color: #ff3333; margin-bottom: 4px; text-shadow: 0 0 5px #ff3333;">STRICT CUTOFF TIME</label>
+                        <input type="time" id="cutoffTime" class="cyber-input" style="width: 100%; border-color: #ff3333; color: #ff3333;">
+                        <div style="font-size: 0.7rem; color: #666; margin-top: 4px;">Locks all games until tomorrow</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -250,43 +268,41 @@
     <script src="shared/settings.js"></script>
     <script src="main.js"></script>
     <script>
-        // Logic for Main Menu settings
-        const toggle = document.getElementById('responsibleToggle');
-        const configArea = document.getElementById('timeLimitConfig');
-        const timeInput = document.getElementById('timeLimitInput');
-        const saveBtn = document.getElementById('saveSettings');
+        // Digital Wellbeing Settings Logic
+        const wbToggle = document.getElementById('wellbeingToggle');
+        const wbConfig = document.getElementById('wellbeingConfig');
+        const iGlobal = document.getElementById('globalLimit');
+        const iGame = document.getElementById('gameLimit');
+        const iPlay = document.getElementById('playLimit');
+        const iCutoff = document.getElementById('cutoffTime');
 
-        // Load saved state
-        const currentMode = localStorage.getItem('gameMode');
-        const currentMax = localStorage.getItem('maxTimeMinutes');
+        if (window.ResponsibleSettings) {
+            const rules = window.ResponsibleSettings.get();
+            wbToggle.checked = rules.enabled;
+            if (rules.enabled) wbConfig.style.display = 'flex';
+            iGlobal.value = rules.globalMinutes;
+            iGame.value = rules.perGameMinutes;
+            iPlay.value = rules.maxPlaysPerGame;
+            iCutoff.value = rules.cutoffTime;
 
-        if (currentMode === 'responsible') {
-            toggle.checked = true;
-            configArea.style.display = 'block';
-        }
-        if (currentMax) timeInput.value = currentMax;
-
-        // Handlers
-        toggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                localStorage.setItem('gameMode', 'responsible');
-                configArea.style.display = 'block';
-            } else {
-                localStorage.setItem('gameMode', 'unlimited');
-                configArea.style.display = 'none';
+            function saveWB() {
+                window.ResponsibleSettings.set('enabled', wbToggle.checked);
+                window.ResponsibleSettings.set('globalMinutes', parseInt(iGlobal.value) || 0);
+                window.ResponsibleSettings.set('perGameMinutes', parseInt(iGame.value) || 0);
+                window.ResponsibleSettings.set('maxPlaysPerGame', parseInt(iPlay.value) || 0);
+                window.ResponsibleSettings.set('cutoffTime', iCutoff.value);
             }
-        });
 
-        saveBtn.addEventListener('click', () => {
-            const val = Math.max(5, parseInt(timeInput.value));
-            localStorage.setItem('maxTimeMinutes', val);
-            alert('SYSTEM UPDATE: ' + val + ' MINUTES PER DAY ALLOCATED.');
-        });
+            wbToggle.addEventListener('change', (e) => {
+                wbConfig.style.display = e.target.checked ? 'flex' : 'none';
+                saveWB();
+            });
 
-        timeInput.addEventListener('change', () => {
-            const val = Math.max(5, parseInt(timeInput.value));
-            timeInput.value = val;
-        });
+            iGlobal.addEventListener('change', saveWB);
+            iGame.addEventListener('change', saveWB);
+            iPlay.addEventListener('change', saveWB);
+            iCutoff.addEventListener('change', saveWB);
+        }
 
         // Global Score Subscription
         if (window.GlobalScore) {

@@ -277,19 +277,34 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        function spawnParticles(x, y, color, count = 15) {
+        function spawnParticles(x, y, color, count = 20) {
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 4 + 1;
+                const speed = Math.random() * 12 + 3;
                 particles.push({
                     x: x, y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
                     life: 1.0, decay: Math.random() * 0.04 + 0.02,
                     color: color,
-                    size: Math.random() * 4 + 2
+                    size: Math.random() * 6 + 3
                 });
             }
+        }
+
+        function screenShake(intensity = 10) {
+            const el = document.getElementById('game-container');
+            if(!el) return;
+            el.animate([
+                { transform: `translate(0px, 0px) rotate(0deg)` },
+                { transform: `translate(-${intensity}px, ${intensity/2}px) rotate(-1deg)` },
+                { transform: `translate(${intensity}px, -${intensity/2}px) rotate(1deg)` },
+                { transform: `translate(-${intensity/2}px, -${intensity/4}px) rotate(0deg)` },
+                { transform: `translate(0px, 0px) rotate(0deg)` }
+            ], {
+                duration: 250,
+                easing: 'cubic-bezier(.36,.07,.19,.97)'
+            });
         }
 
         function animateParticles() {
@@ -500,27 +515,42 @@
 
             if (cluster.size >= 2) {
                 const bodiesToRemove = Array.from(cluster);
-                Composite.remove(world, bodiesToRemove);
+                // Make them static so they stop affecting the pile while popping
+                bodiesToRemove.forEach(b => Matter.Body.setStatic(b, true));
                 
+                screenShake(Math.min(cluster.size * 2, 20));
+                playSound('pop', cluster.size);
+
                 const pts = Math.pow(cluster.size - 1, 2) * 10;
                 score += pts;
                 if (window.GlobalScore) window.GlobalScore.add(pts);
                 scoreCountEl.innerText = score;
-                
-                playSound('pop', cluster.size);
 
-                const rect = render.canvas.getBoundingClientRect();
-                const scaleX = rect.width / render.canvas.width;
-                const scaleY = rect.height / render.canvas.height;
-                
-                bodiesToRemove.forEach(b => {
-                    const screenX = rect.left + b.position.x / scaleX;
-                    const screenY = rect.top + b.position.y / scaleY;
-                    spawnParticles(screenX, screenY, b.hexColor, 5);
-                });
-                
-                clearTimeout(gameOverCheckTimer);
-                gameOverCheckTimer = setTimeout(checkGameOver, 2000);
+                let scaleTicks = 0;
+                const popInterval = setInterval(() => {
+                    scaleTicks++;
+                    bodiesToRemove.forEach(b => {
+                        Matter.Body.scale(b, 1.15, 1.15);
+                    });
+                    
+                    if (scaleTicks >= 6) {
+                        clearInterval(popInterval);
+                        Composite.remove(world, bodiesToRemove);
+
+                        const rect = render.canvas.getBoundingClientRect();
+                        const scaleX = rect.width / render.canvas.width;
+                        const scaleY = rect.height / render.canvas.height;
+                        
+                        bodiesToRemove.forEach(b => {
+                            const screenX = rect.left + b.position.x / scaleX;
+                            const screenY = rect.top + b.position.y / scaleY;
+                            spawnParticles(screenX, screenY, b.hexColor, 10);
+                        });
+                        
+                        clearTimeout(gameOverCheckTimer);
+                        gameOverCheckTimer = setTimeout(checkGameOver, 2000);
+                    }
+                }, 16);
             }
         }
 

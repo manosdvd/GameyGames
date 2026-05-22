@@ -136,3 +136,58 @@ function requestFullScreen() {
 }
 document.addEventListener('pointerdown', requestFullScreen);
 document.addEventListener('keydown', requestFullScreen);
+
+/**
+ * Responsible Gaming Manager
+ * Stores user preferences for the Digital Wellbeing controls.
+ */
+class ResponsibleGamingManager {
+    constructor() {
+        this.defaults = {
+            enabled: false,
+            globalMinutes: 60,
+            perGameMinutes: 0, // 0 = unlimited
+            maxPlaysPerGame: 0, // 0 = unlimited
+            cutoffTime: '' // e.g. "22:00" for 10 PM. Empty = unlimited
+        };
+        this.state = this.load();
+        this.listeners = [];
+    }
+
+    load() {
+        try {
+            const stored = localStorage.getItem('neuro_hub_responsible_settings');
+            return stored ? { ...this.defaults, ...JSON.parse(stored) } : { ...this.defaults };
+        } catch (e) {
+            return { ...this.defaults };
+        }
+    }
+
+    save() {
+        localStorage.setItem('neuro_hub_responsible_settings', JSON.stringify(this.state));
+        this.notify();
+    }
+
+    get() {
+        return { ...this.state };
+    }
+
+    set(key, value) {
+        if (key in this.state) {
+            this.state[key] = value;
+            this.save();
+        }
+    }
+
+    subscribe(callback) {
+        this.listeners.push(callback);
+        callback(this.state);
+        return () => this.listeners = this.listeners.filter(l => l !== callback);
+    }
+
+    notify() {
+        this.listeners.forEach(l => l(this.state));
+    }
+}
+
+window.ResponsibleSettings = new ResponsibleGamingManager();
