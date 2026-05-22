@@ -696,7 +696,7 @@
                     { id: 'font-dyslexic', label: 'DYSLEXIC', font: 'OpenDyslexic' }
                 ];
 
-                this.dictionary = new Set(window.COMMON_WORDS_SEED ? window.COMMON_WORDS_SEED.split(' ') : []);
+                this.dictionary = new Set(window.COMMON_WORDS_SEED ? (typeof window.COMMON_WORDS_SEED === 'object' ? Object.keys(window.COMMON_WORDS_SEED) : window.COMMON_WORDS_SEED.split(' ')) : []);
                 this.fetchExpandedDictionary();
                 this.letterBag = [];
                 this.audioCtx = null;
