@@ -73,15 +73,14 @@
         #game-wrapper {
             flex: 1;
             width: 100%;
-            max-width: 600px;
+            overflow: auto;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px;
+            padding: 20px;
             z-index: 10;
         }
 
         #game-container {
+            margin: auto;
             position: relative;
             background: rgba(10, 10, 31, 0.4);
             border: 2px solid rgba(255, 0, 0, 0.25);
@@ -133,14 +132,15 @@
 
         .mine-cell {
             aspect-ratio: 1;
-            width: 100%;
+            min-width: 35px;
+            min-height: 35px;
             background: rgba(255,255,255,0.1);
             border: 1px outset rgba(255, 255, 255, 0.2);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(0.6rem, 3vw, 1rem);
+            font-size: 1rem;
             font-weight: bold;
             font-family: 'Orbitron', monospace;
             color: #fff;
@@ -287,18 +287,30 @@
         </div>
     </div>
 
-    <div class="options-panel" style="display: flex; gap: 15px; justify-content: center; margin-bottom: 10px; z-index: 10; color: var(--cyber-cyan); font-family: 'Orbitron', monospace; font-size: 0.85rem;">
-        <div style="display: flex; align-items: center; gap: 5px;">
-            SIZE: 
-            <select id="sizeSelect" class="cyber-select" style="background: #000; border: 1px solid var(--cyber-cyan); color: var(--cyber-cyan); padding: 4px; border-radius: 4px; font-family: 'Orbitron', sans-serif;">
-                <option value="8">8x8</option>
-                <option value="12">12x12</option>
-                <option value="16">16x16</option>
-            </select>
-        </div>
-        <div style="display: flex; align-items: center; gap: 5px;">
-            MINES: 
-            <input type="number" id="minesInput" value="10" min="1" max="99" class="cyber-select" style="background: #000; border: 1px solid var(--cyber-cyan); color: var(--cyber-cyan); padding: 4px; border-radius: 4px; font-family: 'Orbitron', sans-serif; width: 60px; text-align: center;">
+    <!-- Pre-game Menu -->
+    <div id="start-menu" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <h1 style="color: #ff3333; font-family: 'Orbitron'; font-size: 3rem; margin-bottom: 20px; text-shadow: 0 0 15px #ff3333;">BOOM</h1>
+        <div style="background: rgba(0,0,0,0.8); padding: 30px; border: 1px solid #ff3333; border-radius: 8px; box-shadow: 0 0 20px rgba(255,51,51,0.5); display: flex; flex-direction: column; gap: 15px; text-align: center; font-family: 'Orbitron';">
+            <h3 style="margin-bottom: 10px;">SELECT DIFFICULTY</h3>
+            <button class="cyber-btn" onclick="startGame(8, 8, 10)">EASY (8x8, 10 Mines)</button>
+            <button class="cyber-btn" onclick="startGame(16, 16, 40)">MEDIUM (16x16, 40 Mines)</button>
+            <button class="cyber-btn" onclick="startGame(30, 16, 99)">HARD (30x16, 99 Mines)</button>
+            
+            <div style="border-top: 1px solid #555; margin-top: 10px; padding-top: 20px; display: flex; flex-direction: column; gap: 15px;">
+                <h4>CUSTOM PROTOCOL</h4>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <div style="display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; gap: 4px;">
+                        COLS <input type="number" id="customCols" value="20" style="width: 50px; background: #111; color: var(--cyber-cyan); border: 1px solid var(--cyber-cyan); text-align: center; padding: 4px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; gap: 4px;">
+                        ROWS <input type="number" id="customRows" value="20" style="width: 50px; background: #111; color: var(--cyber-cyan); border: 1px solid var(--cyber-cyan); text-align: center; padding: 4px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; gap: 4px;">
+                        MINES <input type="number" id="customMines" value="50" style="width: 50px; background: #111; color: #ff3333; border: 1px solid #ff3333; text-align: center; padding: 4px;">
+                    </div>
+                </div>
+                <button class="cyber-btn" onclick="startCustom()">LAUNCH CUSTOM</button>
+            </div>
         </div>
     </div>
 
@@ -432,20 +444,26 @@
 
         gridEl.addEventListener('contextmenu', e => e.preventDefault());
 
-        function initGame() {
-            const sizeSelect = document.getElementById('sizeSelect');
-            const minesInput = document.getElementById('minesInput');
-            if (sizeSelect && minesInput) {
-                R = parseInt(sizeSelect.value, 10) || 8;
-                C = R;
-                let desiredMines = parseInt(minesInput.value, 10) || 10;
-                let maxMines = (R * C) - 9;
-                if (desiredMines > maxMines) desiredMines = maxMines;
-                if (desiredMines < 1) desiredMines = 1;
-                MINES = desiredMines;
-                minesInput.value = MINES;
-            }
+        function startGame(c, r, m) {
+            C = c;
+            R = r;
+            MINES = Math.max(1, Math.min(m, (R * C) - 9));
+            document.getElementById('start-menu').style.display = 'none';
+            initGame();
+        }
 
+        function startCustom() {
+            const c = parseInt(document.getElementById('customCols').value, 10) || 8;
+            const r = parseInt(document.getElementById('customRows').value, 10) || 8;
+            const m = parseInt(document.getElementById('customMines').value, 10) || 10;
+            startGame(c, r, m);
+        }
+
+        document.getElementById('btnNew').addEventListener('click', () => {
+            document.getElementById('start-menu').style.display = 'flex';
+        });
+
+        function initGame() {
             gridEl.style.gridTemplateColumns = `repeat(${C}, 1fr)`;
             gridEl.style.gridTemplateRows = `repeat(${R}, 1fr)`;
 
@@ -676,10 +694,12 @@
             }, win ? 1000 : 1500);
         }
 
-        document.getElementById('btnNew').addEventListener('click', initGame);
-        btnWinRestart.addEventListener('click', initGame);
-
-        initGame();
+        // Initialization happens via startGame button click
+        // But we must setup event listeners on load.
+        btnWinRestart.addEventListener('click', () => {
+            winOverlayEl.classList.remove('show');
+            document.getElementById('start-menu').style.display = 'flex';
+        });
 
     </script>
 </body>

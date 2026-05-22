@@ -64,7 +64,7 @@
         }
 
         .tile[data-animation='flip'] {
-            animation: Flip 500ms ease-in;
+            animation: Flip 500ms ease-in both;
         }
 
         @keyframes PopIn {
@@ -82,12 +82,17 @@
         @keyframes Flip {
             0% {
                 transform: rotateX(0);
+                background-color: transparent;
+                border-color: #565758;
+            }
+
+            49.9% {
+                background-color: transparent;
                 border-color: #565758;
             }
 
             50% {
                 transform: rotateX(90deg);
-                border-color: #565758;
             }
 
             100% {

@@ -5,9 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cluster Purge</title>
+    <title>Clusterpuck</title>
     <script src="../timeLimit.js"></script>
     <script src="../shared/settings.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <link rel="stylesheet" href="../shared/theme.css">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
@@ -39,7 +40,6 @@
             position: relative;
         }
 
-        /* --- Scanlines Backdrop --- */
         .scanlines {
             position: absolute;
             top: 0;
@@ -53,7 +53,6 @@
             z-index: 999;
         }
 
-        /* --- HUD Stats Bar --- */
         .hud-stats-bar {
             display: flex;
             gap: 15px;
@@ -72,7 +71,6 @@
             padding: 8px 15px;
         }
 
-        /* --- Main Game Area --- */
         #game-wrapper {
             flex: 1;
             width: 100%;
@@ -90,49 +88,21 @@
             border: 2px solid rgba(0, 243, 255, 0.25);
             border-radius: 8px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-            width: min(85vw, 48dvh);
-            height: min(85vw, 48dvh);
-            padding: 8px;
+            width: min(90vw, 50dvh);
+            height: min(120vw, 65dvh);
             box-sizing: border-box;
-        }
-
-        #game-board {
-            display: grid;
-            gap: 2px;
-            width: 100%;
-            height: 100%;
-            grid-template-columns: repeat(10, 1fr);
-            grid-template-rows: repeat(10, 1fr);
-        }
-
-        /* --- Grid Cells --- */
-        .cell {
-            position: relative;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            transform: scale(0.9);
-            box-shadow: inset 0 0 10px rgba(255,255,255,0.2), 0 0 5px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
-        .cell:hover {
-            transform: scale(1.0);
-            box-shadow: inset 0 0 15px rgba(255,255,255,0.4), 0 0 10px currentColor;
+        #game-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 6px;
         }
 
-        .cell.empty {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* Colors */
-        .color-0 { background: #00f3ff; color: #00f3ff; }
-        .color-1 { background: #ff00ff; color: #ff00ff; }
-        .color-2 { background: #ffe600; color: #ffe600; }
-        .color-3 { background: #00ff66; color: #00ff66; }
-        .color-4 { background: #ff3333; color: #ff3333; }
-
-        /* --- Button Controls --- */
         .controls-panel {
             display: flex;
             justify-content: center;
@@ -154,7 +124,6 @@
             gap: 8px;
         }
 
-        /* --- Win Overlay --- */
         #win-overlay {
             position: fixed;
             top: 0;
@@ -185,6 +154,7 @@
             text-shadow: 0 0 20px var(--cyber-magenta), 0 0 35px var(--cyber-magenta);
             margin-bottom: 10px;
             letter-spacing: 4px;
+            text-align: center;
         }
 
         .win-stats {
@@ -222,7 +192,6 @@
             transform: scale(0.95);
         }
 
-        /* --- FX Canvas --- */
         #fx-canvas {
             position: absolute;
             top: 0;
@@ -244,19 +213,17 @@
     <div class="scanlines"></div>
     <canvas id="fx-canvas"></canvas>
 
-    <!-- Header -->
     <header class="cyber-header" style="width: 100%;">
         <a href="../index.html" class="back-btn" id="btnBack"> &lt; HUB </a>
         <div class="hud-pill">
             <span>PROTOCOL</span>
-            <span class="hud-value">CLUSTER_PURGE</span>
+            <span class="hud-value">CLUSTERPUCK</span>
         </div>
         <button class="icon-btn" id="btnSoundToggle" aria-label="Toggle Sound" style="pointer-events: auto;">
             <span class="material-symbols-outlined" id="soundIcon">volume_up</span>
         </button>
     </header>
 
-    <!-- HUD Stats -->
     <div class="hud-stats-bar">
         <div class="hud-pill">
             <span>SCORE</span>
@@ -268,14 +235,12 @@
         </div>
     </div>
 
-    <!-- Game Board Wrapper -->
     <div id="game-wrapper">
         <div id="game-container">
-            <div id="game-board"></div>
+            <!-- Matter.js Canvas injected here -->
         </div>
     </div>
 
-    <!-- Controls -->
     <div class="controls-panel">
         <button class="cyber-btn" id="btnNew">
             <span class="material-symbols-outlined" style="font-size: 1.15rem;">cached</span>
@@ -283,7 +248,6 @@
         </button>
     </div>
 
-    <!-- Win Overlay -->
     <div id="win-overlay">
         <div class="win-title">PURGE_COMPLETE</div>
         <div class="win-stats" id="winStatsText">
@@ -293,14 +257,7 @@
     </div>
 
     <script>
-        // --- Core Setup & State ---
-        const ROWS = 10;
-        const COLS = 10;
-        const COLORS = 5;
-        let grid = []; // 2D array [row][col]
         let score = 0;
-        
-        const boardEl = document.getElementById('game-board');
         const scoreCountEl = document.getElementById('scoreCount');
         const btnNew = document.getElementById('btnNew');
         const btnSoundToggle = document.getElementById('btnSoundToggle');
@@ -340,7 +297,7 @@
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.x += p.vx; p.y += p.vy;
-                p.vy += 0.1; // gravity
+                p.vy += 0.1;
                 p.life -= p.decay;
                 if (p.life <= 0) {
                     particles.splice(i, 1);
@@ -360,7 +317,6 @@
         }
         requestAnimationFrame(animateParticles);
 
-        // --- Sound System ---
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         let audioCtx = null;
 
@@ -369,39 +325,28 @@
             try {
                 if (!audioCtx) audioCtx = new AudioCtx();
                 if (audioCtx.state === 'suspended') audioCtx.resume();
-                
                 const now = audioCtx.currentTime;
                 
                 if (type === 'pop') {
-                    // Pitch goes up with cluster size
                     const baseFreq = 200 + Math.min(count * 20, 600);
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(baseFreq, now);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(baseFreq, now);
                     osc.frequency.exponentialRampToValueAtTime(baseFreq * 2, now + 0.1);
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                    osc.start(now);
-                    osc.stop(now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
                 } else if (type === 'over') {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(200, now);
                     osc.frequency.linearRampToValueAtTime(50, now + 0.5);
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-                    osc.start(now);
-                    osc.stop(now + 0.5);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.start(now); osc.stop(now + 0.5);
                 }
-            } catch (e) {
-                console.warn('Audio Context blocked or failed:', e);
-            }
+            } catch (e) {}
         }
 
         function updateSoundButtonDisplay() {
@@ -419,157 +364,193 @@
         });
         updateSoundButtonDisplay();
 
-        // --- Game Logic ---
+        // --- Matter.js Physics Engine ---
+        const Engine = Matter.Engine,
+              Render = Matter.Render,
+              Runner = Matter.Runner,
+              Bodies = Matter.Bodies,
+              Composite = Matter.Composite,
+              Query = Matter.Query,
+              Vector = Matter.Vector;
+
+        const engine = Engine.create();
+        const world = engine.world;
+        const gameContainer = document.getElementById('game-container');
+        
+        // Logical resolution
+        const width = 600;
+        const height = 800;
+        
+        const render = Render.create({
+            element: gameContainer,
+            engine: engine,
+            options: {
+                width: width,
+                height: height,
+                wireframes: false,
+                background: 'transparent'
+            }
+        });
+
+        Render.run(render);
+        const runner = Runner.create();
+        Runner.run(runner, engine);
+
+        // Invisible boundaries
+        const wallOptions = { isStatic: true, render: { visible: false }, friction: 0.1, restitution: 0.2 };
+        const leftWall = Bodies.rectangle(-25, height/2, 50, height * 2, wallOptions);
+        const rightWall = Bodies.rectangle(width + 25, height/2, 50, height * 2, wallOptions);
+        const bottomWall = Bodies.rectangle(width/2, height + 25, width * 2, 50, wallOptions);
+        Composite.add(world, [leftWall, rightWall, bottomWall]);
+
+        const colorMap = ['#00f3ff', '#ff00ff', '#ffe600', '#00ff66', '#ff3333'];
+        const numBalls = 90;
+        // ballRadius calculated so they fit roughly 10 across
+        const ballRadius = (width / 10) / 2; 
+
+        function spawnBalls() {
+            const balls = [];
+            for (let i = 0; i < numBalls; i++) {
+                const cIdx = Math.floor(Math.random() * colorMap.length);
+                const cHex = colorMap[cIdx];
+                // Scatter spawn positions above the bucket
+                const x = 50 + Math.random() * (width - 100);
+                const y = -100 - Math.random() * 800; 
+                
+                const ball = Bodies.circle(x, y, ballRadius * 0.95, {
+                    restitution: 0.4,
+                    friction: 0.005,
+                    density: 0.04,
+                    render: {
+                        fillStyle: cHex,
+                        strokeStyle: 'rgba(255,255,255,0.8)',
+                        lineWidth: 2
+                    }
+                });
+                ball.colorIdx = cIdx;
+                ball.hexColor = cHex;
+                balls.push(ball);
+            }
+            Composite.add(world, balls);
+        }
+
         function initGame() {
             winOverlayEl.classList.remove('show');
             score = 0;
             scoreCountEl.innerText = score;
             
-            grid = [];
-            for (let r = 0; r < ROWS; r++) {
-                grid[r] = [];
-                for (let c = 0; c < COLS; c++) {
-                    grid[r][c] = Math.floor(Math.random() * COLORS);
-                }
-            }
-            renderBoard();
-        }
-
-        const colorMap = ['#00f3ff', '#ff00ff', '#ffe600', '#00ff66', '#ff3333'];
-
-        function renderBoard() {
-            boardEl.innerHTML = '';
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    const val = grid[r][c];
-                    const el = document.createElement('div');
-                    el.className = 'cell ' + (val === -1 ? 'empty' : 'color-' + val);
-                    el.dataset.r = r;
-                    el.dataset.c = c;
-                    
-                    if (val !== -1) {
-                        el.addEventListener('click', () => handleCellClick(r, c));
-                    }
-                    boardEl.appendChild(el);
-                }
-            }
-        }
-
-        function handleCellClick(r, c) {
-            const targetColor = grid[r][c];
-            if (targetColor === -1) return;
-
-            const cluster = [];
-            const visited = new Set();
-            const stack = [[r, c]];
+            const bodies = Composite.allBodies(world).filter(b => !b.isStatic);
+            Composite.remove(world, bodies);
             
-            while (stack.length > 0) {
-                const [cr, cc] = stack.pop();
-                const key = `${cr},${cc}`;
-                if (!visited.has(key)) {
-                    visited.add(key);
-                    cluster.push([cr, cc]);
+            spawnBalls();
+        }
+
+        // Tap handling
+        render.canvas.addEventListener('mousedown', handleTap);
+        render.canvas.addEventListener('touchstart', handleTap, {passive: true});
+
+        function handleTap(e) {
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            const rect = render.canvas.getBoundingClientRect();
+            const scaleX = render.canvas.width / rect.width;
+            const scaleY = render.canvas.height / rect.height;
+            const x = (clientX - rect.left) * scaleX;
+            const y = (clientY - rect.top) * scaleY;
+
+            const bodies = Composite.allBodies(world).filter(b => !b.isStatic);
+            const clicked = Query.point(bodies, { x, y })[0];
+            
+            if (clicked) {
+                findAndDestroyCluster(clicked);
+            }
+        }
+
+        let gameOverCheckTimer = null;
+
+        function findAndDestroyCluster(startBody) {
+            const targetColor = startBody.colorIdx;
+            const cluster = new Set();
+            const stack = [startBody];
+            
+            // Allow slight gap to account for jitter and resting distance
+            const threshold = ballRadius * 2 + 10; 
+            
+            while(stack.length > 0) {
+                const body = stack.pop();
+                if (!cluster.has(body)) {
+                    cluster.add(body);
+                    const allBodies = Composite.allBodies(world).filter(b => !b.isStatic && !cluster.has(b) && b.colorIdx === targetColor);
                     
-                    const neighbors = [
-                        [cr-1, cc], [cr+1, cc], [cr, cc-1], [cr, cc+1]
-                    ];
-                    for (const [nr, nc] of neighbors) {
-                        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
-                            if (grid[nr][nc] === targetColor && !visited.has(`${nr},${nc}`)) {
-                                stack.push([nr, nc]);
-                            }
+                    for (const other of allBodies) {
+                        const dist = Vector.magnitude(Vector.sub(body.position, other.position));
+                        if (dist < threshold) {
+                            stack.push(other);
                         }
                     }
                 }
             }
 
-            if (cluster.length >= 2) {
-                // Remove cluster
-                let colorHex = colorMap[targetColor];
+            if (cluster.size >= 2) {
+                const bodiesToRemove = Array.from(cluster);
+                Composite.remove(world, bodiesToRemove);
                 
-                // Add points: (N-2)^2 * 10
-                const pts = Math.pow(cluster.length - 1, 2) * 10;
+                const pts = Math.pow(cluster.size - 1, 2) * 10;
                 score += pts;
                 if (window.GlobalScore) window.GlobalScore.add(pts);
                 scoreCountEl.innerText = score;
                 
-                cluster.forEach(([cr, cc]) => {
-                    grid[cr][cc] = -1; // Empty
-                    
-                    // particles
-                    const domCell = document.querySelector(`.cell[data-r="${cr}"][data-c="${cc}"]`);
-                    if (domCell) {
-                        const rect = domCell.getBoundingClientRect();
-                        spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2, colorHex, 5);
-                    }
-                });
+                playSound('pop', cluster.size);
 
-                playSound('pop', cluster.length);
-                applyGravity();
-            }
-        }
-
-        function applyGravity() {
-            // Drop down
-            for (let c = 0; c < COLS; c++) {
-                let writeR = ROWS - 1;
-                for (let r = ROWS - 1; r >= 0; r--) {
-                    if (grid[r][c] !== -1) {
-                        grid[writeR][c] = grid[r][c];
-                        if (writeR !== r) {
-                            grid[r][c] = -1;
-                        }
-                        writeR--;
-                    }
-                }
-            }
-            
-            // Shift left if column empty
-            let writeC = 0;
-            for (let c = 0; c < COLS; c++) {
-                // Check if column is empty
-                let isEmpty = true;
-                for (let r = 0; r < ROWS; r++) {
-                    if (grid[r][c] !== -1) isEmpty = false;
-                }
+                const rect = render.canvas.getBoundingClientRect();
+                const scaleX = rect.width / render.canvas.width;
+                const scaleY = rect.height / render.canvas.height;
                 
-                if (!isEmpty) {
-                    if (writeC !== c) {
-                        for (let r = 0; r < ROWS; r++) {
-                            grid[r][writeC] = grid[r][c];
-                            grid[r][c] = -1;
-                        }
-                    }
-                    writeC++;
-                }
+                bodiesToRemove.forEach(b => {
+                    const screenX = rect.left + b.position.x / scaleX;
+                    const screenY = rect.top + b.position.y / scaleY;
+                    spawnParticles(screenX, screenY, b.hexColor, 5);
+                });
+                
+                clearTimeout(gameOverCheckTimer);
+                gameOverCheckTimer = setTimeout(checkGameOver, 2000);
             }
-            
-            renderBoard();
-            checkGameOver();
         }
 
         function checkGameOver() {
+            const bodies = Composite.allBodies(world).filter(b => !b.isStatic);
             let hasMoves = false;
-            let blocksLeft = 0;
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    if (grid[r][c] !== -1) {
-                        blocksLeft++;
-                        const color = grid[r][c];
-                        // Check right and down
-                        if (c < COLS - 1 && grid[r][c+1] === color) hasMoves = true;
-                        if (r < ROWS - 1 && grid[r+1][c] === color) hasMoves = true;
+            const threshold = ballRadius * 2 + 15; 
+
+            for (let i = 0; i < bodies.length; i++) {
+                const b1 = bodies[i];
+                for (let j = i + 1; j < bodies.length; j++) {
+                    const b2 = bodies[j];
+                    if (b1.colorIdx === b2.colorIdx) {
+                        const dist = Vector.magnitude(Vector.sub(b1.position, b2.position));
+                        if (dist < threshold) {
+                            hasMoves = true;
+                            break;
+                        }
                     }
                 }
+                if (hasMoves) break;
             }
-            
+
             if (!hasMoves) {
-                if (blocksLeft === 0) {
-                    score += 1000; // bonus for clear
+                if (bodies.length === 0) {
+                    score += 1000;
                     if (window.GlobalScore) window.GlobalScore.add(1000);
                 }
                 playSound('over');
-                winStatsTextEl.innerText = `FINAL SCORE: ${score}${blocksLeft === 0 ? '\\nMATRIX PERFECTLY CLEARED!' : ''}`;
+                winStatsTextEl.innerText = `FINAL SCORE: ${score}${bodies.length === 0 ? '\\nMATRIX PERFECTLY CLEARED!' : ''}`;
                 winOverlayEl.classList.add('show');
             }
         }
@@ -577,9 +558,7 @@
         btnNew.addEventListener('click', initGame);
         btnWinRestart.addEventListener('click', initGame);
 
-        // Initialize
         initGame();
     </script>
 </body>
-
 </html>
