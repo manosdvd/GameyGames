@@ -145,6 +145,8 @@
             const [shakeRow, setShakeRow] = useState(false);
             const [message, setMessage] = useState(null);
             const [stats, setStats] = useState({ played: 0, wins: 0, streak: 0 });
+            const [lastSubmittedWord, setLastSubmittedWord] = useState(null);
+            const [lastDefinition, setLastDefinition] = useState(null);
 
              useEffect(() => {
                 // Load Stats
@@ -154,9 +156,9 @@
                 // Load local compiled dictionary if available
                 let words = [];
                 if (window.WORDLE_WORDS) {
-                    words = typeof window.WORDLE_WORDS === 'string'
-                        ? window.WORDLE_WORDS.split(' ')
-                        : window.WORDLE_WORDS;
+                    words = typeof window.WORDLE_WORDS === 'object'
+                        ? Object.keys(window.WORDLE_WORDS)
+                        : (typeof window.WORDLE_WORDS === 'string' ? window.WORDLE_WORDS.split(' ') : window.WORDLE_WORDS);
                 }
 
                 if (words.length > 0) {
@@ -194,6 +196,8 @@
                 setCurrentGuess('');
                 setGameStatus('playing');
                 setMessage(null);
+                setLastSubmittedWord(null);
+                setLastDefinition(null);
             };
 
             const handleKey = (key) => {
@@ -218,6 +222,17 @@
 
                     const newGuesses = [...guesses, currentGuess];
                     setGuesses(newGuesses);
+                    
+                    const wUpper = currentGuess.toUpperCase();
+                    setLastSubmittedWord(wUpper);
+                    let def = "A valid English word of 5 letters.";
+                    if (window.WORDLE_WORDS && typeof window.WORDLE_WORDS === 'object' && window.WORDLE_WORDS[wUpper]) {
+                        def = window.WORDLE_WORDS[wUpper];
+                    } else if (window.LEXICON_WORDS && typeof window.LEXICON_WORDS === 'object' && window.LEXICON_WORDS[wUpper]) {
+                        def = window.LEXICON_WORDS[wUpper];
+                    }
+                    setLastDefinition(def);
+
                     setCurrentGuess('');
 
                     if (currentGuess === solution) {
@@ -403,6 +418,13 @@
                     {message && (
                         <div className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-white text-black px-4 py-2 rounded font-bold shadow-lg z-50 whitespace-nowrap">
                             {message}
+                        </div>
+                    )}
+
+                    {/* Definition Area */}
+                    {lastSubmittedWord && (
+                        <div className="flex-none px-4 py-2 text-center text-sm text-gray-300 min-h-[60px] border-t border-[#3a3a3c] bg-black/50 overflow-hidden">
+                            <span className="font-bold text-green-400">{lastSubmittedWord}</span>: {lastDefinition}
                         </div>
                     )}
 

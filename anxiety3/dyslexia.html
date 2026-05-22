@@ -254,7 +254,7 @@
             const [startLevel, setStartLevel] = useState(1);
 
             // Dictionary
-            const [dictionary, setDictionary] = useState(new Set(window.COMMON_WORDS_SEED ? window.COMMON_WORDS_SEED.split(' ') : []));
+            const [dictionary, setDictionary] = useState(new Set(window.COMMON_WORDS_SEED ? (typeof window.COMMON_WORDS_SEED === 'object' ? Object.keys(window.COMMON_WORDS_SEED) : window.COMMON_WORDS_SEED.split(' ')) : []));
             const [dictLoaded, setDictLoaded] = useState(false);
             const [loadingError, setLoadingError] = useState(null);
 
@@ -265,9 +265,9 @@
             useEffect(() => {
                 let words = [];
                 if (window.LEXICON_WORDS) {
-                    words = typeof window.LEXICON_WORDS === 'string'
-                        ? window.LEXICON_WORDS.split(' ')
-                        : window.LEXICON_WORDS;
+                    words = typeof window.LEXICON_WORDS === 'object'
+                        ? Object.keys(window.LEXICON_WORDS)
+                        : (typeof window.LEXICON_WORDS === 'string' ? window.LEXICON_WORDS.split(' ') : window.LEXICON_WORDS);
                 }
 
                 if (words.length > 0) {
@@ -550,43 +550,22 @@
 
             const fetchDefinition = async (word) => {
                 setLastSubmittedWord(word);
-                setDefinitionLoading(true);
-                setLastDefinition(null);
+                setDefinitionLoading(false);
                 setLastPhonetic(null);
                 setLastPartOfSpeech(null);
 
-                try {
-                    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
-                    if (!response.ok) {
-                        throw new Error('Definition not found');
-                    }
-                    const data = await response.json();
-                    if (data && data[0]) {
-                        const entry = data[0];
-                        const phonetic = entry.phonetic || (entry.phonetics && entry.phonetics.find(p => p.text)?.text) || '';
-                        
-                        let firstDef = '';
-                        let pos = '';
-                        if (entry.meanings && entry.meanings.length > 0) {
-                            const meaning = entry.meanings[0];
-                            pos = meaning.partOfSpeech || '';
-                            if (meaning.definitions && meaning.definitions.length > 0) {
-                                firstDef = meaning.definitions[0].definition || '';
-                            }
-                        }
-                        
-                        setLastPhonetic(phonetic);
-                        setLastPartOfSpeech(pos);
-                        setLastDefinition(firstDef || 'No definition available.');
-                    } else {
-                        setLastDefinition('No entry details available.');
-                    }
-                } catch (err) {
-                    console.warn("Failed to fetch definition for", word, err);
-                    setLastDefinition('A valid English word of ' + word.length + ' letters.');
-                } finally {
-                    setDefinitionLoading(false);
+                let def = "A valid English word of " + word.length + " letters.";
+                const wUpper = word.toUpperCase();
+                
+                if (window.LEXICON_WORDS && typeof window.LEXICON_WORDS === 'object' && window.LEXICON_WORDS[wUpper]) {
+                    def = window.LEXICON_WORDS[wUpper];
+                } else if (window.WORDLE_WORDS && typeof window.WORDLE_WORDS === 'object' && window.WORDLE_WORDS[wUpper]) {
+                    def = window.WORDLE_WORDS[wUpper];
+                } else if (window.COMMON_WORDS_SEED && typeof window.COMMON_WORDS_SEED === 'object' && window.COMMON_WORDS_SEED[wUpper]) {
+                    def = window.COMMON_WORDS_SEED[wUpper];
                 }
+
+                setLastDefinition(def);
             };
 
             const submitWord = () => {
