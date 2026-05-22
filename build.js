@@ -104,7 +104,7 @@ window.DefinitionManager = {
                 return null;
             }
         }
-        return this.dict[word.toUpperCase()];
+        return this.dict[word.toLowerCase()];
     }
 };
 `;
