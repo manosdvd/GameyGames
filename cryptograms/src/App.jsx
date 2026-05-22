@@ -297,10 +297,12 @@ export default function App() {
 
             // Navigation
             if (e.key === 'ArrowRight') {
+                e.preventDefault();
                 moveCursor(1);
                 return;
             }
             if (e.key === 'ArrowLeft') {
+                e.preventDefault();
                 moveCursor(-1);
                 return;
             }
@@ -620,7 +622,7 @@ export default function App() {
             <style>{`
         @keyframes fall {
             0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+            100% { transform: translateY(100dvh) rotate(360deg); opacity: 0; }
         }
         .animate-fall {
             animation-name: fall;

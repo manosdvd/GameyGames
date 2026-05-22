@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Wordle</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -282,7 +282,10 @@
                     if (e.ctrlKey || e.metaKey || e.altKey) return;
                     const key = e.key.toUpperCase();
                     if (key === 'ENTER') handleKey('ENTER');
-                    else if (key === 'BACKSPACE') handleKey('BACK');
+                    else if (key === 'BACKSPACE') {
+                        e.preventDefault();
+                        handleKey('BACK');
+                    }
                     else if (/^[A-Z]$/.test(key)) handleKey(key);
                 };
                 window.addEventListener('keydown', handleKeyDown);

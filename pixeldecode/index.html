@@ -222,7 +222,7 @@
             top: 0;
             left: 0;
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
             background: rgba(5, 5, 20, 0.96);
             backdrop-filter: blur(8px);
             display: flex;
@@ -525,14 +525,17 @@
                     if (playerGrid[r][c] === 1) cell.classList.add('filled');
                     else if (playerGrid[r][c] === 2) cell.classList.add('marked-x');
                     
-                    cell.addEventListener('mousedown', (e) => {
+                    const handleInput = (e) => {
                         if (hasWon) return;
+                        if (e.type === 'touchstart') e.preventDefault(); // prevent mousedown from firing
                         if (e.button === 2 || inputMode === 'x') { // Right click or X mode
                             toggleCell(r, c, 2);
-                        } else if (e.button === 0) {
+                        } else {
                             toggleCell(r, c, 1);
                         }
-                    });
+                    };
+                    cell.addEventListener('mousedown', handleInput);
+                    cell.addEventListener('touchstart', handleInput, {passive: false});
                     gridEl.appendChild(cell);
                 }
             }

@@ -205,7 +205,7 @@
             top: 0;
             left: 0;
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
             background: rgba(5, 5, 20, 0.96);
             backdrop-filter: blur(8px);
             display: flex;
@@ -586,6 +586,7 @@
         // --- Inputs ---
         document.addEventListener('keydown', e => {
             if (winOverlayEl.classList.contains('show')) return;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
             if (e.key === 'ArrowUp') move('up');
             else if (e.key === 'ArrowDown') move('down');
             else if (e.key === 'ArrowLeft') move('left');

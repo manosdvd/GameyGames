@@ -14,7 +14,7 @@
 }
 
 body {
-    min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
@@ -37,7 +37,7 @@ body {
 .app-container {
     width: 100%;
     /* Default to full width for "full screen" feel */
-    min-height: 100vh;
+    min-height: 100dvh;
     padding: 1rem;
     position: relative;
     z-index: 1;
