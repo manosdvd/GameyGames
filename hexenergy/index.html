@@ -42,12 +42,10 @@
         /* --- UI Layers --- */
         #top-ui {
             position: absolute;
-            top: 15px;
+            top: 0;
             width: 100%;
-            display: flex;
-            justify-content: center;
-            pointer-events: none;
             z-index: 20;
+            box-sizing: border-box;
         }
 
         #top-ui .back-btn {
@@ -333,14 +331,14 @@
 
     <canvas id="bg-canvas"></canvas>
 
-    <div id="top-ui">
-        <button class="back-btn" onclick="window.location.href='../index.html'"
-            style="margin-right:10px;">&lt; Back</button>
+    <header id="top-ui" class="cyber-header">
+        <a href="../index.html" class="back-btn" style="margin-right:10px;">&lt; HUB</a>
         <div class="hud-pill">
             <span id="level-lbl">Level 1</span>
             <span id="status-lbl" class="hud-value">0% Lit</span>
         </div>
-    </div>
+        <div style="width: 70px;"></div> <!-- spacer -->
+    </header>
 
     <div id="game-container">
         <div id="grid"></div>

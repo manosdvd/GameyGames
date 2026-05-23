@@ -53,13 +53,10 @@
         /* --- UI --- */
         #ui-layer {
             position: absolute;
-            top: 20px;
+            top: 0;
             width: 100%;
-            display: flex;
-            justify-content: space-between;
-            padding: 0 20px;
-            pointer-events: none;
             z-index: 10;
+            box-sizing: border-box;
         }
 
         .score-box {
@@ -302,13 +299,14 @@
 
 <body>
     <div id="bg"></div>
-    <div id="ui-layer">
-        <button class="back-btn" onclick="window.location.href='../index.html'" style="pointer-events:auto;"> &lt; </button>
-        <div class="score-box">
-            <div class="label">Score</div>
-            <div class="value" id="score">0</div>
+    <header id="ui-layer" class="cyber-header">
+        <a href="../index.html" class="back-btn" style="pointer-events:auto;"> &lt; HUB </a>
+        <div class="hud-pill">
+            <span>Score</span>
+            <span class="hud-value" id="score">0</span>
         </div>
-    </div>
+        <div style="width: 70px;"></div> <!-- spacer -->
+    </header>
     <div id="game-wrapper" class="shaker">
         <div id="game-container"></div>
     </div>

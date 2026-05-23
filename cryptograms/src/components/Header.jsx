@@ -6,7 +6,7 @@ export default function Header({ loading, onNewGame, solved, time, onTimeUpdate,
     return (
         <header className="flex-none flex justify-between items-center px-4 py-3 border-b border-cyber-cyan/30 bg-cyber-surface z-10 shadow-sm">
             <div className="flex items-center gap-3">
-                <a href="../index.html" className="back-btn">&lt;</a>
+                <a href="../index.html" className="back-btn">&lt; HUB</a>
                 <div className="hidden sm:block p-1.5 bg-cyber-magenta rounded-lg text-white shadow-sm">
                     <Info size={20} />
                 </div>
