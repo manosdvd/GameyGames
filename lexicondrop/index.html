@@ -700,9 +700,20 @@
                 this.dictionary = new Set(window.COMMON_WORDS_SEED ? (typeof window.COMMON_WORDS_SEED === 'object' ? Object.keys(window.COMMON_WORDS_SEED) : window.COMMON_WORDS_SEED.split(' ')) : []);
                 this.fetchExpandedDictionary();
                 this.rarityMap = null;
-                if (window.DefinitionManager && window.DefinitionManager.meta) {
-                    this.rarityMap = window.DefinitionManager.meta;
-                    this.calculateWord();
+                if (window.DefinitionManager) {
+                    window.DefinitionManager.load().then(() => {
+                        this.rarityMap = window.DefinitionManager.meta || {};
+                        this.calculateWord();
+                    }).catch(err => {
+                        console.warn("Failed to load DefinitionManager meta:", err);
+                        fetch('../shared/dictionary_meta.json')
+                            .then(res => res.json())
+                            .then(data => {
+                                this.rarityMap = data;
+                                this.calculateWord();
+                            })
+                            .catch(e => console.warn("Failed to load rarity metadata fallback:", e));
+                    });
                 } else {
                     fetch('../shared/dictionary_meta.json')
                         .then(res => res.json())
@@ -710,7 +721,7 @@
                             this.rarityMap = data;
                             this.calculateWord();
                         })
-                        .catch(err => console.warn("Failed to load rarity metadata:", err));
+                        .catch(err => console.warn("Failed to load rarity metadata fallback:", err));
                 }
                 this.letterBag = [];
                 this.audioCtx = null;

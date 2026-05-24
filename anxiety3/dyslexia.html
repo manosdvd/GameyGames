@@ -264,13 +264,21 @@
 
             // Load Rarity Map
             useEffect(() => {
-                if (window.DefinitionManager && window.DefinitionManager.meta) {
-                    setRarityMap(window.DefinitionManager.meta);
+                if (window.DefinitionManager) {
+                    window.DefinitionManager.load().then(() => {
+                        setRarityMap(window.DefinitionManager.meta || {});
+                    }).catch(err => {
+                        console.warn("Failed to load DefinitionManager meta:", err);
+                        fetch('../shared/dictionary_meta.json')
+                            .then(res => res.json())
+                            .then(data => setRarityMap(data))
+                            .catch(e => console.warn("Failed to load rarity metadata in dyslexia fallback:", e));
+                    });
                 } else {
                     fetch('../shared/dictionary_meta.json')
                         .then(res => res.json())
                         .then(data => setRarityMap(data))
-                        .catch(err => console.warn("Failed to load rarity metadata in dyslexia:", err));
+                        .catch(err => console.warn("Failed to load rarity metadata in dyslexia fallback:", err));
                 }
             }, []);
 

@@ -353,12 +353,46 @@ try {
             // DefinitionManager update supporting getDetails and plural resolution
             const managerScript = `
 window.DefinitionManager = {
-    dict: \${JSON.stringify(dictObj)},
-    meta: \${JSON.stringify(dictionaryMeta)},
+    dict: null,
+    meta: null,
+    _loadingPromise: null,
     async load() {
-        // Definitions and metadata are loaded synchronously from inlined data!
+        if (this.dict) return;
+        if (this._loadingPromise) return this._loadingPromise;
+        
+        this._loadingPromise = new Promise((resolve) => {
+            if (window.DefinitionDatabase) {
+                this.dict = window.DefinitionDatabase.dict;
+                this.meta = window.DefinitionDatabase.meta;
+                resolve();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = '../shared/dictionary_db.js';
+            script.onload = () => {
+                if (window.DefinitionDatabase) {
+                    this.dict = window.DefinitionDatabase.dict;
+                    this.meta = window.DefinitionDatabase.meta;
+                } else {
+                    this.dict = {};
+                    this.meta = {};
+                }
+                resolve();
+            };
+            script.onerror = (e) => {
+                console.error("Failed to load local dictionary database script:", e);
+                this.dict = {};
+                this.meta = {};
+                resolve();
+            };
+            document.body.appendChild(script);
+        });
+
+        return this._loadingPromise;
     },
     getSingular(w) {
+        if (!this.dict) return null;
         if (this.dict[w]) return w;
         if (w.endsWith('ies') && w.length > 3) {
             const sing = w.slice(0, -3) + 'y';
@@ -416,6 +450,15 @@ window.DefinitionManager = {
             const jsContent = `window.COMMON_WORDS_SEED = "${commonArr.join(' ')}";\nwindow.WORDLE_WORDS = "${wordleArr.join(' ')}";\nwindow.LEXICON_WORDS = "${lexiconArr.join(' ')}";\n${managerScript}`;
             fs.writeFileSync(dictionaryPath, jsContent, 'utf8');
             console.log('  -> shared/dictionary.js successfully compiled offline fast database!');
+
+            // Write dictionary heavy database file (local dictionary_db.js)
+            const dictionaryDbPath = path.join(__dirname, 'shared', 'dictionary_db.js');
+            const dbContent = `window.DefinitionDatabase = {
+    dict: ${JSON.stringify(dictObj)},
+    meta: ${JSON.stringify(dictionaryMeta)}
+};`;
+            fs.writeFileSync(dictionaryDbPath, dbContent, 'utf8');
+            console.log('  -> shared/dictionary_db.js successfully compiled offline heavy database!');
             
             if (fs.existsSync(localDictPath)) {
                 // Ensure dictionary_compact.json is also deployed to shared for lazy-loading definitions
