@@ -57,6 +57,18 @@
         if (!sessionStorage.getItem(sessionPlayKey)) {
             usage.playCounts[currentGame] = (usage.playCounts[currentGame] || 0) + 1;
             saveUsage(usage);
+            
+            // Track all-time play count for dynamic Favorites menu
+            try {
+                const allTimeKey = 'neuro_hub_all_time_plays';
+                const storedAllTime = localStorage.getItem(allTimeKey);
+                const allTimePlays = storedAllTime ? JSON.parse(storedAllTime) : {};
+                allTimePlays[currentGame] = (allTimePlays[currentGame] || 0) + 1;
+                localStorage.setItem(allTimeKey, JSON.stringify(allTimePlays));
+            } catch (e) {
+                console.error('Failed to update all-time play counts:', e);
+            }
+
             sessionStorage.setItem(sessionPlayKey, 'true');
         }
     }

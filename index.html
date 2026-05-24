@@ -64,12 +64,18 @@
             </div>
         </div>
 
-        <!-- Section: Neuro Games -->
-        <h2 class="section-title">NEURO_MODULES</h2>
-        <div class="game-grid">
+        <!-- Section: Favorite Games (Dynamic) -->
+        <h2 class="section-title">FAVORITE_MODULES</h2>
+        <div id="favoritesGrid" class="game-grid">
+            <!-- Dynamically populated top 4 games -->
+        </div>
+
+        <!-- Section: All Games -->
+        <h2 class="section-title">ALL_MODULES</h2>
+        <div id="allGamesGrid" class="game-grid">
 
             <!-- Anxiety 3 -->
-            <div class="cyber-card" onclick="window.location.href='anxiety3/index.html'">
+            <div class="cyber-card" data-game-id="anxiety" onclick="window.location.href='anxiety3/index.html'">
                 <div class="card-media bg-anxiety">
                     <span class="material-symbols-outlined card-icon">sentiment_worried</span>
                 </div>
@@ -81,7 +87,7 @@
             </div>
 
             <!-- Dyslexia -->
-            <div class="cyber-card" onclick="window.location.href='anxiety3/dyslexia.html'">
+            <div class="cyber-card" data-game-id="dyslexia" onclick="window.location.href='anxiety3/dyslexia.html'">
                 <div class="card-media bg-dyslexia">
                     <span class="material-symbols-outlined card-icon">spellcheck</span>
                 </div>
@@ -93,7 +99,7 @@
             </div>
 
             <!-- Discalculia -->
-            <div class="cyber-card" onclick="window.location.href='anxiety3/discalculia.html'">
+            <div class="cyber-card" data-game-id="discalculia" onclick="window.location.href='anxiety3/discalculia.html'">
                 <div class="card-media bg-discalculia">
                     <span class="material-symbols-outlined card-icon">calculate</span>
                 </div>
@@ -104,16 +110,8 @@
                 </div>
             </div>
 
-
-
-        </div>
-
-        <!-- Section: Logic & Puzzle Games -->
-        <h2 class="section-title">LOGIC_CORE</h2>
-        <div class="game-grid">
-
             <!-- Cryptograms -->
-            <div class="cyber-card" onclick="window.location.href='cryptograms/index.html'">
+            <div class="cyber-card" data-game-id="cryptograms" onclick="window.location.href='cryptograms/index.html'">
                 <div class="card-media bg-crypto">
                     <span class="material-symbols-outlined card-icon">lock</span>
                 </div>
@@ -125,7 +123,7 @@
             </div>
 
             <!-- HexEnergy -->
-            <div class="cyber-card" onclick="window.location.href='hexenergy/index.html'">
+            <div class="cyber-card" data-game-id="hexenergy" onclick="window.location.href='hexenergy/index.html'">
                 <div class="card-media bg-hex">
                     <span class="material-symbols-outlined card-icon">hexagon</span>
                 </div>
@@ -137,7 +135,7 @@
             </div>
 
             <!-- Wordle -->
-            <div class="cyber-card" onclick="window.location.href='wordle/index.html'">
+            <div class="cyber-card" data-game-id="wordle" onclick="window.location.href='wordle/index.html'">
                 <div class="card-media bg-wordle">
                     <span class="material-symbols-outlined card-icon">grid_view</span>
                 </div>
@@ -149,7 +147,7 @@
             </div>
 
             <!-- Gem Rush -->
-            <div class="cyber-card" onclick="window.location.href='bejewelled/index.html'">
+            <div class="cyber-card" data-game-id="bejewelled" onclick="window.location.href='bejewelled/index.html'">
                 <div class="card-media bg-gem">
                     <span class="material-symbols-outlined card-icon">diamond</span>
                 </div>
@@ -161,7 +159,7 @@
             </div>
 
             <!-- Lexicon Drop -->
-            <div class="cyber-card" onclick="window.location.href='lexicondrop/index.html'">
+            <div class="cyber-card" data-game-id="lexicondrop" onclick="window.location.href='lexicondrop/index.html'">
                 <div class="card-media bg-lexicon">
                     <span class="material-symbols-outlined card-icon">sort_by_alpha</span>
                 </div>
@@ -173,7 +171,7 @@
             </div>
 
             <!-- Lights Out -->
-            <div class="cyber-card" onclick="window.location.href='lightsout/index.html'">
+            <div class="cyber-card" data-game-id="lightsout" onclick="window.location.href='lightsout/index.html'">
                 <div class="card-media bg-lightsout">
                     <span class="material-symbols-outlined card-icon">lightbulb</span>
                 </div>
@@ -185,7 +183,7 @@
             </div>
 
             <!-- Synapse Flow -->
-            <div class="cyber-card" onclick="window.location.href='synapseflow/index.html'">
+            <div class="cyber-card" data-game-id="synapseflow" onclick="window.location.href='synapseflow/index.html'">
                 <div class="card-media bg-synapse">
                     <span class="material-symbols-outlined card-icon">grid_on</span>
                 </div>
@@ -197,7 +195,7 @@
             </div>
 
             <!-- Cluster Purge -->
-            <div class="cyber-card" onclick="window.location.href='clusterpurge/index.html'">
+            <div class="cyber-card" data-game-id="clusterpurge" onclick="window.location.href='clusterpurge/index.html'">
                 <div class="card-media bg-cluster">
                     <span class="material-symbols-outlined card-icon">bubble_chart</span>
                 </div>
@@ -209,7 +207,7 @@
             </div>
 
             <!-- Signal Merge -->
-            <div class="cyber-card" onclick="window.location.href='signalmerge/index.html'">
+            <div class="cyber-card" data-game-id="signalmerge" onclick="window.location.href='signalmerge/index.html'">
                 <div class="card-media bg-signal">
                     <span class="material-symbols-outlined card-icon">merge_type</span>
                 </div>
@@ -221,7 +219,7 @@
             </div>
 
             <!-- Memory Pulse -->
-            <div class="cyber-card" onclick="window.location.href='memorypulse/index.html'">
+            <div class="cyber-card" data-game-id="memorypulse" onclick="window.location.href='memorypulse/index.html'">
                 <div class="card-media bg-memory">
                     <span class="material-symbols-outlined card-icon">memory</span>
                 </div>
@@ -233,7 +231,7 @@
             </div>
 
             <!-- Pixel Decode -->
-            <div class="cyber-card" onclick="window.location.href='pixeldecode/index.html'">
+            <div class="cyber-card" data-game-id="pixeldecode" onclick="window.location.href='pixeldecode/index.html'">
                 <div class="card-media bg-pixel">
                     <span class="material-symbols-outlined card-icon">grid_3x3</span>
                 </div>
@@ -245,7 +243,7 @@
             </div>
 
             <!-- Minesweeper Zen -->
-            <div class="cyber-card" onclick="window.location.href='minesweeperzen/index.html'">
+            <div class="cyber-card" data-game-id="minesweeperzen" onclick="window.location.href='minesweeperzen/index.html'">
                 <div class="card-media bg-mine">
                     <span class="material-symbols-outlined card-icon">sports_esports</span>
                 </div>
