@@ -230,6 +230,9 @@ export default function App() {
         if (solved && !scoreData && originalQuote) {
             const result = calculateScore(originalQuote, elapsedTime, hintedChars.size);
             setScoreData(result);
+            if (window.GlobalScore) {
+                window.GlobalScore.add(result.finalScore);
+            }
             const isNew = saveHighScore(result.finalScore);
             if (isNew) {
                 setIsNewHighScore(true);

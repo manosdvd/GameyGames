@@ -908,6 +908,10 @@
                 }, i * 150);
             }
 
+            if (window.GlobalScore && !isAutoSolving) {
+                window.GlobalScore.add(50 * N);
+            }
+
             winStatsTextEl.innerHTML = `GRID DE-INVERTED IN ${moves} MOVES<br>TARGET EFFICIENCY (PAR): ${par}`;
             winOverlayEl.classList.add('show');
         }

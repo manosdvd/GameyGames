@@ -1020,6 +1020,10 @@
             statusEl.innerText = "100% Synced";
             statusEl.style.color = "#fff";
 
+            if (window.GlobalScore) {
+                window.GlobalScore.add(GRID_W * GRID_H * 5);
+            }
+
             // Display potential score?
             // Simple score: (Optimal Moves / Actual Moves) * 1000 - TimePenalty
             // For now just show "Stabilized".

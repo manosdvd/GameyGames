@@ -256,6 +256,12 @@
                         setGameStatus('won');
                         showMessage(getRandomCompliment(), 2000);
                         updateStats(true);
+                        
+                        // Award XP based on guesses used (fewer guesses = more XP)
+                        const triesUsed = newGuesses.length;
+                        const xpChart = { 1: 500, 2: 400, 3: 300, 4: 200, 5: 150, 6: 100 };
+                        const pointsAwarded = xpChart[triesUsed] || 100;
+                        if (window.GlobalScore) window.GlobalScore.add(pointsAwarded);
                     } else if (newGuesses.length >= 6) {
                         setGameStatus('lost');
                         showMessage(solution, -1); // Persist

@@ -734,6 +734,7 @@
             if (pts.length > 4 || comboCount > 1) playSound('combo', comboCount);
             else playSound('match');
             updateScore(score);
+            if (window.GlobalScore) window.GlobalScore.add(pts.length * 10 * comboCount);
             shakeWrapper(pts.length > 5 ? 2 : 1);
             
             if(comboCount > 1) showComboText(comboCount);

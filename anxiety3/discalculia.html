@@ -614,6 +614,9 @@
 
                         setScore(s => s + eqScore);
                         setLevelScore(s => s + eqScore);
+                        if (window.GlobalScore) {
+                            window.GlobalScore.add(eqScore * 3);
+                        }
                         playSubmitSound();
                         triggerHaptic([50, 50]);
 

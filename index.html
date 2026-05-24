@@ -17,10 +17,50 @@
     <div class="app-container">
         <h1 class="main-title">NEURO_HUB</h1>
 
-        <!-- Global Score Display -->
-        <div id="globalScoreDisplay" style="margin-top: -15px; margin-bottom: 30px; text-align: center; font-family: 'Orbitron', monospace; font-size: 1.5rem; color: var(--cyber-cyan); text-shadow: var(--neon-cyan-glow);">
-            <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 1.8rem; margin-right: 5px; color: var(--cyber-yellow);">bolt</span>
-            <span style="vertical-align: middle;">NEURO_SCORE: <span id="globalScoreValue">0</span></span>
+        <!-- Global Neuro Core Dashboard -->
+        <div class="settings-panel" style="margin-top: -15px; margin-bottom: 3rem; background: rgba(0,0,0,0.6); padding: 25px; border-radius: 8px; border: 1px solid var(--cyber-magenta); text-align: center;">
+            <div style="font-family: 'Orbitron', monospace; color: var(--cyber-magenta); font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 15px; font-weight: bold; text-shadow: var(--neon-magenta-glow);">
+                NEURO_CORE_ACTIVE
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                <div style="display: flex; justify-content: space-around; width: 100%; max-width: 500px; align-items: center;">
+                    <!-- Level -->
+                    <div>
+                        <div style="font-family: 'Orbitron', monospace; font-size: 3rem; font-weight: 900; color: var(--cyber-cyan); text-shadow: var(--neon-cyan-glow); line-height: 1;">
+                            <span id="globalLevelValue">1</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: #aaa; margin-top: 5px; font-weight: bold; letter-spacing: 1px;">NEURO_LEVEL</div>
+                    </div>
+                    
+                    <!-- Divider -->
+                    <div style="width: 1px; height: 50px; background: rgba(0,243,255,0.2);"></div>
+                    
+                    <!-- Streak -->
+                    <div>
+                        <div style="font-family: 'Orbitron', monospace; font-size: 1.8rem; font-weight: 800; color: var(--cyber-yellow); text-shadow: 0 0 10px rgba(255,230,0,0.4); line-height: 1; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            🔥 <span id="globalStreakValue">0</span>D
+                        </div>
+                        <div style="font-size: 0.75rem; color: #aaa; margin-top: 5px; font-weight: bold; letter-spacing: 1px;">DAILY_STREAK</div>
+                    </div>
+                </div>
+                
+                <!-- Rank -->
+                <div style="font-family: 'Orbitron', monospace; font-size: 1.1rem; color: #fff; font-weight: bold; text-shadow: 0 0 10px #fff; letter-spacing: 3px;" id="globalRankValue">
+                    NEURO_INITIATE
+                </div>
+                
+                <!-- Progress Bar -->
+                <div style="width: 100%; max-width: 450px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #aaa; margin-bottom: 5px; font-family: 'Orbitron', monospace;">
+                        <span>XP: <span id="currentLevelXP">0</span> / 1000</span>
+                        <span>MULTIPLIER: <span id="globalMultiplierValue" style="color: var(--cyber-cyan);">1.0x</span></span>
+                    </div>
+                    <div style="width: 100%; height: 8px; background: #000; border: 1px solid rgba(0,243,255,0.3); border-radius: 4px; overflow: hidden; position: relative;">
+                        <div id="globalXPProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--cyber-cyan), var(--cyber-magenta)); transition: width 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Digital Wellbeing Settings -->
@@ -302,11 +342,22 @@
             iCutoff.addEventListener('change', saveWB);
         }
 
-        // Global Score Subscription
+        // Global Score Subscription for dynamic Neuro Core dashboard
         if (window.GlobalScore) {
-            const scoreDisplay = document.getElementById('globalScoreValue');
+            const dLevel = document.getElementById('globalLevelValue');
+            const dStreak = document.getElementById('globalStreakValue');
+            const dRank = document.getElementById('globalRankValue');
+            const dCurrentXP = document.getElementById('currentLevelXP');
+            const dMultiplier = document.getElementById('globalMultiplierValue');
+            const dProgressBar = document.getElementById('globalXPProgressBar');
+            
             window.GlobalScore.subscribe((score) => {
-                if (scoreDisplay) scoreDisplay.innerText = score;
+                if (dLevel) dLevel.innerText = window.GlobalScore.getLevel();
+                if (dStreak) dStreak.innerText = window.GlobalScore.getStreak();
+                if (dRank) dRank.innerText = window.GlobalScore.getRank().replace(/_/g, ' ');
+                if (dCurrentXP) dCurrentXP.innerText = score % 1000;
+                if (dMultiplier) dMultiplier.innerText = window.GlobalScore.getMultiplier().toFixed(1) + 'x';
+                if (dProgressBar) dProgressBar.style.width = window.GlobalScore.getLevelProgress() + '%';
             });
         }
     </script>
