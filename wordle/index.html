@@ -206,7 +206,7 @@
                 setLastDefinition(null);
             };
 
-            const handleKey = async (key) => {
+            const handleKey = (key) => {
                 if (gameStatus !== 'playing') return;
 
                 if (key === 'BACK') {
@@ -233,15 +233,22 @@
                     setLastSubmittedWord(wUpper);
                     setLastDefinition("Loading...");
                     
-                    let def = "A valid English word of 5 letters.";
+                    // Fetch definition asynchronously in the background so it doesn't block the UI
                     if (window.DefinitionManager) {
-                        const fetchedDef = await window.DefinitionManager.get(wUpper);
-                        if (fetchedDef) def = fetchedDef;
+                        window.DefinitionManager.get(wUpper)
+                            .then(fetchedDef => {
+                                setLastDefinition(fetchedDef || "A valid English word of 5 letters.");
+                            })
+                            .catch(err => {
+                                console.warn("Failed to get definition", err);
+                                setLastDefinition("A valid English word of 5 letters.");
+                            });
+                    } else {
+                        setLastDefinition("A valid English word of 5 letters.");
                     }
-                    
-                    setLastDefinition(def);
                     setDefExpanded(false);
 
+                    // Clear guess and check win/loss state synchronously and immediately!
                     setCurrentGuess('');
 
                     if (currentGuess === solution) {

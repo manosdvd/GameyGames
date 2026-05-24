@@ -699,6 +699,19 @@
 
                 this.dictionary = new Set(window.COMMON_WORDS_SEED ? (typeof window.COMMON_WORDS_SEED === 'object' ? Object.keys(window.COMMON_WORDS_SEED) : window.COMMON_WORDS_SEED.split(' ')) : []);
                 this.fetchExpandedDictionary();
+                this.rarityMap = null;
+                if (window.DefinitionManager && window.DefinitionManager.meta) {
+                    this.rarityMap = window.DefinitionManager.meta;
+                    this.calculateWord();
+                } else {
+                    fetch('../shared/dictionary_meta.json')
+                        .then(res => res.json())
+                        .then(data => {
+                            this.rarityMap = data;
+                            this.calculateWord();
+                        })
+                        .catch(err => console.warn("Failed to load rarity metadata:", err));
+                }
                 this.letterBag = [];
                 this.audioCtx = null;
 
@@ -1122,7 +1135,8 @@
                 }
 
                 const word = this.selectedTiles.map(t => t.data.char).join('');
-                if (this.options.realtime && (this.dictionary.has(word) || this.dictionary.has(word.toUpperCase()))) {
+                const isValid = this.options.realtime && (this.dictionary.has(word) || this.dictionary.has(word.toUpperCase()));
+                if (isValid) {
                     this.wordDisplay.classList.add('valid');
                 } else {
                     this.wordDisplay.classList.remove('valid');
@@ -1137,8 +1151,20 @@
                 });
                 if (word.length >= 5) mult += 0.5;
                 if (word.length >= 7) mult += 0.5;
-                const final = Math.floor(score * mult);
-                this.wordDisplay.textContent = `${word} (${final})`;
+                const baseFinal = Math.floor(score * mult);
+                
+                let rarityBonus = 0;
+                if (isValid && this.rarityMap) {
+                    const rarity = this.rarityMap[word.toLowerCase()]?.rarity || 0.5;
+                    rarityBonus = Math.round(baseFinal * rarity * 0.5); // Up to +50% bonus
+                }
+                const final = baseFinal + rarityBonus;
+
+                if (rarityBonus > 0) {
+                    this.wordDisplay.textContent = `${word} (${final}) Rarity +${rarityBonus}!`;
+                } else {
+                    this.wordDisplay.textContent = `${word} (${final})`;
+                }
             }
 
             async submitWord() {

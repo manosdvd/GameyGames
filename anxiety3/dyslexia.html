@@ -257,9 +257,22 @@
             const [dictionary, setDictionary] = useState(new Set(window.COMMON_WORDS_SEED ? (typeof window.COMMON_WORDS_SEED === 'object' ? Object.keys(window.COMMON_WORDS_SEED) : window.COMMON_WORDS_SEED.split(' ')) : []));
             const [dictLoaded, setDictLoaded] = useState(false);
             const [loadingError, setLoadingError] = useState(null);
+            const [rarityMap, setRarityMap] = useState({});
 
             const timerRef = useRef(null);
             const audioCtx = useRef(null);
+
+            // Load Rarity Map
+            useEffect(() => {
+                if (window.DefinitionManager && window.DefinitionManager.meta) {
+                    setRarityMap(window.DefinitionManager.meta);
+                } else {
+                    fetch('../shared/dictionary_meta.json')
+                        .then(res => res.json())
+                        .then(data => setRarityMap(data))
+                        .catch(err => console.warn("Failed to load rarity metadata in dyslexia:", err));
+                }
+            }, []);
 
             // Load Dictionary
             useEffect(() => {
@@ -578,8 +591,12 @@
                 const word = currentWord.map(b => b.letter).join('');
                 if (dictionary.has(word)) {
                     // Calculate Score
-                    let wordScore = currentWord.reduce((acc, b) => acc + b.score, 0);
-                    wordScore *= currentWord.length; // Length multiplier
+                    let baseScore = currentWord.reduce((acc, b) => acc + b.score, 0);
+                    baseScore *= currentWord.length; // Length multiplier
+
+                    const rarity = rarityMap[word.toLowerCase()]?.rarity || 0.5;
+                    const rarityBonus = Math.round(baseScore * rarity * 0.5); // Up to +50% bonus
+                    const wordScore = baseScore + rarityBonus;
 
                     setScore(s => s + wordScore);
                     setLevelScore(s => s + wordScore);
@@ -596,7 +613,11 @@
                     });
                     setBoard(nb);
                     setCurrentWord([]);
-                    showFloatingText(currentWord[0].row, currentWord[0].col, `${word} +${wordScore}`, '#FBBF24');
+                    if (rarityBonus > 0) {
+                        showFloatingText(currentWord[0].row, currentWord[0].col, `${word} +${wordScore} (Rarity +${rarityBonus}!)`, '#FBBF24');
+                    } else {
+                        showFloatingText(currentWord[0].row, currentWord[0].col, `${word} +${wordScore}`, '#FBBF24');
+                    }
                     fetchDefinition(word);
                 } else {
                     playSound('error');

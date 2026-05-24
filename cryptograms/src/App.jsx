@@ -17,6 +17,7 @@ export default function App() {
     const [cipher, setCipher] = useState({}); // Map: Plain char -> Encrypted char
     const [reverseCipher, setReverseCipher] = useState({}); // Map: Encrypted char -> Plain char
     const [userGuesses, setUserGuesses] = useState({}); // Map: Encrypted char -> User guessed char
+    const [difficulty, setDifficulty] = useState(0.5);
 
     // Track specific cursor index instead of just the selected character value
     const [cursorIndex, setCursorIndex] = useState(null);
@@ -93,6 +94,7 @@ export default function App() {
         setSource(data.source);
         setCipher(data.cipher);
         setReverseCipher(data.reverseCipher);
+        setDifficulty(data.difficulty !== undefined ? data.difficulty : 0.5);
         setLoading(false);
     }, []);
 
@@ -111,6 +113,7 @@ export default function App() {
             setHintedChars(saved.hintedChars);
             setSolved(saved.solved);
             setElapsedTime(saved.elapsedTime || 0);
+            setDifficulty(saved.difficulty !== undefined ? saved.difficulty : 0.5);
 
             // Restore score data if we solved it?
             if (saved.solved && saved.scoreData) {
@@ -136,10 +139,11 @@ export default function App() {
                 hintedChars,
                 solved,
                 elapsedTime,
-                scoreData
+                scoreData,
+                difficulty
             });
         }
-    }, [loading, originalQuote, author, source, cipher, reverseCipher, userGuesses, hintedChars, solved, elapsedTime, scoreData]);
+    }, [loading, originalQuote, author, source, cipher, reverseCipher, userGuesses, hintedChars, solved, elapsedTime, scoreData, difficulty]);
 
 
     // Helper to find valid letter indices for navigation
@@ -491,6 +495,24 @@ export default function App() {
                             <div className="flex justify-between items-center mb-4 px-2">
                                 <div className="text-xs font-semibold text-cyber-text/50 uppercase tracking-wider">
                                     High Score: <span className="text-amber-500">{highScore.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {difficulty < 0.4 ? (
+                                        <span className="text-xs font-bold px-2.5 py-1 rounded-full text-green-500 bg-green-500/10 border border-green-500/20 flex items-center gap-1.5 shadow-sm">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                            Easy
+                                        </span>
+                                    ) : difficulty < 0.6 ? (
+                                        <span className="text-xs font-bold px-2.5 py-1 rounded-full text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 flex items-center gap-1.5 shadow-sm">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                                            Medium
+                                        </span>
+                                    ) : (
+                                        <span className="text-xs font-bold px-2.5 py-1 rounded-full text-red-500 bg-red-500/10 border border-red-500/20 flex items-center gap-1.5 shadow-sm">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                                            Hard
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 

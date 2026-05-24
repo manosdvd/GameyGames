@@ -110,19 +110,52 @@ const createDeck = async () => {
     const module = await import('../data/bulkQuotes.json');
     const BULK_QUOTES = module.default || module;
 
-    const deck = [];
-    CUSTOM_QUOTES.forEach((_, i) => deck.push(`c:${i}`));
-    BULK_QUOTES.forEach((_, i) => deck.push(`b:${i}`));
+    const diffModule = await import('../data/quoteDifficulties.json');
+    const difficulties = diffModule.default || diffModule;
 
-    const shuffled = fisherYates(deck);
-    saveDeck(shuffled);
+    const allIds = [];
+    CUSTOM_QUOTES.forEach((_, i) => allIds.push(`c:${i}`));
+    BULK_QUOTES.forEach((_, i) => allIds.push(`b:${i}`));
+
+    // Sort all quote IDs by their precomputed difficulty
+    allIds.sort((a, b) => (difficulties[a] || 0.5) - (difficulties[b] || 0.5));
+
+    const total = allIds.length;
+    const deck = [];
+    const period = 12; // easy -> medium -> hard -> medium -> easy... every 12 quotes
+    const windowFraction = 0.05; // 5% search window for local randomization
+    
+    let available = [...allIds];
+
+    for (let i = 0; i < total; i++) {
+        // Shift by -pi/2 so that it starts at -1 (minimum / easy)
+        const theta = (2 * Math.PI * i) / period - Math.PI / 2;
+        // sin(theta) ranges from -1 to 1.
+        // Map it to target percentile between 0.15 (easy) and 0.85 (hard)
+        const targetPercentile = 0.5 + 0.35 * Math.sin(theta);
+
+        // Find target index in the sorted available quotes
+        const targetIdx = Math.round(targetPercentile * (available.length - 1));
+
+        // Add local randomization: select within a +/- 5% window of remaining items
+        const windowSize = Math.max(1, Math.round(available.length * windowFraction));
+        const startIdx = Math.max(0, targetIdx - windowSize);
+        const endIdx = Math.min(available.length - 1, targetIdx + windowSize);
+        const randomIdx = Math.floor(Math.random() * (endIdx - startIdx + 1)) + startIdx;
+
+        const [selectedId] = available.splice(randomIdx, 1);
+        deck.push(selectedId);
+    }
+
+    saveDeck(deck);
+    saveDeckPointer(0);
     saveDeckMetadata({
         customCount: CUSTOM_QUOTES.length,
         bulkCount: BULK_QUOTES.length
     });
     
-    cachedDeck = shuffled;
-    return shuffled;
+    cachedDeck = deck;
+    return deck;
 };
 
 const syncDeckWithLatestQuotes = (deck, pointer, storedMetadata, currentCustomCount, currentBulkCount) => {
@@ -252,6 +285,7 @@ const getQuoteFromDeck = async () => {
         };
     }
 
+    quoteData.id = nextId;
     return quoteData;
 };
 
@@ -278,7 +312,11 @@ export const fetchNewGameData = async () => {
         const rawQuoteData = await getQuoteFromDeck();
 
         if (rawQuoteData && rawQuoteData.quote) {
-            return prepareData(rawQuoteData.quote, rawQuoteData.author, rawQuoteData.source);
+            const gameData = prepareData(rawQuoteData.quote, rawQuoteData.author, rawQuoteData.source);
+            const diffModule = await import('../data/quoteDifficulties.json');
+            const difficulties = diffModule.default || diffModule;
+            gameData.difficulty = difficulties[rawQuoteData.id] || 0.5;
+            return gameData;
         }
     } catch (error) {
         console.error("Error fetching quote from deck:", error);
@@ -290,7 +328,8 @@ export const fetchNewGameData = async () => {
         author: "System",
         source: "Error Handler",
         cipher: fallbackCipher.newCipher,
-        reverseCipher: fallbackCipher.newReverseCipher
+        reverseCipher: fallbackCipher.newReverseCipher,
+        difficulty: 0.5
     };
 };
 
