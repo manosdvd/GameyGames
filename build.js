@@ -10,12 +10,33 @@ const run = (cmd, cwd) => {
 
 // Helper for recursive copy
 const copyRecursiveWithLog = (src, dest) => {
-    console.log(`> Copying ${src} to ${dest}`);
+    console.log(`> Copying sanitized ${src} to ${dest}`);
     if (!fs.existsSync(dest)) {
         fs.mkdirSync(dest, { recursive: true });
     }
-    fs.cpSync(src, dest, { recursive: true });
+    
+    const excludePatterns = [
+        'node_modules',
+        '.git',
+        '.vscode',
+        'package-lock.json',
+        'package.json',
+        'README.md',
+        '.DS_Store'
+    ];
+    
+    fs.cpSync(src, dest, { 
+        recursive: true,
+        filter: (srcPath) => {
+            const relPath = path.relative(src, srcPath);
+            if (!relPath) return true; // Include root itself
+            const parts = relPath.split(path.sep);
+            const shouldExclude = parts.some(part => excludePatterns.includes(part));
+            return !shouldExclude;
+        }
+    });
 };
+
 
 const hasNodeModules = (dir) => fs.existsSync(path.join(dir, 'node_modules'));
 
@@ -353,89 +374,96 @@ try {
             // DefinitionManager update supporting getDetails and plural resolution
             const managerScript = `
 window.DefinitionManager = {
-    dict: null,
+    dict: {}, // Cache of loaded letter chunks, e.g. { a: { apple: "...", ... } }
     meta: null,
     _loadingPromise: null,
     async load() {
-        if (this.dict) return;
+        if (this.meta) return;
         if (this._loadingPromise) return this._loadingPromise;
         
         this._loadingPromise = new Promise((resolve) => {
-            if (window.DefinitionDatabase) {
-                this.dict = window.DefinitionDatabase.dict;
-                this.meta = window.DefinitionDatabase.meta;
-                resolve();
-                return;
-            }
-
-            const script = document.createElement('script');
-            script.src = '../shared/dictionary_db.js';
-            script.onload = () => {
-                if (window.DefinitionDatabase) {
-                    this.dict = window.DefinitionDatabase.dict;
-                    this.meta = window.DefinitionDatabase.meta;
-                } else {
-                    this.dict = {};
+            fetch('../shared/dictionary_meta.json')
+                .then(res => res.json())
+                .then(data => {
+                    this.meta = data;
+                    resolve();
+                })
+                .catch(err => {
+                    console.error("Failed to load local dictionary meta:", err);
                     this.meta = {};
-                }
-                resolve();
-            };
-            script.onerror = (e) => {
-                console.error("Failed to load local dictionary database script:", e);
-                this.dict = {};
-                this.meta = {};
-                resolve();
-            };
-            document.body.appendChild(script);
+                    resolve();
+                });
         });
 
         return this._loadingPromise;
     },
-    getSingular(w) {
-        if (!this.dict) return null;
-        if (this.dict[w]) return w;
+    async getChunk(letter) {
+        if (this.dict[letter]) return this.dict[letter];
+        try {
+            const res = await fetch(\`../shared/dict/\${letter}.json\`);
+            const data = await res.json();
+            this.dict[letter] = data.words || {};
+            // Lazy merge chunk metadata into this.meta if it exists, or initialize it
+            if (!this.meta) this.meta = {};
+            Object.assign(this.meta, data.meta || {});
+            return this.dict[letter];
+        } catch (e) {
+            console.error(\`Failed to load chunk for letter \${letter}:\`, e);
+            return {};
+        }
+    },
+    getSingular(w, chunk) {
+        if (!chunk) return null;
+        if (chunk[w]) return w;
         if (w.endsWith('ies') && w.length > 3) {
             const sing = w.slice(0, -3) + 'y';
-            if (this.dict[sing]) return sing;
+            if (chunk[sing]) return sing;
         }
         if (w.endsWith('es') && w.length > 2) {
             const sing = w.slice(0, -2);
-            if (this.dict[sing]) return sing;
+            if (chunk[sing]) return sing;
         }
         if (w.endsWith('s') && w.length > 1) {
             const sing = w.slice(0, -1);
-            if (this.dict[sing]) return sing;
+            if (chunk[sing]) return sing;
         }
         return null;
     },
     async get(word) {
-        await this.load();
-        const w = word.toLowerCase();
-        if (this.dict[w]) return this.dict[w];
-        const sing = this.getSingular(w);
+        const w = word.toLowerCase().trim();
+        const letter = w.charAt(0);
+        if (!/[a-z]/.test(letter)) return null;
+
+        const chunk = await this.getChunk(letter);
+        if (chunk[w]) return chunk[w];
+        
+        const sing = this.getSingular(w, chunk);
         if (sing) {
-            return "[Plural of " + sing.toUpperCase() + "] " + this.dict[sing];
+            return "[Plural of " + sing.toUpperCase() + "] " + chunk[sing];
         }
         return null;
     },
     async getDetails(word) {
-        await this.load();
-        const w = word.toLowerCase();
-        if (this.dict[w]) {
-            const metadata = this.meta[w] || { rarity: 0.5, tags: [] };
+        const w = word.toLowerCase().trim();
+        const letter = w.charAt(0);
+        if (!/[a-z]/.test(letter)) return { def: "", rarity: 0.5, tags: [] };
+
+        const chunk = await this.getChunk(letter);
+        if (chunk[w]) {
+            const metadata = (this.meta && this.meta[w]) || { rarity: 0.5, tags: [] };
             return {
-                def: this.dict[w] || "",
-                rarity: metadata.rarity,
-                tags: metadata.tags
+                def: chunk[w] || "",
+                rarity: metadata.rarity !== undefined ? metadata.rarity : 0.5,
+                tags: metadata.tags || []
             };
         }
-        const sing = this.getSingular(w);
+        const sing = this.getSingular(w, chunk);
         if (sing) {
-            const metadata = this.meta[sing] || { rarity: 0.5, tags: [] };
+            const metadata = (this.meta && this.meta[sing]) || { rarity: 0.5, tags: [] };
             return {
-                def: "[Plural of " + sing.toUpperCase() + "] " + this.dict[sing],
-                rarity: metadata.rarity,
-                tags: metadata.tags
+                def: "[Plural of " + sing.toUpperCase() + "] " + chunk[sing],
+                rarity: metadata.rarity !== undefined ? metadata.rarity : 0.5,
+                tags: metadata.tags || []
             };
         }
         return {
@@ -451,15 +479,50 @@ window.DefinitionManager = {
             fs.writeFileSync(dictionaryPath, jsContent, 'utf8');
             console.log('  -> shared/dictionary.js successfully compiled offline fast database!');
 
-            // Write dictionary heavy database file (local dictionary_db.js)
+            // Write dictionary heavy database file (local dictionary_db.js) - DEPRECATED in favor of chunks!
+            // Clean up old dictionary_db.js if it exists
             const dictionaryDbPath = path.join(__dirname, 'shared', 'dictionary_db.js');
-            const dbContent = `window.DefinitionDatabase = {
-    dict: ${JSON.stringify(dictObj)},
-    meta: ${JSON.stringify(dictionaryMeta)}
-};`;
-            fs.writeFileSync(dictionaryDbPath, dbContent, 'utf8');
-            console.log('  -> shared/dictionary_db.js successfully compiled offline heavy database!');
-            
+            if (fs.existsSync(dictionaryDbPath)) {
+                fs.unlinkSync(dictionaryDbPath);
+            }
+
+            // Write 26 alphabetical dictionary chunks to shared/dict/*.json
+            const dictOutputDir = path.join(__dirname, 'shared', 'dict');
+            if (!fs.existsSync(dictOutputDir)) {
+                fs.mkdirSync(dictOutputDir, { recursive: true });
+            } else {
+                // Clear existing JSON files in shared/dict/ to avoid orphaned data
+                fs.readdirSync(dictOutputDir).forEach(file => {
+                    if (file.endsWith('.json')) {
+                        fs.unlinkSync(path.join(dictOutputDir, file));
+                    }
+                });
+            }
+
+            const chunks = {};
+            for (let i = 97; i <= 122; i++) {
+                chunks[String.fromCharCode(i)] = { words: {}, meta: {} };
+            }
+
+            for (let key of playableWords) {
+                const w = key.toLowerCase();
+                const firstChar = w.charAt(0);
+                if (chunks[firstChar]) {
+                    if (dictObj[w]) {
+                        chunks[firstChar].words[w] = dictObj[w];
+                    }
+                    if (dictionaryMeta[w]) {
+                        chunks[firstChar].meta[w] = dictionaryMeta[w];
+                    }
+                }
+            }
+
+            for (let char in chunks) {
+                const chunkPath = path.join(dictOutputDir, `${char}.json`);
+                fs.writeFileSync(chunkPath, JSON.stringify(chunks[char]), 'utf8');
+            }
+            console.log('  -> 26 alphabetical dictionary chunks written successfully to shared/dict/*.json!');
+
             if (fs.existsSync(localDictPath)) {
                 // Ensure dictionary_compact.json is also deployed to shared for lazy-loading definitions
                 fs.copyFileSync(localDictPath, path.join(__dirname, 'shared', 'dictionary_compact.json'));

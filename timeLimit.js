@@ -29,23 +29,28 @@
         localStorage.setItem(STORAGE_KEY_USAGE, JSON.stringify(usage));
     }
 
-    const path = window.location.pathname;
     let currentGame = 'hub';
-    if (path.includes('cryptograms')) currentGame = 'cryptograms';
-    else if (path.includes('anxiety3') && path.includes('dyslexia.html')) currentGame = 'dyslexia';
-    else if (path.includes('anxiety3') && path.includes('discalculia.html')) currentGame = 'discalculia';
-    else if (path.includes('anxiety3')) currentGame = 'anxiety';
-    else if (path.includes('hexenergy')) currentGame = 'hexenergy';
-    else if (path.includes('wordle')) currentGame = 'wordle';
-    else if (path.includes('bejewelled')) currentGame = 'bejewelled';
-    else if (path.includes('lexicondrop')) currentGame = 'lexicondrop';
-    else if (path.includes('lightsout')) currentGame = 'lightsout';
-    else if (path.includes('synapseflow')) currentGame = 'synapseflow';
-    else if (path.includes('clusterpurge')) currentGame = 'clusterpurge';
-    else if (path.includes('signalmerge')) currentGame = 'signalmerge';
-    else if (path.includes('memorypulse')) currentGame = 'memorypulse';
-    else if (path.includes('pixeldecode')) currentGame = 'pixeldecode';
-    else if (path.includes('minesweeperzen')) currentGame = 'minesweeperzen';
+    const gameMeta = document.querySelector('meta[name="game-id"]');
+    if (gameMeta) {
+        currentGame = gameMeta.content;
+    } else {
+        const path = window.location.pathname;
+        if (path.includes('cryptograms')) currentGame = 'cryptograms';
+        else if (path.includes('anxiety3') && path.includes('dyslexia.html')) currentGame = 'dyslexia';
+        else if (path.includes('anxiety3') && path.includes('discalculia.html')) currentGame = 'discalculia';
+        else if (path.includes('anxiety3')) currentGame = 'anxiety';
+        else if (path.includes('hexenergy')) currentGame = 'hexenergy';
+        else if (path.includes('wordle')) currentGame = 'wordle';
+        else if (path.includes('bejewelled')) currentGame = 'bejewelled';
+        else if (path.includes('lexicondrop')) currentGame = 'lexicondrop';
+        else if (path.includes('lightsout')) currentGame = 'lightsout';
+        else if (path.includes('synapseflow')) currentGame = 'synapseflow';
+        else if (path.includes('clusterpurge')) currentGame = 'clusterpurge';
+        else if (path.includes('signalmerge')) currentGame = 'signalmerge';
+        else if (path.includes('memorypulse')) currentGame = 'memorypulse';
+        else if (path.includes('pixeldecode')) currentGame = 'pixeldecode';
+        else if (path.includes('minesweeperzen')) currentGame = 'minesweeperzen';
+    }
 
     let settings = getSettings();
     let usage = getUsage();
@@ -117,6 +122,18 @@
         });
     }
 
+    let unsavedSeconds = 0;
+
+    function flushUsage() {
+        if (unsavedSeconds > 0) {
+            usage = getUsage(); // Load latest usage from disk (synced across tabs)
+            usage.globalSeconds += unsavedSeconds;
+            usage.gameSeconds[currentGame] = (usage.gameSeconds[currentGame] || 0) + unsavedSeconds;
+            saveUsage(usage);
+            unsavedSeconds = 0;
+        }
+    }
+
     function checkLimits() {
         settings = getSettings();
         if (!settings.enabled) return false;
@@ -128,20 +145,21 @@
             cutoff.setHours(hours, minutes, 0, 0);
             
             if (now >= cutoff) {
-                showBlockOverlay(\`It is past your strict cutoff time of \${settings.cutoffTime}.\`);
+                showBlockOverlay(`It is past your strict cutoff time of ${settings.cutoffTime}.`);
                 return true;
             }
         }
 
-        if (settings.globalMinutes > 0 && usage.globalSeconds >= settings.globalMinutes * 60) {
-            showBlockOverlay(\`You have reached your total daily limit of \${settings.globalMinutes} minutes.\`);
+        const effectiveGlobal = usage.globalSeconds + unsavedSeconds;
+        if (settings.globalMinutes > 0 && effectiveGlobal >= settings.globalMinutes * 60) {
+            showBlockOverlay(`You have reached your total daily limit of ${settings.globalMinutes} minutes.`);
             return true;
         }
 
         if (currentGame !== 'hub' && settings.perGameMinutes > 0) {
-            const gTime = usage.gameSeconds[currentGame] || 0;
+            const gTime = (usage.gameSeconds[currentGame] || 0) + unsavedSeconds;
             if (gTime >= settings.perGameMinutes * 60) {
-                showBlockOverlay(\`You have reached the per-game limit of \${settings.perGameMinutes} minutes for this module.\`);
+                showBlockOverlay(`You have reached the per-game limit of ${settings.perGameMinutes} minutes for this module.`);
                 return true;
             }
         }
@@ -149,7 +167,7 @@
         if (currentGame !== 'hub' && settings.maxPlaysPerGame > 0) {
             const plays = usage.playCounts[currentGame] || 0;
             if (plays > settings.maxPlaysPerGame) {
-                showBlockOverlay(\`You have reached your limit of \${settings.maxPlaysPerGame} play(s) for this module today.\`);
+                showBlockOverlay(`You have reached your limit of ${settings.maxPlaysPerGame} play(s) for this module today.`);
                 return true;
             }
         }
@@ -166,13 +184,48 @@
         if (checkLimits()) return;
     }
 
+    // 1-second interval to accumulate active time and check limits in-memory
     setInterval(() => {
         if (!document.hidden && currentGame !== 'hub') {
-            usage = getUsage();
-            usage.globalSeconds++;
-            usage.gameSeconds[currentGame] = (usage.gameSeconds[currentGame] || 0) + 1;
-            saveUsage(usage);
+            unsavedSeconds++;
         }
-        checkLimits();
+        
+        // Reload fresh usage if nothing unsaved to keep in sync with other tabs
+        if (unsavedSeconds === 0) {
+            usage = getUsage();
+        }
+
+        if (checkLimits()) {
+            flushUsage();
+        }
     }, 1000);
+
+    // Batch flush to storage every 15 seconds to minimize disk writes
+    setInterval(() => {
+        if (unsavedSeconds > 0) {
+            flushUsage();
+        }
+    }, 15000);
+
+    // Cross-tab synchronization via storage event listener
+    window.addEventListener('storage', (e) => {
+        if (e.key === STORAGE_KEY_USAGE) {
+            usage = getUsage();
+            checkLimits();
+        }
+    });
+
+    // Flush on page hidden
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            flushUsage();
+        } else {
+            usage = getUsage(); // Reload latest state
+        }
+    });
+
+    // Flush on page unload
+    window.addEventListener('beforeunload', () => {
+        flushUsage();
+    });
 })();

@@ -1,24 +1,36 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, protocol, net } = require('electron');
 const path = require('path');
+const { pathToFileURL } = require('url');
+
+// Register the custom scheme 'app' as privileged
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }
+]);
 
 function createWindow () {
   const mainWindow = new BrowserWindow({
     width: 1024,
     height: 768,
     webPreferences: {
-      // Disable web security strictly to allow local ES modules to run via file:// protocol
-      // Since this app only loads local files, this is acceptable.
-      webSecurity: false,
+      webSecurity: true, // Enabled web security strictly for production safety
       nodeIntegration: false,
       contextIsolation: true
     }
   });
 
-  // The build.js script copies everything to dist, so we load from there
-  mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+  // Load from secure custom origin instead of file://
+  mainWindow.loadURL('app://hub/index.html');
 }
 
 app.whenReady().then(() => {
+  // Set up protocol handler to serve built assets from dist directory
+  protocol.handle('app', (request) => {
+    const relativeUrl = request.url.replace('app://hub/', '');
+    const cleanPath = relativeUrl.split('?')[0].split('#')[0];
+    const filePath = path.join(__dirname, 'dist', cleanPath);
+    return net.fetch(pathToFileURL(filePath).toString());
+  });
+
   createWindow();
 
   app.on('activate', function () {
@@ -29,3 +41,4 @@ app.whenReady().then(() => {
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
 });
+
