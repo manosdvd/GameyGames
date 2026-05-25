@@ -790,7 +790,7 @@ try {
                 if(hasBaseWord(w)) lexiconArr.push(w);
             });
 
-            // DefinitionManager update supporting getDetails and plural resolution
+            // DefinitionManager update supporting highly optimized getDetails and plural/inflection resolution
             const managerScript = `
 window.DefinitionManager = {
     dict: {}, // Cache of loaded letter chunks, e.g. { a: { apple: "...", ... } }
@@ -822,7 +822,6 @@ window.DefinitionManager = {
             const res = await fetch(\`../shared/dict/\${letter}.json\`);
             const data = await res.json();
             this.dict[letter] = data.words || {};
-            // Lazy merge chunk metadata into this.meta if it exists, or initialize it
             if (!this.meta) this.meta = {};
             Object.assign(this.meta, data.meta || {});
             return this.dict[letter];
@@ -831,65 +830,72 @@ window.DefinitionManager = {
             return {};
         }
     },
-    getSingular(w, chunk) {
+    // Resolves plurals, past tense (-ed), active participles (-ing), agent nouns (-er)
+    getBaseWord(w, chunk) {
         if (!chunk) return null;
-        if (chunk[w]) return w;
-        if (w.endsWith('ies') && w.length > 3) {
-            const sing = w.slice(0, -3) + 'y';
-            if (chunk[sing]) return sing;
-        }
-        if (w.endsWith('es') && w.length > 2) {
-            const sing = w.slice(0, -2);
-            if (chunk[sing]) return sing;
-        }
-        if (w.endsWith('s') && w.length > 1) {
-            const sing = w.slice(0, -1);
-            if (chunk[sing]) return sing;
-        }
-        return null;
-    },
-    async get(word) {
-        const w = word.toLowerCase().trim();
-        const letter = w.charAt(0);
-        if (!/[a-z]/.test(letter)) return null;
-
-        const chunk = await this.getChunk(letter);
-        if (chunk[w]) return chunk[w];
+        if (chunk[w]) return { word: w, prefix: "" };
         
-        const sing = this.getSingular(w, chunk);
-        if (sing) {
-            return "[Plural of " + sing.toUpperCase() + "] " + chunk[sing];
+        const len = w.length;
+
+        // 1. Plurals ending in -ies -> -y (e.g. berries -> berry)
+        if (w.endsWith('ies') && len > 3) {
+            const base = w.slice(0, -3) + 'y';
+            if (chunk[base]) return { word: base, prefix: \`[Plural of \${base.toUpperCase()}] \` };
         }
+        // 2. Plurals ending in -es (e.g. foxes -> fox)
+        if (w.endsWith('es') && len > 2) {
+            const base = w.slice(0, -2);
+            if (chunk[base]) return { word: base, prefix: \`[Plural of \${base.toUpperCase()}] \` };
+        }
+        // 3. Plurals ending in -s (e.g. dogs -> dog)
+        if (w.endsWith('s') && len > 1) {
+            const base = w.slice(0, -1);
+            if (chunk[base]) return { word: base, prefix: \`[Plural of \${base.toUpperCase()}] \` };
+        }
+        // 4. Past tense ending in -ed (e.g. walked -> walk, baked -> bake)
+        if (w.endsWith('ed') && len > 3) {
+            let base = w.slice(0, -2);
+            if (chunk[base]) return { word: base, prefix: \`[Past tense of \${base.toUpperCase()}] \` };
+            base = w.slice(0, -1); // e.g. baked -> bake
+            if (chunk[base]) return { word: base, prefix: \`[Past tense of \${base.toUpperCase()}] \` };
+        }
+        // 5. Present participle ending in -ing (e.g. walking -> walk)
+        if (w.endsWith('ing') && len > 4) {
+            const base = w.slice(0, -3);
+            if (chunk[base]) return { word: base, prefix: \`[Present participle of \${base.toUpperCase()}] \` };
+        }
+        // 6. Agent nouns ending in -er (e.g. runner -> run)
+        if (w.endsWith('er') && len > 3) {
+            const base = w.slice(0, -2);
+            if (chunk[base]) return { word: base, prefix: \`[Agent of \${base.toUpperCase()}] \` };
+        }
+
         return null;
     },
     async getDetails(word) {
+        if (!word) return { def: "", rarity: 0.5, tags: [] };
         const w = word.toLowerCase().trim();
         const letter = w.charAt(0);
         if (!/[a-z]/.test(letter)) return { def: "", rarity: 0.5, tags: [] };
 
         const chunk = await this.getChunk(letter);
-        if (chunk[w]) {
-            const metadata = (this.meta && this.meta[w]) || { rarity: 0.5, tags: [] };
+        const resolved = this.getBaseWord(w, chunk);
+        
+        if (resolved) {
+            const targetWord = resolved.word;
+            const metadata = (this.meta && this.meta[targetWord]) || { rarity: 0.5, tags: [] };
             return {
-                def: chunk[w] || "",
+                def: resolved.prefix + (chunk[targetWord] || "A valid English word."),
                 rarity: metadata.rarity !== undefined ? metadata.rarity : 0.5,
                 tags: metadata.tags || []
             };
         }
-        const sing = this.getSingular(w, chunk);
-        if (sing) {
-            const metadata = (this.meta && this.meta[sing]) || { rarity: 0.5, tags: [] };
-            return {
-                def: "[Plural of " + sing.toUpperCase() + "] " + chunk[sing],
-                rarity: metadata.rarity !== undefined ? metadata.rarity : 0.5,
-                tags: metadata.tags || []
-            };
-        }
-        return {
-            def: "",
-            rarity: 0.5,
-            tags: []
-        };
+
+        return { def: "", rarity: 0.5, tags: [] };
+    },
+    async get(word) {
+        const details = await this.getDetails(word);
+        return details.def || null;
     }
 };
 `;

@@ -383,19 +383,63 @@
                 setGameStatus('ready');
             };
 
-            // Trigger a SpeechSynthesis voice output
+            // Trigger a SpeechSynthesis voice output (Google Web TTS premium voice with local speech synthesis fallback)
             const speakText = (text, rate = 0.85) => {
+                // Cancel any ongoing native speech
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                }
+
+                // Stop any previous HTML5 Audio playing
+                if (window.currentAudioElement) {
+                    window.currentAudioElement.pause();
+                    window.currentAudioElement = null;
+                }
+
+                setIsSpeaking(true);
+
+                // 1. Attempt High-Quality Google Translate Web TTS API first
+                try {
+                    const encodedText = encodeURIComponent(text.toLowerCase());
+                    const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodedText}`;
+
+                    const audio = new Audio(googleTtsUrl);
+                    audio.defaultPlaybackRate = rate;
+                    audio.playbackRate = rate;
+                    window.currentAudioElement = audio;
+
+                    audio.onended = () => {
+                        setIsSpeaking(false);
+                        window.currentAudioElement = null;
+                    };
+
+                    audio.onerror = (err) => {
+                        console.warn("Google TTS failed, falling back to browser SpeechSynthesis:", err);
+                        window.currentAudioElement = null;
+                        fallbackSpeakText(text, rate);
+                    };
+
+                    audio.play().catch(e => {
+                        console.warn("Audio autoplay blocked/failed, falling back to native SpeechSynthesis:", e);
+                        window.currentAudioElement = null;
+                        fallbackSpeakText(text, rate);
+                    });
+                } catch (err) {
+                    console.warn("Google TTS initialization failed, falling back:", err);
+                    fallbackSpeakText(text, rate);
+                }
+            };
+
+            const fallbackSpeakText = (text, rate = 0.85) => {
                 if (!('speechSynthesis' in window)) {
                     showToast("Audio unavailable in this browser.");
+                    setIsSpeaking(false);
                     return;
                 }
-                
-                window.speechSynthesis.cancel(); // Stop ongoing speech
 
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = rate;
 
-                // Prioritize high-quality premium voices for maximum enunciation clarity
                 const voices = window.speechSynthesis.getVoices();
                 const priorityList = [
                     'Google US English',
