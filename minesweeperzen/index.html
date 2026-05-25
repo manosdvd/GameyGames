@@ -566,8 +566,11 @@
                         pressTimer = setTimeout(() => {
                             if (hasMoved) return;
                             isLongPress = true;
-                            toggleFlag(r, c);
-                            if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
+                            // Only add flag on long press, do not remove it
+                            if (!grid[r][c].isFlagged) {
+                                toggleFlag(r, c);
+                                if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
+                            }
                         }, 400);
                     };
 
@@ -590,8 +593,14 @@
                         if (isGameOver) return;
                         if (e.type === 'mouseup' && e.button !== 0) return;
                         if (!isLongPress && !hasMoved) {
-                            if (inputMode === 'flag') toggleFlag(r, c);
-                            else openCell(r, c);
+                            // Short press on flagged cell unflags it. Otherwise, follow input mode.
+                            if (grid[r][c].isFlagged) {
+                                toggleFlag(r, c);
+                            } else if (inputMode === 'flag') {
+                                toggleFlag(r, c);
+                            } else {
+                                openCell(r, c);
+                            }
                         }
                     };
 
