@@ -621,7 +621,7 @@ try {
 
             // Build playable words set to shrink dictionary sizes
             const playableWords = new Set();
-            words.filter(w => w.length >= 2 && w.length <= 8).forEach(w => {
+            words.filter(w => w.length >= 2).forEach(w => {
                 if (hasBaseWord(w)) {
                     playableWords.add(w.toUpperCase());
                     const lower = w.toLowerCase();
@@ -786,7 +786,7 @@ try {
             });
 
             const lexiconArr = [];
-            words.filter(w => w.length >= 3 && w.length <= 8).forEach(w => {
+            words.filter(w => w.length >= 3).forEach(w => {
                 if(hasBaseWord(w)) lexiconArr.push(w);
             });
 

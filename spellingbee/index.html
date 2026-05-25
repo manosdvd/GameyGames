@@ -65,39 +65,6 @@
             color: var(--cyber-cyan) !important;
         }
 
-        /* Character Slot styling */
-        .char-slot {
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            width: 2.2rem;
-            height: 3rem;
-            margin: 0 0.15rem;
-            border-bottom: 3px solid rgba(0, 243, 255, 0.3);
-            font-family: 'Orbitron', monospace;
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: #fff;
-            text-transform: uppercase;
-            position: relative;
-        }
-
-        .char-slot.active {
-            border-bottom-color: var(--cyber-cyan);
-            box-shadow: 0 4px 6px -1px rgba(0, 243, 255, 0.15);
-        }
-
-        .cursor {
-            width: 12px;
-            height: 4px;
-            background-color: var(--cyber-cyan);
-            position: absolute;
-            bottom: -3px;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: blink 1s infinite;
-        }
-
         @keyframes blink {
             0%, 100% { opacity: 1; }
             50% { opacity: 0; }
@@ -339,7 +306,7 @@
                     }
                     list.forEach(w => {
                         const clean = w.trim().toUpperCase();
-                        if (/^[A-Z]{3,16}$/.test(clean)) {
+                        if (/^[A-Z]{3,}$/.test(clean)) {
                             uniqueWords.add(clean);
                         }
                     });
@@ -709,48 +676,39 @@
                                     </div>
                                 </div>
 
-                                {/* Custom Spelling Display */}
-                                <div className="flex-none py-6 glass-panel rounded-lg flex items-center justify-center min-h-[90px] border-cyan-400/10">
-                                    {gameStatus === 'playing' ? (
-                                        <div className="flex flex-wrap justify-center px-4 max-w-full">
-                                            {Array.from({ length: currentWord.length }).map((_, idx) => {
-                                                const letter = typedWord[idx] || '';
-                                                const isActive = idx === typedWord.length;
-                                                return (
-                                                    <div
-                                                        key={idx}
-                                                        className={`char-slot ${isActive ? 'active' : ''}`}
-                                                    >
-                                                        {letter}
-                                                        {isActive && <div className="cursor"></div>}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        /* Game spelling result review */
-                                        <div className="text-center px-4 space-y-2">
-                                            <div className="flex flex-wrap justify-center items-center gap-2">
-                                                {/* Correct neon block */}
-                                                <div className="text-xs text-gray-400 font-mono block w-full uppercase tracking-widest mb-1">
-                                                    YOUR_ENTRY VS CORRECT_WORD
-                                                </div>
-                                                <div className={`text-2xl font-black font-mono px-3 py-1.5 rounded border uppercase flex items-center gap-2 ${
-                                                    isCorrect 
-                                                        ? 'bg-green-500/15 border-green-500 text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.35)]'
-                                                        : 'bg-pink-500/15 border-pink-500 text-pink-400 line-through'
-                                                }`}>
-                                                    {typedWord || "[EMPTY]"}
-                                                </div>
-                                                {!isCorrect && (
-                                                    <div className="text-2xl font-black font-mono px-3 py-1.5 rounded border border-green-500 text-green-400 bg-green-500/15 uppercase shadow-[0_0_12px_rgba(34,197,94,0.35)]">
-                                                        {currentWord}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                                 {/* Custom Spelling Display */}
+                                 <div className="flex-none py-6 glass-panel rounded-lg flex items-center justify-center min-h-[90px] border-cyan-400/10">
+                                     {gameStatus === 'playing' ? (
+                                         <div className="flex items-center justify-center font-mono border-b-2 border-cyan-400/40 pb-2 px-6 max-w-full min-w-[220px]">
+                                             <span className="text-xl md:text-2xl font-black text-white tracking-[0.15em] uppercase select-none">
+                                                 {typedWord || ""}
+                                             </span>
+                                             <span className="w-2.5 h-6 bg-cyan-400 animate-[blink_1s_infinite] ml-1"></span>
+                                         </div>
+                                     ) : (
+                                         /* Game spelling result review */
+                                         <div className="text-center px-4 space-y-2">
+                                             <div className="flex flex-wrap justify-center items-center gap-2">
+                                                 {/* Correct neon block */}
+                                                 <div className="text-xs text-gray-400 font-mono block w-full uppercase tracking-widest mb-1">
+                                                     YOUR_ENTRY VS CORRECT_WORD
+                                                 </div>
+                                                 <div className={`text-lg md:text-xl font-black font-mono px-3 py-1.5 rounded border uppercase flex items-center gap-2 ${
+                                                     isCorrect 
+                                                         ? 'bg-green-500/15 border-green-500 text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.35)]'
+                                                         : 'bg-pink-500/15 border-pink-500 text-pink-400 line-through'
+                                                 }`}>
+                                                     {typedWord || "[EMPTY]"}
+                                                 </div>
+                                                 {!isCorrect && (
+                                                     <div className="text-lg md:text-xl font-black font-mono px-3 py-1.5 rounded border border-green-500 text-green-400 bg-green-500/15 uppercase shadow-[0_0_12px_rgba(34,197,94,0.35)]">
+                                                         {currentWord}
+                                                     </div>
+                                                 )}
+                                             </div>
+                                         </div>
+                                     )}
+                                 </div>
 
                                 {/* Interactive Result definition panel */}
                                 {gameStatus === 'result' && (
