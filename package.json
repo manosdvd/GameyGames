@@ -24,6 +24,8 @@
     },
     "devDependencies": {
         "electron": "^42.2.0",
-        "electron-builder": "^26.8.1"
+        "electron-builder": "^26.8.1",
+        "node-wordnet": "^0.1.12",
+        "wndb-with-exceptions": "^3.0.2"
     }
 }

@@ -7,3 +7,5 @@ Thumbs.db
 .idea
 cryptograms/src/data/quotescsv.csv
 cryptograms/src/data/quotes_all.csv
+simple_english_dictionary.json
+sowpods.txt
