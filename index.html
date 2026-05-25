@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NEURO_HUB</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00f3ff">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="shared/theme.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet"
@@ -101,6 +104,30 @@
                         <div style="font-size: 0.7rem; color: #666; margin-top: 4px;">Locks all games until tomorrow</div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- PWA Installation Banner -->
+        <div id="pwaInstallPanel" style="display: none; margin-top: 0; margin-bottom: 3rem; background: rgba(10, 10, 31, 0.95); border: 1px solid var(--cyber-cyan); padding: 20px; border-radius: 8px; position: relative; box-shadow: 0 0 15px rgba(0, 243, 255, 0.25);">
+            <div style="position: absolute; top: -12px; left: 20px; background: var(--cyber-bg); padding: 0 10px; color: var(--cyber-cyan); font-family: 'Orbitron', sans-serif; font-size: 0.8rem; font-weight: bold; border-left: 1px solid var(--cyber-cyan); border-right: 1px solid var(--cyber-cyan);">
+                PWA_MODULE
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <img src="icons/icon-192.png" alt="NEURO_HUB" style="width: 50px; height: 50px; border-radius: 8px; border: 1px solid var(--cyber-magenta); box-shadow: 0 0 10px rgba(255, 0, 255, 0.4);">
+                    <div>
+                        <div style="font-family: 'Orbitron', sans-serif; font-weight: 900; color: #fff; font-size: 1.1rem; letter-spacing: 1px;">
+                            INSTALL <span style="color: var(--cyber-cyan); text-shadow: var(--neon-cyan-glow);">NEURO_HUB</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: #ccc; margin-top: 3px;">Launch games instantly from your home screen with offline play support.</div>
+                    </div>
+                </div>
+                <button id="pwaInstallBtn" class="cyber-btn" 
+                        onmouseover="this.style.background='var(--cyber-magenta)'; this.style.color='#000'; this.style.boxShadow='0 0 15px var(--cyber-magenta)'"
+                        onmouseout="this.style.background='transparent'; this.style.color='var(--cyber-magenta)'; this.style.boxShadow='none'"
+                        style="border: 1px solid var(--cyber-magenta); background: transparent; color: var(--cyber-magenta); text-shadow: 0 0 5px rgba(255,0,255,0.5); font-weight: bold; padding: 10px 20px; border-radius: 4px; cursor: pointer; transition: all 0.2s;">
+                    INSTALL_HUB
+                </button>
             </div>
         </div>
 

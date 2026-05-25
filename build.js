@@ -957,11 +957,15 @@ window.DefinitionManager = {
 
     // 2. Build Root Assets
     console.log('> Copying root assets...');
-    ['index.html', 'style.css', 'main.js'].forEach(file => {
+    ['index.html', 'style.css', 'main.js', 'manifest.json', 'sw.js'].forEach(file => {
         if (fs.existsSync(file)) {
             fs.copyFileSync(file, path.join(distDir, file));
         }
     });
+
+    // 2b. Copy PWA Icons
+    console.log('> Copying PWA Icons...');
+    copyRecursiveWithLog(path.join(__dirname, 'icons'), path.join(distDir, 'icons'));
 
     // 3. Build Cryptograms
     console.log('> Building Cryptograms...');

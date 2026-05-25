@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // For now, CSS active state and transition is used
         });
     });
+
+    // 4. Initialize PWA Features
+    initializePWA();
 });
 
 /**
@@ -89,5 +92,61 @@ function initializeFavorites() {
     topCards.forEach(card => {
         const clonedCard = card.cloneNode(true);
         favoritesGrid.appendChild(clonedCard);
+    });
+}
+
+/**
+ * Initializes Service Worker registration and handles the Progressive Web App (PWA) installation flow.
+ */
+function initializePWA() {
+    // Register Service Worker for offline play
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => {
+                    console.log('[PWA] Service Worker registered successfully on scope:', reg.scope);
+                })
+                .catch(err => {
+                    console.error('[PWA] Service Worker registration failed:', err);
+                });
+        });
+    }
+
+    let deferredPrompt;
+    const installPanel = document.getElementById('pwaInstallPanel');
+    const installBtn = document.getElementById('pwaInstallBtn');
+
+    if (!installPanel || !installBtn) return;
+
+    // Listen for PWA install capability
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installPanel.style.display = 'block';
+        console.log('[PWA] App is installable! Install panel displayed.');
+    });
+
+    // Handle install button click
+    installBtn.addEventListener('click', () => {
+        if (!deferredPrompt) return;
+        
+        installPanel.style.display = 'none';
+        deferredPrompt.prompt();
+        
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('[PWA] User accepted the installation.');
+            } else {
+                console.log('[PWA] User dismissed the installation.');
+                installPanel.style.display = 'block';
+            }
+            deferredPrompt = null;
+        });
+    });
+
+    // Clean up if already installed
+    window.addEventListener('appinstalled', () => {
+        console.log('[PWA] NEURO_HUB successfully installed natively!');
+        installPanel.style.display = 'none';
     });
 }
