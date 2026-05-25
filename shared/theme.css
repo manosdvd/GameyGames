@@ -1,126 +1,369 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Roboto:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;800;900&family=Roboto:wght@300;400;500;700&display=swap');
 
 :root {
-    /* Core Palette */
-    --cyber-bg: #050510;
-    --cyber-surface: #0a0a1f;
-    --cyber-cyan: #00f3ff;
-    --cyber-magenta: #ff00ff;
-    --cyber-yellow: #ffe600;
-    --cyber-text: #e0e0e0;
+    /* ==========================================================================
+       MATERIAL 3 DESIGN TOKENS (CYBERPUNK HIGH-TECH FLAVOR)
+       ========================================================================== */
 
-    /* Functional */
-    --cyber-glow-cyan: 0 0 10px var(--cyber-cyan);
-    --cyber-glow-magenta: 0 0 10px var(--cyber-magenta);
-    --cyber-border-radius: 4px;
+    /* MD3 Color Roles */
+    --md-sys-color-primary: #00f3ff;                 /* Cyber Cyan */
+    --md-sys-color-on-primary: #020208;              /* Ultra Dark Obsidian */
+    --md-sys-color-primary-container: rgba(0, 243, 255, 0.08); /* Translucent Cyan Glow Plate */
+    --md-sys-color-on-primary-container: #dff9ff;    /* Ice Cyan */
+
+    --md-sys-color-secondary: #ff00ff;               /* Neon Magenta */
+    --md-sys-color-on-secondary: #020208;
+    --md-sys-color-secondary-container: rgba(255, 0, 255, 0.08); /* Translucent Magenta Glow Plate */
+    --md-sys-color-on-secondary-container: #ffdff9;
+
+    --md-sys-color-tertiary: #ffe600;                /* Cyber Yellow */
+    --md-sys-color-on-tertiary: #020208;
+    --md-sys-color-tertiary-container: rgba(255, 230, 0, 0.08);
+    --md-sys-color-on-tertiary-container: #fffedf;
+
+    --md-sys-color-error: #ff3b30;                   /* Warning Orange-Red */
+    --md-sys-color-on-error: #ffffff;
+    --md-sys-color-error-container: rgba(255, 59, 48, 0.15);
+    --md-sys-color-on-error-container: #ffdad6;
+
+    --md-sys-color-background: #03030c;              /* Deep Cyber Void */
+    --md-sys-color-on-background: #e2f5ff;           /* Futuristic Ice Blue-White */
+
+    --md-sys-color-surface: #0a0a1f;                 /* Tech Surface Panel */
+    --md-sys-color-on-surface: #e2f5ff;
+    --md-sys-color-surface-variant: #11112e;         /* Dark Tech Surface Panel */
+    --md-sys-color-on-surface-variant: #b5cbe0;      /* Muted Tech Blue-Grey */
+
+    --md-sys-color-outline: rgba(0, 243, 255, 0.35);  /* Laser Cyan Outline */
+    --md-sys-color-outline-variant: rgba(255, 0, 255, 0.25); /* Laser Magenta Outline */
+
+    /* MD3 Shape Scale (Material 3 Corners) */
+    --md-shape-corner-none: 0px;
+    --md-shape-corner-extra-small: 4px;
+    --md-shape-corner-small: 8px;
+    --md-shape-corner-medium: 12px;
+    --md-shape-corner-large: 16px;
+    --md-shape-corner-extra-large: 28px;
+    --md-shape-corner-full: 9999px;
+
+    /* Legacy Game Compatibility Map */
+    --cyber-bg: var(--md-sys-color-background);
+    --cyber-surface: var(--md-sys-color-surface);
+    --cyber-cyan: var(--md-sys-color-primary);
+    --cyber-magenta: var(--md-sys-color-secondary);
+    --cyber-yellow: var(--md-sys-color-tertiary);
+    --cyber-text: var(--md-sys-color-on-background);
+    --cyber-border-radius: var(--md-shape-corner-small);
+
+    /* Rich High-Tech Styling Accents */
+    --cyber-glow-cyan: 0 0 12px rgba(0, 243, 255, 0.45), 0 0 24px rgba(0, 243, 255, 0.2);
+    --cyber-glow-magenta: 0 0 12px rgba(255, 0, 255, 0.45), 0 0 24px rgba(255, 0, 255, 0.2);
+    --cyber-glow-yellow: 0 0 10px rgba(255, 230, 0, 0.45);
+    
+    --cyber-glass-bg: rgba(10, 10, 31, 0.7);
+    --cyber-glass-blur: blur(14px) saturate(180%);
+    --cyber-glass-border: 1px solid rgba(0, 243, 255, 0.25);
+    --cyber-glass-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08), 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+
+    --transition-standard: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Global Styles */
+/* ==========================================================================
+   GLOBAL STYLES & INTERACTION
+   ========================================================================== */
+
 body {
     background-color: var(--cyber-bg);
+    background-image: 
+        radial-gradient(circle at 50% 50%, rgba(16, 16, 48, 0.35) 0%, var(--cyber-bg) 100%),
+        linear-gradient(rgba(0, 243, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.015) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
     color: var(--cyber-text);
     font-family: 'Roboto', sans-serif;
     margin: 0;
     padding: 0;
+    transition: var(--transition-standard);
+    min-height: 100vh;
+}
+
+/* Scanlines overlay */
+.scanlines {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.8;
 }
 
 h1, h2, h3, h4, h5, h6 {
     font-family: 'Orbitron', sans-serif;
-}
-
-/* Common UI */
-.cyber-btn {
-    background: transparent;
-    border: 1px solid var(--cyber-cyan);
-    color: var(--cyber-cyan);
-    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    padding: 8px 16px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border-radius: var(--cyber-border-radius);
 }
 
-.cyber-btn:hover {
-    background: var(--cyber-cyan);
-    color: var(--cyber-bg);
-    box-shadow: var(--cyber-glow-cyan);
+/* Scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--cyber-bg);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--md-sys-color-surface-variant);
+    border: 2px solid var(--cyber-bg);
+    border-radius: var(--md-shape-corner-full);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--md-sys-color-primary);
 }
 
-.cyber-overlay {
-    background: rgba(5, 5, 16, 0.95);
-    backdrop-filter: blur(10px);
-}
+/* ==========================================================================
+   UNIFIED HEADER & NAVIGATION (MD3 System Bar Layout)
+   ========================================================================== */
 
-.icon-btn {
-    background: transparent;
-    border: none;
-    color: var(--cyber-cyan);
-    font-size: 1.5rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.icon-btn:hover {
-    transform: scale(1.1);
-    color: var(--cyber-magenta);
-    text-shadow: var(--cyber-glow-magenta);
-}
-
-/* Unified Header & Back Button */
 .cyber-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 20px;
-    background: var(--cyber-surface);
-    border-bottom: 1px solid var(--cyber-cyan);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    padding: 12px 24px;
+    background: var(--cyber-glass-bg);
+    backdrop-filter: var(--cyber-glass-blur);
+    -webkit-backdrop-filter: var(--cyber-glass-blur);
+    border-bottom: 1px solid rgba(0, 243, 255, 0.25);
+    box-shadow: var(--cyber-glass-shadow);
     font-family: 'Orbitron', sans-serif;
     position: relative;
     z-index: 50;
 }
 
 .back-btn {
-    background: transparent;
-    color: var(--cyber-cyan);
-    border: 1px solid var(--cyber-cyan);
-    padding: 6px 12px;
-    border-radius: var(--cyber-border-radius);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 243, 255, 0.05);
+    color: var(--md-sys-color-primary);
+    border: 1px solid rgba(0, 243, 255, 0.35);
+    padding: 8px 18px;
+    border-radius: var(--md-shape-corner-full); /* MD3 pill shape */
     cursor: pointer;
     text-transform: uppercase;
-    font-family: 'Orbitron', sans-serif;
-    transition: all 0.2s;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    transition: var(--transition-bounce);
     text-decoration: none;
-    font-size: 0.85rem;
 }
 
 .back-btn:hover {
-    background: var(--cyber-cyan);
-    color: var(--cyber-bg);
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
     box-shadow: var(--cyber-glow-cyan);
+    transform: scale(1.05) translateY(-1px);
 }
 
+.back-btn:active {
+    transform: scale(0.96);
+}
+
+/* ==========================================================================
+   HUD FLOTATION CHIPS (MD3 Stats Capsule / Chip layout)
+   ========================================================================== */
+
 .hud-pill {
-    background: var(--cyber-surface);
-    border: 1px solid rgba(0, 243, 255, 0.3);
+    background: var(--cyber-glass-bg);
+    backdrop-filter: var(--cyber-glass-blur);
+    -webkit-backdrop-filter: var(--cyber-glass-blur);
+    border: 1px solid rgba(0, 243, 255, 0.25);
     padding: 8px 20px;
-    border-radius: 50px;
-    font-weight: 800;
-    font-size: 14px;
+    border-radius: var(--md-shape-corner-full); /* MD3 pill shape */
+    font-weight: 700;
+    font-size: 0.8rem;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--cyber-glass-shadow);
     display: flex;
-    gap: 15px;
-    color: #888;
+    gap: 12px;
+    color: var(--md-sys-color-on-surface-variant);
     align-items: center;
+    transition: var(--transition-standard);
+}
+
+.hud-pill:hover {
+    border-color: rgba(0, 243, 255, 0.55);
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.15);
 }
 
 .hud-value {
-    color: var(--cyber-cyan);
-    transition: color 0.3s;
+    color: var(--md-sys-color-primary);
+    font-weight: 900;
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.4);
+    transition: var(--transition-standard);
+}
+
+/* ==========================================================================
+   MD3 PILL COMPONENT BUTTONS & CONTROLS
+   ========================================================================== */
+
+.cyber-btn {
+    background: rgba(0, 243, 255, 0.05);
+    border: 1px solid var(--md-sys-color-primary);
+    color: var(--md-sys-color-primary);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: var(--transition-bounce);
+    border-radius: var(--md-shape-corner-full); /* MD3 Pill shape */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.cyber-btn:hover {
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    box-shadow: var(--cyber-glow-cyan);
+    transform: scale(1.05) translateY(-2px);
+}
+
+.cyber-btn:active {
+    transform: scale(0.96);
+}
+
+.cyber-btn:disabled {
+    opacity: 0.3;
+    pointer-events: none;
+    border-color: var(--md-sys-color-surface-variant);
+    color: var(--md-sys-color-on-surface-variant);
+    box-shadow: none;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(0, 243, 255, 0.15);
+    color: var(--md-sys-color-primary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: var(--transition-bounce);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--md-shape-corner-full); /* MD3 circular icon button */
+    box-shadow: var(--cyber-glass-shadow);
+}
+
+.icon-btn:hover {
+    transform: scale(1.1) rotate(5deg);
+    color: var(--md-sys-color-secondary);
+    border-color: var(--md-sys-color-secondary);
+    box-shadow: var(--cyber-glow-magenta);
+    background: rgba(255, 0, 255, 0.05);
+}
+
+.icon-btn:active {
+    transform: scale(0.95);
+}
+
+/* ==========================================================================
+   INPUTS & SELECTIONS (MD3 Filled/Outlined styling)
+   ========================================================================== */
+
+.cyber-select, .cyber-input {
+    background: rgba(5, 5, 15, 0.85);
+    border: 1px solid var(--md-sys-color-outline);
+    color: var(--md-sys-color-primary);
+    padding: 10px 16px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    border-radius: var(--md-shape-corner-medium); /* MD3 Shape */
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition-standard);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+    font-size: 0.8rem;
+}
+
+.cyber-select:hover, .cyber-input:hover {
+    border-color: var(--md-sys-color-primary);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.cyber-select:focus, .cyber-input:focus {
+    border-color: var(--md-sys-color-secondary);
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.3), inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================================================
+   GLASSMORPHIC GLASS OVERLAYS (MD3 Dialog overlay styled)
+   ========================================================================== */
+
+.cyber-overlay {
+    background: rgba(3, 3, 12, 0.85);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100dvh;
+    z-index: 1000;
+}
+
+/* Immersive Game Over / Win Screen Overrides */
+#win-overlay {
+    background: rgba(3, 3, 12, 0.9) !important;
+    backdrop-filter: blur(18px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(200%) !important;
+}
+
+.win-title {
+    font-family: 'Orbitron', sans-serif !important;
+    font-weight: 900 !important;
+    letter-spacing: 4px !important;
+    font-size: clamp(2rem, 8vw, 4rem) !important;
+    margin-bottom: 15px !important;
+    text-transform: uppercase !important;
+}
+
+.win-stats {
+    font-family: 'Orbitron', monospace !important;
+    letter-spacing: 1px !important;
+    font-size: clamp(0.9rem, 4vw, 1.25rem) !important;
+    line-height: 1.8 !important;
+    margin-bottom: 40px !important;
+}
+
+.btn-restart {
+    font-family: 'Orbitron', sans-serif !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+    padding: 16px 48px !important;
+    border-radius: var(--md-shape-corner-full) !important; /* MD3 pill restart button */
+    font-size: clamp(1rem, 4vw, 1.25rem) !important;
+    cursor: pointer !important;
+    transition: var(--transition-bounce) !important;
+    border: none !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.btn-restart:hover {
+    transform: scale(1.06) translateY(-3px) !important;
+}
+
+.btn-restart:active {
+    transform: scale(0.96) !important;
 }

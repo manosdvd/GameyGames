@@ -1,7 +1,7 @@
 :root {
     /* Neon Glows (specific to hub) */
-    --neon-cyan-glow: 0 0 10px var(--cyber-cyan), 0 0 20px var(--cyber-cyan);
-    --neon-magenta-glow: 0 0 10px var(--cyber-magenta), 0 0 20px var(--cyber-magenta);
+    --neon-cyan-glow: 0 0 10px var(--cyber-cyan), 0 0 20px rgba(0, 243, 255, 0.35);
+    --neon-magenta-glow: 0 0 10px var(--cyber-magenta), 0 0 20px rgba(255, 0, 255, 0.35);
 
     /* Borders */
     --cyber-border: 1px solid var(--cyber-cyan);
@@ -21,78 +21,71 @@ body {
     align-items: center;
 }
 
-/* Scanline Effect */
-.scanlines {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-    background-size: 100% 2px, 3px 100%;
-    pointer-events: none;
-    z-index: 9999;
-}
-
 .app-container {
     width: 100%;
-    /* Default to full width for "full screen" feel */
     min-height: 100dvh;
     padding: 1rem;
     position: relative;
     z-index: 1;
+    max-width: 1200px;
 }
 
 /* Headers */
-h1,
-h2,
-h3 {
+h1, h2, h3 {
     font-family: 'Orbitron', sans-serif;
     text-transform: uppercase;
     letter-spacing: 2px;
 }
 
 .main-title {
-    font-size: 2.5rem;
+    font-size: clamp(2.5rem, 8vw, 4rem);
     text-align: center;
-    margin-bottom: 2rem;
+    margin-top: 1.5rem;
+    margin-bottom: 2.5rem;
     color: var(--cyber-cyan);
     text-shadow: var(--neon-cyan-glow);
+    font-weight: 900;
 }
 
 .section-title {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     color: var(--cyber-magenta);
+    margin-top: 1.5rem;
     margin-bottom: 1.5rem;
-    border-bottom: 2px solid var(--cyber-magenta);
+    border-left: 3px solid var(--cyber-magenta);
     display: inline-block;
-    padding-bottom: 0.5rem;
+    padding-left: 0.75rem;
+    letter-spacing: 1.5px;
+    font-weight: 700;
 }
 
 /* Game Grid */
 .game-grid {
     display: grid;
-    /* Responsive columns: auto-fill tries to put as many as possible */
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 1rem;
-    margin-bottom: 3rem;
+    gap: 1.25rem;
+    margin-bottom: 3.5rem;
 }
 
-/* Cyber Card */
+/* Cyber Card - Material 3 Large Rounded Shape */
 .cyber-card {
-    background-color: var(--cyber-surface);
-    border: 1px solid var(--cyber-cyan);
-    border-radius: 4px;
+    background: var(--cyber-glass-bg);
+    backdrop-filter: var(--cyber-glass-blur);
+    -webkit-backdrop-filter: var(--cyber-glass-blur);
+    border: 1px solid rgba(0, 243, 255, 0.2);
+    border-radius: var(--md-shape-corner-large); /* MD3 Large Corner (16px) */
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: var(--transition-bounce);
     position: relative;
     cursor: pointer;
-    clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
+    box-shadow: var(--cyber-glass-shadow);
+    display: flex;
+    flex-direction: column;
 }
 
 .cyber-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+    transform: translateY(-6px) scale(1.025);
+    box-shadow: 0 12px 28px rgba(0, 243, 255, 0.15), var(--cyber-glass-shadow);
     border-color: var(--cyber-magenta);
 }
 
@@ -109,6 +102,7 @@ h3 {
     background: #000;
     position: relative;
     overflow: hidden;
+    transition: var(--transition-standard);
 }
 
 .card-media::after {
@@ -117,183 +111,177 @@ h3 {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 2px;
+    height: 1px;
     background: var(--cyber-cyan);
-    box-shadow: var(--neon-cyan-glow);
+    box-shadow: var(--cyber-glow-cyan);
+    opacity: 0.6;
+}
+
+.cyber-card:hover .card-media {
+    filter: saturate(120%) brightness(1.1);
 }
 
 .card-icon {
     font-size: 2.5rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.85);
     z-index: 2;
+    transition: var(--transition-bounce);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
-/* Unique Card Backdrops - Keep Existing */
-.bg-anxiety {
-    background: radial-gradient(circle, #4a0000 0%, #000 70%);
+.cyber-card:hover .card-icon {
+    transform: scale(1.15) rotate(-3deg);
 }
 
-.bg-dyslexia {
-    background: radial-gradient(circle, #002a4a 0%, #000 70%);
-}
-
-.bg-discalculia {
-    background: radial-gradient(circle, #4a3a00 0%, #000 70%);
-}
-
-.bg-lexicon {
-    background: radial-gradient(circle, #2a004a 0%, #000 70%);
-}
-
-.bg-crypto {
-    background: repeating-linear-gradient(45deg, #0a0a0a, #0a0a0a 10px, #111 10px, #111 20px);
-}
-
-.bg-hex {
-    background: radial-gradient(circle, #004a1f 0%, #000 70%);
-}
-
-.bg-wordle {
-    background-color: #121213;
-}
-
-.bg-gem {
-    background: linear-gradient(135deg, #220022 0%, #002211 100%);
-}
-
-.bg-lightsout {
-    background: radial-gradient(circle, #004455 0%, #000000 70%);
-}
-
-.bg-synapse {
-    background: radial-gradient(circle, #003366 0%, #000000 70%);
-}
-
-.bg-cluster {
-    background: radial-gradient(circle, #660033 0%, #000000 70%);
-}
-
-.bg-signal {
-    background: radial-gradient(circle, #663300 0%, #000000 70%);
-}
-
-.bg-memory {
-    background: radial-gradient(circle, #330066 0%, #000000 70%);
-}
-
-.bg-pixel {
-    background: radial-gradient(circle, #006633 0%, #000000 70%);
-}
-
-.bg-mine {
-    background: repeating-linear-gradient(45deg, #4a0000, #4a0000 10px, #000 10px, #000 20px);
-}
-
-.bg-spelling {
-    background: radial-gradient(circle, #4a3500 0%, #000000 70%);
-}
+/* Unique Card Backdrops */
+.bg-anxiety { background: radial-gradient(circle, #4a0000 0%, #03030c 80%); }
+.bg-dyslexia { background: radial-gradient(circle, #002a4a 0%, #03030c 80%); }
+.bg-discalculia { background: radial-gradient(circle, #4a3a00 0%, #03030c 80%); }
+.bg-lexicon { background: radial-gradient(circle, #2a004a 0%, #03030c 80%); }
+.bg-crypto { background: repeating-linear-gradient(45deg, #090915, #090915 8px, #0f0f29 8px, #0f0f29 16px); }
+.bg-hex { background: radial-gradient(circle, #004a1f 0%, #03030c 80%); }
+.bg-wordle { background-color: #121213; background-image: radial-gradient(circle, #1e1e24 0%, #03030c 85%); }
+.bg-gem { background: linear-gradient(135deg, #220022 0%, #002211 100%); }
+.bg-lightsout { background: radial-gradient(circle, #004455 0%, #03030c 80%); }
+.bg-synapse { background: radial-gradient(circle, #003366 0%, #03030c 80%); }
+.bg-cluster { background: radial-gradient(circle, #660033 0%, #03030c 80%); }
+.bg-signal { background: radial-gradient(circle, #663300 0%, #03030c 80%); }
+.bg-memory { background: radial-gradient(circle, #330066 0%, #03030c 80%); }
+.bg-pixel { background: radial-gradient(circle, #006633 0%, #03030c 80%); }
+.bg-mine { background: repeating-linear-gradient(45deg, #3a0000, #3a0000 8px, #03030c 8px, #03030c 16px); }
+.bg-spelling { background: radial-gradient(circle, #4a3500 0%, #03030c 80%); }
 
 .card-content {
-    padding: 1rem;
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 }
 
 .card-title {
     font-size: 1rem;
-    /* Smaller base font */
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.4rem;
     color: var(--cyber-cyan);
-    transition: color 0.3s;
+    transition: var(--transition-standard);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-weight: 700;
 }
 
 .card-desc {
     font-size: 0.75rem;
-    color: #a0a0a0;
-    line-height: 1.2;
+    color: var(--md-sys-color-on-surface-variant);
+    line-height: 1.35;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    flex: 1;
 }
 
-/* Play Button */
+/* Play Button - MD3 Pill shape */
 .play-btn {
-    display: inline-block;
+    display: inline-flex;
     width: 100%;
-    margin-top: 0.5rem;
-    padding: 0.4rem 0;
-    background: transparent;
+    margin-top: auto;
+    padding: 8px 0;
+    background: rgba(255, 230, 0, 0.04);
     border: 1px solid var(--cyber-yellow);
     color: var(--cyber-yellow);
     font-family: 'Orbitron', sans-serif;
     text-transform: uppercase;
     font-size: 0.7rem;
-    letter-spacing: 1px;
-    transition: all 0.3s;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    transition: var(--transition-bounce);
     text-align: center;
+    border-radius: var(--md-shape-corner-full); /* MD3 pill button */
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .cyber-card:hover .play-btn {
     background: var(--cyber-yellow);
     color: #000;
-    box-shadow: 0 0 10px var(--cyber-yellow);
+    box-shadow: var(--cyber-glow-yellow);
 }
 
 /* Desktop Responsiveness */
 @media (min-width: 768px) {
     .app-container {
-        padding: 3rem;
+        padding: 2.5rem;
     }
 
     .game-grid {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 2rem;
+        gap: 1.5rem;
     }
 
     .card-media {
-        height: 140px;
+        height: 130px;
     }
 
     .card-title {
-        font-size: 1.25rem;
+        font-size: 1.15rem;
     }
 
     .card-desc {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .card-icon {
-        font-size: 3.5rem;
+        font-size: 3.25rem;
     }
 
     .play-btn {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+        padding: 9px 0;
     }
 }
 
-/* Settings Panel */
+/* Settings Panels - Material 3 Glassmorphic Style */
 .settings-panel {
-    background: rgba(10, 10, 31, 0.9);
-    border: 1px solid var(--cyber-magenta);
-    padding: 2rem;
-    margin-top: 3rem;
+    background: var(--cyber-glass-bg) !important;
+    backdrop-filter: var(--cyber-glass-blur) !important;
+    -webkit-backdrop-filter: var(--cyber-glass-blur) !important;
+    border: 1px solid rgba(0, 243, 255, 0.2) !important;
+    border-radius: var(--md-shape-corner-large) !important; /* MD3 Large Corner */
+    padding: 1.75rem !important;
+    margin-top: 2rem;
     position: relative;
-    box-shadow: 0 0 15px rgba(255, 0, 255, 0.1);
+    box-shadow: var(--cyber-glass-shadow) !important;
+    transition: var(--transition-standard);
+}
+
+.settings-panel:hover {
+    border-color: rgba(0, 243, 255, 0.35) !important;
 }
 
 .settings-panel::before {
     content: 'SYSTEM_CONFIG';
     position: absolute;
-    top: -12px;
+    top: -10px;
     left: 20px;
     background: var(--cyber-bg);
     padding: 0 10px;
     color: var(--cyber-magenta);
     font-family: 'Orbitron', sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    border-left: 1px solid var(--cyber-magenta);
+    border-right: 1px solid var(--cyber-magenta);
+}
+
+.settings-panel[style*="border: 1px solid var(--cyber-magenta)"]::before,
+.settings-panel[style*="border: 1px solid rgba(255, 0, 255"]::before {
+    content: 'NEURO_CORE';
+    color: var(--cyber-magenta);
+    border-left-color: var(--cyber-magenta);
+    border-right-color: var(--cyber-magenta);
 }
 
 .setting-item {
@@ -302,42 +290,15 @@ h3 {
     align-items: center;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.cyber-input {
-    background: #000;
-    border: 1px solid var(--cyber-cyan);
-    color: var(--cyber-cyan);
-    padding: 0.5rem;
-    font-family: 'Orbitron', sans-serif;
-    width: 80px;
-    text-align: center;
-}
-
-.cyber-btn {
-    background: var(--cyber-cyan);
-    color: #000;
-    border: none;
-    padding: 0.5rem 1.5rem;
-    font-family: 'Orbitron', sans-serif;
-    cursor: pointer;
-    font-weight: bold;
-    text-transform: uppercase;
-    transition: all 0.2s;
-}
-
-.cyber-btn:hover {
-    background: #fff;
-    box-shadow: 0 0 15px #fff;
-}
-
-/* Toggle Switch - Cyber Style */
+/* Futuristic Toggle Switch - Material 3 Pill Switch */
 .switch {
     position: relative;
     display: inline-block;
-    width: 60px;
-    height: 30px;
+    width: 52px;
+    height: 32px;
 }
 
 .switch input {
@@ -349,13 +310,11 @@ h3 {
 .slider {
     position: absolute;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #1a1a1a;
-    transition: .4s;
-    border: 1px solid #444;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(255, 255, 255, 0.06);
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--md-shape-corner-full); /* MD3 pill-shaped switch boundary */
 }
 
 .slider:before {
@@ -363,46 +322,49 @@ h3 {
     content: "";
     height: 22px;
     width: 22px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #444;
-    transition: .4s;
+    left: 4px;
+    bottom: 4px;
+    background-color: #8c8c9e;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: var(--md-shape-corner-full);
 }
 
-input:checked+.slider {
-    background-color: rgba(0, 243, 255, 0.2);
+input:checked + .slider {
+    background-color: rgba(0, 243, 255, 0.15);
     border-color: var(--cyber-cyan);
 }
 
-input:checked+.slider:before {
-    transform: translateX(30px);
+input:checked + .slider:before {
+    transform: translateX(20px);
     background-color: var(--cyber-cyan);
-    box-shadow: 0 0 10px var(--cyber-cyan);
+    box-shadow: var(--cyber-glow-cyan);
 }
 
-/* Fab (Add Game) */
+/* Floating Action Button - MD3 Circular FAB style */
 .cyber-fab {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    width: 60px;
-    height: 60px;
-    background: #000;
+    width: 56px;
+    height: 56px;
+    background: var(--cyber-glass-bg);
+    backdrop-filter: var(--cyber-glass-blur);
+    -webkit-backdrop-filter: var(--cyber-glass-blur);
     border: 2px solid var(--cyber-yellow);
-    border-radius: 50%;
+    border-radius: var(--md-shape-corner-full); /* Circular FAB */
     color: var(--cyber-yellow);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 0 15px rgba(255, 230, 0, 0.2);
-    transition: all 0.3s;
+    box-shadow: 0 8px 24px rgba(255, 230, 0, 0.25), var(--cyber-glass-shadow);
+    transition: var(--transition-bounce);
     z-index: 100;
 }
 
 .cyber-fab:hover {
     transform: rotate(90deg) scale(1.1);
-    box-shadow: 0 0 25px var(--cyber-yellow);
+    box-shadow: 0 12px 32px var(--cyber-yellow);
     background: var(--cyber-yellow);
     color: #000;
 }
