@@ -393,168 +393,63 @@
                 setGameStatus('ready');
             };
 
-            // Trigger a high-quality human voice or Web-TTS output (with multiple fallbacks)
-            const speakText = async (text, rate = 0.85) => {
-                // Cancel native speech
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                }
+            // === HIGH-QUALITY MULTI-TIER TTS ENGINE ===
+            // Electron: local caching proxy (offline-capable)
+            // Browser/Mobile: Free Dictionary recordings → Netlify serverless proxy → native SpeechSynthesis
 
-                // Stop any previous HTML5 Audio playing
-                if (window.currentAudioElement) {
-                    window.currentAudioElement.pause();
+            // Helper: play an Audio element with rate, error handling, and fallback
+            const playAudioUrl = (url, rate, fallbackFn) => {
+                const audio = new Audio(url);
+                audio.defaultPlaybackRate = rate;
+                audio.playbackRate = rate;
+                window.currentAudioElement = audio;
+
+                audio.onended = () => {
+                    setIsSpeaking(false);
                     window.currentAudioElement = null;
-                }
+                };
 
-                setIsSpeaking(true);
+                audio.onerror = () => {
+                    window.currentAudioElement = null;
+                    if (fallbackFn) fallbackFn();
+                    else setIsSpeaking(false);
+                };
 
-                const cleanText = text.trim().toLowerCase();
-                const isSingleWord = !cleanText.includes(' ') && !cleanText.includes('.');
-                const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+                audio.play().catch(() => {
+                    window.currentAudioElement = null;
+                    if (fallbackFn) fallbackFn();
+                    else setIsSpeaking(false);
+                });
+            };
 
-                // Tier 1 (Electron Special): Try the Offline-Caching Local TTS proxy (ideal and local)
-                if (isElectron) {
-                    try {
-                        const localTtsUrl = `app://hub/tts?text=${encodeURIComponent(cleanText)}`;
-                        const audio = new Audio(localTtsUrl);
-                        audio.defaultPlaybackRate = rate;
-                        audio.playbackRate = rate;
-                        window.currentAudioElement = audio;
-
-                        audio.onended = () => {
-                            setIsSpeaking(false);
-                            window.currentAudioElement = null;
-                        };
-
-                        audio.onerror = (err) => {
-                            console.warn("Local Electron TTS proxy failed, falling back to browser SpeechSynthesis:", err);
-                            window.currentAudioElement = null;
-                            fallbackSpeakText(text, rate);
-                        };
-
-                        audio.play().catch(e => {
-                            console.warn("Local Electron TTS autoplay blocked, falling back:", e);
-                            window.currentAudioElement = null;
-                            fallbackSpeakText(text, rate);
-                        });
-                        return;
-                    } catch (err) {
-                        console.warn("Failed to play from Electron local TTS, falling back:", err);
-                    }
-                }
-
-                // Tier 1 (Browser Mode): Try Free Dictionary API for crystal-clear real human voice recordings (single words only)
-                if (isSingleWord) {
-                    try {
-                        const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanText}`);
-                        if (dictRes.ok) {
-                            const dictData = await dictRes.json();
-                            if (dictData && dictData[0] && dictData[0].phonetics) {
-                                // Find a phonetic entry that has an audio URL
-                                const phon = dictData[0].phonetics.find(p => p.audio && p.audio.length > 0);
-                                if (phon) {
-                                    const audio = new Audio(phon.audio);
-                                    audio.defaultPlaybackRate = rate;
-                                    audio.playbackRate = rate;
-                                    window.currentAudioElement = audio;
-
-                                    audio.onended = () => {
-                                        setIsSpeaking(false);
-                                        window.currentAudioElement = null;
-                                    };
-
-                                    audio.onerror = () => {
-                                        console.warn("Free Dictionary audio failed, falling back to Youdao Translate.");
-                                        window.currentAudioElement = null;
-                                        playYoudaoTts(text, rate);
-                                    };
-
-                                    audio.play().then(() => {
-                                        // Successfully playing
-                                    }).catch(e => {
-                                        console.warn("Autoplay block on Free Dictionary audio, falling back:", e);
-                                        window.currentAudioElement = null;
-                                        playYoudaoTts(text, rate);
-                                    });
-                                    return;
-                                }
+            // Tier 1 (Browser): Try Free Dictionary API for real human voice recordings
+            const tryFreeDictionary = async (word, rate, fallbackFn) => {
+                try {
+                    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data?.[0]?.phonetics) {
+                            const phon = data[0].phonetics.find(p => p.audio && p.audio.length > 0);
+                            if (phon) {
+                                playAudioUrl(phon.audio, rate, fallbackFn);
+                                return true;
                             }
                         }
-                    } catch (e) {
-                        console.warn("Free Dictionary API offline or failed, falling back to Youdao Translate:", e);
                     }
+                } catch (e) {
+                    console.warn("Free Dictionary API unavailable:", e.message);
                 }
-
-                // Tier 2 (Browser Mode): Fall back to Youdao Dictionary Neural TTS API
-                playYoudaoTts(text, rate);
+                return false;
             };
 
-            const playYoudaoTts = (text, rate = 0.85) => {
-                try {
-                    const encodedText = encodeURIComponent(text.toLowerCase());
-                    const youdaoTtsUrl = `https://dict.youdao.com/dictvoice?type=2&audio=${encodedText}`;
-
-                    const audio = new Audio(youdaoTtsUrl);
-                    audio.defaultPlaybackRate = rate;
-                    audio.playbackRate = rate;
-                    window.currentAudioElement = audio;
-
-                    audio.onended = () => {
-                        setIsSpeaking(false);
-                        window.currentAudioElement = null;
-                    };
-
-                    audio.onerror = (err) => {
-                        console.warn("Youdao TTS failed, falling back to Google Translate:", err);
-                        window.currentAudioElement = null;
-                        playGoogleTts(text, rate);
-                    };
-
-                    audio.play().catch(e => {
-                        console.warn("Youdao TTS play blocked/failed, falling back to Google Translate:", e);
-                        window.currentAudioElement = null;
-                        playGoogleTts(text, rate);
-                    });
-                } catch (err) {
-                    console.warn("Youdao TTS initialization failed, falling back to Google Translate:", err);
-                    playGoogleTts(text, rate);
-                }
+            // Tier 2 (Browser/Mobile): Netlify serverless TTS proxy — Google Translate voices, CORS-free
+            const playServerProxyTts = (text, rate, fallbackFn) => {
+                const proxyUrl = `/api/tts?text=${encodeURIComponent(text.toLowerCase())}`;
+                playAudioUrl(proxyUrl, rate, fallbackFn);
             };
 
-            const playGoogleTts = (text, rate = 0.85) => {
-                try {
-                    const encodedText = encodeURIComponent(text.toLowerCase());
-                    const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodedText}`;
-
-                    const audio = new Audio(googleTtsUrl);
-                    audio.defaultPlaybackRate = rate;
-                    audio.playbackRate = rate;
-                    window.currentAudioElement = audio;
-
-                    audio.onended = () => {
-                        setIsSpeaking(false);
-                        window.currentAudioElement = null;
-                    };
-
-                    audio.onerror = (err) => {
-                        console.warn("Google TTS failed, falling back to browser SpeechSynthesis:", err);
-                        window.currentAudioElement = null;
-                        fallbackSpeakText(text, rate);
-                    };
-
-                    audio.play().catch(e => {
-                        console.warn("Google TTS play blocked/failed, falling back to native SpeechSynthesis:", e);
-                        window.currentAudioElement = null;
-                        fallbackSpeakText(text, rate);
-                    });
-                } catch (err) {
-                    console.warn("Google TTS initialization failed, falling back:", err);
-                    fallbackSpeakText(text, rate);
-                }
-            };
-
-
-            const fallbackSpeakText = (text, rate = 0.85) => {
+            // Tier 3 (Final fallback): Native browser SpeechSynthesis with best available voice
+            const playNativeSpeech = (text, rate) => {
                 if (!('speechSynthesis' in window)) {
                     showToast("Audio unavailable in this browser.");
                     setIsSpeaking(false);
@@ -564,22 +459,40 @@
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = rate;
 
+                // Expanded priority list covering desktop, iOS, and Android voices
                 const voices = window.speechSynthesis.getVoices();
                 const priorityList = [
+                    // Desktop Chrome / Edge
                     'Google US English',
                     'Google UK English Female',
                     'Google UK English Male',
                     'Microsoft Zira',
                     'Microsoft David',
+                    'Microsoft Jenny',
+                    'Microsoft Aria',
+                    // iOS / macOS
                     'Samantha',
                     'Daniel',
+                    'Karen',
+                    'Moira',
+                    'Tessa',
+                    // Android
+                    'English United States',
+                    'English (United States)',
+                    // Generic language codes
                     'en-US',
                     'en-GB',
+                    'en-AU',
                     'en'
                 ];
+
                 let selectedVoice = null;
                 for (const candidate of priorityList) {
-                    selectedVoice = voices.find(v => v.name.includes(candidate) || v.lang === candidate || v.lang.startsWith(candidate));
+                    selectedVoice = voices.find(v =>
+                        v.name.includes(candidate) ||
+                        v.lang === candidate ||
+                        v.lang.startsWith(candidate)
+                    );
                     if (selectedVoice) break;
                 }
                 if (selectedVoice) {
@@ -592,6 +505,43 @@
 
                 window.speechSynthesis.speak(utterance);
             };
+
+            // Main entry point: orchestrate the TTS tiers
+            const speakText = async (text, rate = 0.85) => {
+                // Cancel any in-progress speech
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                if (window.currentAudioElement) {
+                    window.currentAudioElement.pause();
+                    window.currentAudioElement = null;
+                }
+
+                setIsSpeaking(true);
+
+                const cleanText = text.trim().toLowerCase();
+                const isSingleWord = /^[a-z]+$/.test(cleanText);
+                const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+
+                // === ELECTRON: local caching proxy (offline-capable, Google Translate quality) ===
+                if (isElectron) {
+                    const localUrl = `app://hub/tts?text=${encodeURIComponent(cleanText)}`;
+                    playAudioUrl(localUrl, rate, () => playNativeSpeech(text, rate));
+                    return;
+                }
+
+                // === BROWSER / MOBILE ===
+                const nativeFallback = () => playNativeSpeech(text, rate);
+                const proxyFallback = () => playServerProxyTts(cleanText, rate, nativeFallback);
+
+                // Tier 1: Free Dictionary human recordings (single words only)
+                if (isSingleWord) {
+                    const played = await tryFreeDictionary(cleanText, rate, proxyFallback);
+                    if (played) return;
+                }
+
+                // Tier 2: Netlify serverless proxy (works on all mobile browsers, no CORS)
+                proxyFallback();
+            };
+
 
             const speakCurrentWord = (rate = null) => {
                 if (!currentWord) return;
