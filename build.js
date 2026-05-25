@@ -85,6 +85,16 @@ try {
         }
     }
 
+    const localCswPath = path.join(__dirname, 'csw21.txt');
+    if (!fs.existsSync(localCswPath)) {
+        console.log('  -> Downloading csw21.txt (Collins Scrabble Words with definitions)...');
+        try {
+            execSync('curl -s -S -o csw21.txt https://raw.githubusercontent.com/scrabblewords/scrabblewords/main/words/British/CSW21.txt', { stdio: 'inherit' });
+        } catch (e) {
+            console.warn('  ⚠️ Failed to download csw21.txt: ' + e.message);
+        }
+    }
+
     let commonSeed = "THE AND FOR ARE BUT NOT YOU ALL ANY CAN HAD HAS HIM HIS HOW MAN NEW NOW OLD ONE OUR OUT SAY SEE SHE SIT TOO USE WAY WHO WHY YES ACT ADD AGE AIR AGO ART ASK BAD BAG BED BET BIG BIT BOX BOY BUS CAR CAT CUP CUT DAD DAY DID DOG DRY EAR EAT EGG END EYE FAR FAT FEW FIT FLY FUN GET GOT GUN GUY GYM HAT HER HIT HOT HUT ICE ILL INK JAR JOB JOY KEY KID KIT LAW LAY LEG LIE LIP LOW MAD MAP MIX MUD NET NOD NOR NUT OFF OIL OWN PAY PEN PET PIE PIG PIN POT PUT RAN RED RIP RUN SAD SAW SEA SET SEX SIN SIT SIX SKY SON SUN TAX TEA TEN TIE TIP TOE TOP TOY TRY TWO VAN WAR WET WIN YES YET ABLE ACID AGED ALSO AREA ARMY AWAY BABY BACK BALL BAND BANK BASE BATH BEAR BEAT BEER BELL BELT BEST BIRD BLOW BLUE BOAT BODY BOND BONE BORN BOSS BOTH BOWL BURN BUSH BUSY CALL CALM CAMP CARD CARE CASE CASH CAST CELL CHAT CHIP CITY CLUB COAL COAT CODE COLD COME COOK COOL COPY CORE COST CREW CROP DARK DATE DEAD DEAL DEAR DEBT DEEP DENY DESK DIET DIRT DISC DISK DOES DONE DOOR DOWN DRAW DRESS DRINK DRIVE DROP DRUG DUST DUTY EACH EARN EAST EASY EDGE ELSE EVEN EVER EVIL EXIT FACE FACT FAIL FAIR FALL FARM FAST FEAR FEED FEEL FEET FELL FILL FILM FIND FINE FIRE FIRM FISH FIVE FLAT FLOW FOOD FOOT FORD FORM FORT FOUR FREE FROM FULL FUND GAIN GAME GATE GAVE GEAR GIFT GIRL GIVE GLAD GOAL GOES GOLD GOLF GONE GOOD GRAY GREW GREY GROW GULF HAIR HALF HALL HAND HANG HARD HARM HATE HAVE HEAD HEAR HEAT HELD HELL HELP HERE HERO HIGH HILL HIRE HOLD HOLE HOLY HOME HOPE HOST HOUR HUGE HUNG HUNT HURT IDEA INCH INTO IRON ITEM JACK JOIN JUMP JUST KEPT KEEP KICK KILL KIND KING KNEE KNEE KNEW KNOW LACK LADY LAID LAKE LAND LANE LAST LATE LEAD LEFT LESS LIFE LIFT LIKE LINE LINK LIST LIVE LOAD LOAN LOCK LONG LOOK LORD LOSS LOST LOTS LOVE LUCK MADE MAIL MAIN MAKE MALE MANY MARK MASS MEAL MEAN MEAT MEET MILE MILK MILL MIND MINE MISS MODE MOOD MOON MORE MOST MOVE MUCH MUST NAME NEAR NECK NEED NEWS NEXT NICE NINE NONE NOSE NOTE OKAY ONCE ONLY OPEN ORAL OVER PACE PACK PAGE PAID PAIN PAIR PARK PART PASS PAST PATH PEAK PICK PILE PINK PIPE PLAN PLAY PLOT PLUS POET POOL POOR POST PULL PURE PUSH QUIT RACE RAIN RANK RARE RATE READ REAL REAR RELY RENT REST RICE RICH RIDE RING RISE RISK ROAD ROCK ROLE ROLL ROOF ROOM ROOT ROSE RULE RUSH SAFE SAID SAKE SALE SALT SAME SAND SAVE SEAT SEED SEEK SEEM SEEN SELF SELL SEND SENT SETS SHED SHIP SHOE SHOP SHUT SICK SIDE SIGN SILK SITE SIZE SKIN SLIP SLOW SNOW SOFT SOIL SOLD SOLE SOME SONG SOON SORT SOUL SPOT STAR STAY STEP STOP SUCH SUIT SURE SWIM TAKE TALK TALL TANK TAPE TASK TEAM TEAR TELL TENT TERM TEST TEXT THAN THAT THEM THEN THEY THIN THIS TIDE TILL TIME TINY TOLD TOOK TOOL TOUR TOWN TREE TRIP TRUE TUBE TURN TWIN TYPE UNIT UPON USER USUAL VARY VERY VIEW VILL VOTE WAIT WAKE WALK WALL WANT WARM WASH WAVE WEAR WEEK WELL WENT WERE WEST WHAT WHEN WIDE WIFE WILD WILL WIND WINE WING WIRE WISH WITH WOOD WOOL WORD WORK WARD YARD YEAR ZERO ZONE";
 
     // A2. Advanced Webster cleaner, rarity calculator, and Connections categories
@@ -395,20 +405,93 @@ try {
             
             let dictObj = {};
             let rawDictObj = {};
+
+            // 1. Load CSW21 dictionary first
+            const localCswPath = path.join(__dirname, 'csw21.txt');
+            if (fs.existsSync(localCswPath)) {
+                try {
+                    console.log('  -> Parsing csw21.txt (Collins Scrabble definitions)...');
+                    const cswContent = fs.readFileSync(localCswPath, 'utf8');
+                    const cswLines = cswContent.split(/\r?\n/);
+                    const cswDefs = {};
+                    const cswRedirects = {};
+
+                    cswLines.forEach(line => {
+                        line = line.trim();
+                        if (!line || line.startsWith('#')) return;
+                        const spaceIndex = line.indexOf(' ');
+                        if (spaceIndex === -1) return;
+                        const word = line.substring(0, spaceIndex).toUpperCase();
+                        const rest = line.substring(spaceIndex + 1).trim();
+                        
+                        const redirectMatch = rest.match(/<([^=>]+)=([^>]+)>/);
+                        if (redirectMatch) {
+                            cswRedirects[word] = redirectMatch[1].toUpperCase();
+                        } else {
+                            let definition = rest;
+                            const bracketIndex = definition.lastIndexOf('[');
+                            if (bracketIndex !== -1) {
+                                definition = definition.substring(0, bracketIndex).trim();
+                            }
+                            if (definition) {
+                                definition = definition.charAt(0).toUpperCase() + definition.slice(1);
+                                if (!definition.endsWith('.')) definition += '.';
+                                cswDefs[word] = definition;
+                            }
+                        }
+                    });
+
+                    // Resolve redirects in CSW
+                    for (const [word, base] of Object.entries(cswRedirects)) {
+                        if (cswDefs[base]) {
+                            let inflectionType = 'Inflection of';
+                            const lowerWord = word.toLowerCase();
+                            const lowerBase = base.toLowerCase();
+                            if (lowerWord.endsWith('s') && !lowerBase.endsWith('s')) {
+                                inflectionType = 'Plural of';
+                            } else if (lowerWord.endsWith('ed')) {
+                                inflectionType = 'Past tense of';
+                            } else if (lowerWord.endsWith('ing')) {
+                                inflectionType = 'Present participle of';
+                            } else if (lowerWord.endsWith('er') || lowerWord.endsWith('ers')) {
+                                inflectionType = 'Agent of';
+                            }
+                            cswDefs[word] = `[${inflectionType} ${base}] ${cswDefs[base]}`;
+                        }
+                    }
+
+                    // Put CSW definitions into rawDictObj
+                    for (let key in cswDefs) {
+                        rawDictObj[key] = cswDefs[key];
+                    }
+                    console.log(`  -> Loaded ${Object.keys(cswDefs).length} definitions from CSW21`);
+                } catch(e) {
+                    console.warn('  ⚠️ Failed to parse csw21.txt:', e.message);
+                }
+            }
+
+            // 2. Load clean Webster definitions (only fill in missing ones)
             if (fs.existsSync(localDictPath)) {
                 try {
                     const rawDict = fs.readFileSync(localDictPath, 'utf8');
                     const parsed = JSON.parse(rawDict);
+                    let websterCount = 0;
                     for (let key in parsed) {
-                        rawDictObj[key.toUpperCase()] = cleanDefinition(parsed[key]);
+                        const cleanDef = cleanDefinition(parsed[key]);
+                        if (cleanDef && !rawDictObj[key.toUpperCase()]) {
+                            rawDictObj[key.toUpperCase()] = cleanDef;
+                            websterCount++;
+                        }
                     }
+                    console.log(`  -> Loaded ${websterCount} missing definitions from Webster`);
                 } catch(e) {
                     console.warn('  ⚠️ Failed to parse dictionary_compact.json', e.message);
                 }
             }
 
-            // Load secondary dictionary for modern/inflected definitions
+            // 3. Load secondary dictionary for modern/inflected definitions
             const localSecondaryPath = path.join(__dirname, 'simple_english_dictionary.json');
+            const synonymRedirects = {};
             if (fs.existsSync(localSecondaryPath)) {
                 try {
                     console.log('  -> Loading secondary definitions database...');
@@ -417,13 +500,18 @@ try {
                     let secondaryCount = 0;
                     for (let key in parsedSecondary) {
                         const entry = parsedSecondary[key];
-                        if (entry && entry.MEANINGS && entry.MEANINGS.length > 0) {
-                            const firstMeaning = entry.MEANINGS[0];
-                            const pos = firstMeaning[0]; // e.g. "Noun"
-                            const gloss = firstMeaning[1]; // e.g. "fruit with red..."
-                            if (gloss && !rawDictObj[key.toUpperCase()]) {
-                                rawDictObj[key.toUpperCase()] = `(${pos}) ${gloss.charAt(0).toUpperCase() + gloss.slice(1)}.`;
-                                secondaryCount++;
+                        const upperKey = key.toUpperCase();
+                        if (entry) {
+                            if (entry.MEANINGS && entry.MEANINGS.length > 0) {
+                                const firstMeaning = entry.MEANINGS[0];
+                                const pos = firstMeaning[0]; // e.g. "Noun"
+                                const gloss = firstMeaning[1]; // e.g. "fruit with red..."
+                                if (gloss && !rawDictObj[upperKey]) {
+                                    rawDictObj[upperKey] = `(${pos}) ${gloss.charAt(0).toUpperCase() + gloss.slice(1)}.`;
+                                    secondaryCount++;
+                                }
+                            } else if (entry.SYNONYMS && entry.SYNONYMS.length > 0) {
+                                synonymRedirects[upperKey] = entry.SYNONYMS.map(s => s.toUpperCase());
                             }
                         }
                     }
@@ -433,13 +521,48 @@ try {
                 }
             }
 
-            // Merge curated definitions to override any default entries
+            // 4. Try resolving empty meaning words via synonym redirects
+            let resolvedSynonymsCount = 0;
+            for (const [word, syns] of Object.entries(synonymRedirects)) {
+                if (rawDictObj[word]) continue;
+                for (const syn of syns) {
+                    if (rawDictObj[syn]) {
+                        rawDictObj[word] = `[Synonym of ${syn}] ${rawDictObj[syn]}`;
+                        resolvedSynonymsCount++;
+                        break;
+                    }
+                }
+            }
+            console.log(`  -> Resolved ${resolvedSynonymsCount} words via synonym redirection`);
+
+            // 5. Merge curated definitions to override any default entries
             for (let key in SCRABBLE_INLINE_DEFINITIONS) {
                 rawDictObj[key.toUpperCase()] = SCRABBLE_INLINE_DEFINITIONS[key];
             }
 
+            // 6. Merge the 193 100% full-coverage curated definitions
+            const curated193Path = path.join(__dirname, 'shared', 'curated_193.json');
+            if (fs.existsSync(curated193Path)) {
+                try {
+                    const curated193 = JSON.parse(fs.readFileSync(curated193Path, 'utf8'));
+                    let curatedCount = 0;
+                    for (let key in curated193) {
+                        rawDictObj[key.toUpperCase()] = curated193[key];
+                        curatedCount++;
+                    }
+                    console.log(`  -> Loaded ${curatedCount} final curated definitions to achieve 100% real coverage`);
+                } catch(e) {
+                    console.warn('  ⚠️ Failed to load curated_193.json', e.message);
+                }
+            }
+
             const findBaseWord = (w) => {
                 const lower = w.toLowerCase();
+                // Latin Plural -i -> -us
+                if (lower.endsWith('i') && lower.length > 2) {
+                    const base = (lower.slice(0, -1) + 'us').toUpperCase();
+                    if (rawDictObj[base]) return { base, type: 'Plural of' };
+                }
                 // 1. Plural -s
                 if (lower.endsWith('s') && lower.length > 2) {
                     const base = lower.slice(0, -1).toUpperCase();
