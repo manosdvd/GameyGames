@@ -73,10 +73,11 @@
 
         #game-wrapper {
             flex: 1;
+            min-height: 0; /* allow flex child to shrink below content size */
             width: 100%;
-            overflow: auto;
+            overflow: hidden;
             display: flex;
-            padding: 20px;
+            padding: 10px;
             z-index: 10;
         }
 
@@ -92,7 +93,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
+            /* Fill all available space in the wrapper */
+            width: 100%;
+            height: 100%;
         }
 
         .toolbar {
@@ -128,24 +132,28 @@
             background: #222;
             border: 2px solid #ff3333;
             padding: 2px;
+            /* Fill both axes so 1fr rows have a resolved height */
             width: 100%;
+            flex: 1;
+            min-height: 0;
         }
 
         .mine-cell {
+            /* No min-width/min-height — cells shrink to fit grid */
             aspect-ratio: 1;
-            min-width: 35px;
-            min-height: 35px;
             background: rgba(255,255,255,0.1);
             border: 1px outset rgba(255, 255, 255, 0.2);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
+            /* Font scales with cell size, capped so it never overflows */
+            font-size: clamp(0.4rem, 3vmin, 1rem);
             font-weight: bold;
             font-family: 'Orbitron', monospace;
             color: #fff;
             transition: background 0.1s;
+            overflow: hidden;
         }
 
         .mine-cell:hover {
