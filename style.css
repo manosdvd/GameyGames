@@ -189,6 +189,10 @@ h3 {
     background: repeating-linear-gradient(45deg, #4a0000, #4a0000 10px, #000 10px, #000 20px);
 }
 
+.bg-spelling {
+    background: radial-gradient(circle, #4a3500 0%, #000000 70%);
+}
+
 .card-content {
     padding: 1rem;
 }

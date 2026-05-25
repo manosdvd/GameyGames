@@ -10,7 +10,8 @@ const PRECACHE_ASSETS = [
   './icons/icon-512.png',
   './shared/theme.css',
   './shared/settings.js',
-  './shared/dictionary.js'
+  './shared/dictionary.js',
+  './spellingbee/index.html'
 ];
 
 // Install Event - Precache App Shell
