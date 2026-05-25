@@ -322,14 +322,49 @@
                 const pools = {};
                 GRADES.forEach(g => { pools[g.id] = []; });
 
+                // School curriculum matching algorithm based on length, complexity, and familiarity
+                const getCurriculumGrade = (word, score) => {
+                    const len = word.length;
+                    
+                    // Base grade estimation based strictly on standard school word list lengths:
+                    let baseGrade = 1;
+                    if (len <= 3) baseGrade = 1;
+                    else if (len === 4) baseGrade = 2;
+                    else if (len === 5) baseGrade = 3;
+                    else if (len === 6) baseGrade = 4;
+                    else if (len === 7) baseGrade = 5;
+                    else if (len === 8) baseGrade = 6;
+                    else if (len === 9) baseGrade = 7;
+                    else if (len >= 10 && len <= 11) baseGrade = 8;
+                    else baseGrade = 9; // Champion (12+ letters)
+
+                    // Adjust grade based on spelling complexity score relative to its length:
+                    // If the word has high irregular complexity for its length, push it up a level
+                    if (score > len * 2.2) {
+                        baseGrade = Math.min(9, baseGrade + 1);
+                    }
+                    // If the word is very simple for its length, push it down a level
+                    else if (score < len * 1.3 && baseGrade > 2) {
+                        baseGrade = Math.max(1, baseGrade - 1);
+                    }
+                    
+                    // Common words seed adjustments to prevent common/simple words from being too high grade
+                    const isCommon = window.COMMON_WORDS_SEED && window.COMMON_WORDS_SEED.split(' ').includes(word);
+                    if (isCommon) {
+                        // Capped to Grade 4 max to ensure primary school words stay accessible
+                        baseGrade = Math.min(4, baseGrade);
+                    }
+
+                    return baseGrade;
+                };
+
                 finalWords.forEach(word => {
                     const details = calculateWordDifficulty(word);
-                    // Match to correct grade bucket
-                    const matchedGrade = GRADES.find(g => details.score >= g.min && details.score < g.max);
-                    if (matchedGrade) {
-                        pools[matchedGrade.id].push(word);
-                    } else if (details.score >= 24.0) {
-                        pools[9].push(word); // Champion fallback
+                    const gradeId = getCurriculumGrade(word, details.score);
+                    if (pools[gradeId]) {
+                        pools[gradeId].push(word);
+                    } else {
+                        pools[9].push(word);
                     }
                 });
 
@@ -360,11 +395,27 @@
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = rate;
 
-                // Grab a premium English voice if possible
+                // Prioritize high-quality premium voices for maximum enunciation clarity
                 const voices = window.speechSynthesis.getVoices();
-                const englishVoice = voices.find(v => v.lang.startsWith('en-US') || v.lang.startsWith('en-GB') || v.lang.startsWith('en'));
-                if (englishVoice) {
-                    utterance.voice = englishVoice;
+                const priorityList = [
+                    'Google US English',
+                    'Google UK English Female',
+                    'Google UK English Male',
+                    'Microsoft Zira',
+                    'Microsoft David',
+                    'Samantha',
+                    'Daniel',
+                    'en-US',
+                    'en-GB',
+                    'en'
+                ];
+                let selectedVoice = null;
+                for (const candidate of priorityList) {
+                    selectedVoice = voices.find(v => v.name.includes(candidate) || v.lang === candidate || v.lang.startsWith(candidate));
+                    if (selectedVoice) break;
+                }
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
                 }
 
                 utterance.onstart = () => setIsSpeaking(true);
@@ -387,6 +438,12 @@
                 const cleanDef = currentDefinition.replace(/\[Plural of [^\]]+\]\s*/g, '');
                 const text = `The word is: ${currentWord.toLowerCase()}. Definition: ${cleanDef}.`;
                 speakText(text, 0.85);
+            };
+
+            const spellWordAloud = () => {
+                if (!currentWord) return;
+                const spellingStr = currentWord.toUpperCase().split('').join(' . . ');
+                speakText(`Spelled: ${spellingStr}`, 0.65);
             };
 
             // Select a new word and fetch its definition
@@ -641,7 +698,7 @@
 
                                         {/* Main Speak button */}
                                         <button
-                                            onClick={() => speakCurrentWord(0.85)}
+                                            onClick={() => speakCurrentWord()}
                                             className={`w-20 h-20 rounded-full border-2 border-cyan-400/40 text-cyan-400 flex items-center justify-center transition-all bg-cyan-400/5 hover:bg-cyan-400/15 ${
                                                 isSpeaking ? 'speaking-glow' : ''
                                             }`}
@@ -666,6 +723,23 @@
 
                                     <div className="text-[10px] text-gray-500 font-mono tracking-widest mt-2">
                                         {isSpeaking ? "OUTPUT_VOICE_STREAMING" : "CLICK_VOICE_SPEAK_CORE"}
+                                    </div>
+
+                                    {/* Speech Speed slider */}
+                                    <div className="w-full max-w-[200px] mt-3 flex flex-col items-center flex-none">
+                                        <div className="flex justify-between w-full text-[9px] text-gray-500 font-mono mb-1">
+                                            <span>SPEECH SPEED</span>
+                                            <span className="text-cyan-400 font-bold">{ttsRate.toFixed(2)}x</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="0.3" 
+                                            max="1.2" 
+                                            step="0.05" 
+                                            value={ttsRate} 
+                                            onChange={(e) => setTtsRate(parseFloat(e.target.value))}
+                                            className="w-full accent-cyan-400 bg-black/40 border border-cyan-400/25 rounded h-1 cursor-pointer"
+                                        />
                                     </div>
 
                                     {/* Difficulty Meter */}
@@ -740,6 +814,16 @@
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Spell Aloud Helper for reinforcement */}
+                                        <button
+                                            onClick={spellWordAloud}
+                                            className="w-full py-2 rounded border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/10 text-xs font-black font-mono tracking-widest flex items-center justify-center gap-2 transition-all flex-none"
+                                            title="Spell the correct word out loud letter-by-letter"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">spellcheck</span>
+                                            SPELL_LETTERS_ALOUD
+                                        </button>
 
                                         {/* Next word triggers */}
                                         <button
