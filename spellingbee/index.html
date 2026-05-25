@@ -393,9 +393,9 @@
                 setGameStatus('ready');
             };
 
-            // Trigger a SpeechSynthesis voice output (Google Web TTS premium voice with local speech synthesis fallback)
-            const speakText = (text, rate = 0.85) => {
-                // Cancel any ongoing native speech
+            // Trigger a high-quality human voice or Web-TTS output (with multiple fallbacks)
+            const speakText = async (text, rate = 0.85) => {
+                // Cancel native speech
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
                 }
@@ -408,7 +408,120 @@
 
                 setIsSpeaking(true);
 
-                // 1. Attempt High-Quality Google Translate Web TTS API first
+                const cleanText = text.trim().toLowerCase();
+                const isSingleWord = !cleanText.includes(' ') && !cleanText.includes('.');
+                const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+
+                // Tier 1 (Electron Special): Try the Offline-Caching Local TTS proxy (ideal and local)
+                if (isElectron) {
+                    try {
+                        const localTtsUrl = `app://hub/tts?text=${encodeURIComponent(cleanText)}`;
+                        const audio = new Audio(localTtsUrl);
+                        audio.defaultPlaybackRate = rate;
+                        audio.playbackRate = rate;
+                        window.currentAudioElement = audio;
+
+                        audio.onended = () => {
+                            setIsSpeaking(false);
+                            window.currentAudioElement = null;
+                        };
+
+                        audio.onerror = (err) => {
+                            console.warn("Local Electron TTS proxy failed, falling back to browser SpeechSynthesis:", err);
+                            window.currentAudioElement = null;
+                            fallbackSpeakText(text, rate);
+                        };
+
+                        audio.play().catch(e => {
+                            console.warn("Local Electron TTS autoplay blocked, falling back:", e);
+                            window.currentAudioElement = null;
+                            fallbackSpeakText(text, rate);
+                        });
+                        return;
+                    } catch (err) {
+                        console.warn("Failed to play from Electron local TTS, falling back:", err);
+                    }
+                }
+
+                // Tier 1 (Browser Mode): Try Free Dictionary API for crystal-clear real human voice recordings (single words only)
+                if (isSingleWord) {
+                    try {
+                        const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanText}`);
+                        if (dictRes.ok) {
+                            const dictData = await dictRes.json();
+                            if (dictData && dictData[0] && dictData[0].phonetics) {
+                                // Find a phonetic entry that has an audio URL
+                                const phon = dictData[0].phonetics.find(p => p.audio && p.audio.length > 0);
+                                if (phon) {
+                                    const audio = new Audio(phon.audio);
+                                    audio.defaultPlaybackRate = rate;
+                                    audio.playbackRate = rate;
+                                    window.currentAudioElement = audio;
+
+                                    audio.onended = () => {
+                                        setIsSpeaking(false);
+                                        window.currentAudioElement = null;
+                                    };
+
+                                    audio.onerror = () => {
+                                        console.warn("Free Dictionary audio failed, falling back to Youdao Translate.");
+                                        window.currentAudioElement = null;
+                                        playYoudaoTts(text, rate);
+                                    };
+
+                                    audio.play().then(() => {
+                                        // Successfully playing
+                                    }).catch(e => {
+                                        console.warn("Autoplay block on Free Dictionary audio, falling back:", e);
+                                        window.currentAudioElement = null;
+                                        playYoudaoTts(text, rate);
+                                    });
+                                    return;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("Free Dictionary API offline or failed, falling back to Youdao Translate:", e);
+                    }
+                }
+
+                // Tier 2 (Browser Mode): Fall back to Youdao Dictionary Neural TTS API
+                playYoudaoTts(text, rate);
+            };
+
+            const playYoudaoTts = (text, rate = 0.85) => {
+                try {
+                    const encodedText = encodeURIComponent(text.toLowerCase());
+                    const youdaoTtsUrl = `https://dict.youdao.com/dictvoice?type=2&audio=${encodedText}`;
+
+                    const audio = new Audio(youdaoTtsUrl);
+                    audio.defaultPlaybackRate = rate;
+                    audio.playbackRate = rate;
+                    window.currentAudioElement = audio;
+
+                    audio.onended = () => {
+                        setIsSpeaking(false);
+                        window.currentAudioElement = null;
+                    };
+
+                    audio.onerror = (err) => {
+                        console.warn("Youdao TTS failed, falling back to Google Translate:", err);
+                        window.currentAudioElement = null;
+                        playGoogleTts(text, rate);
+                    };
+
+                    audio.play().catch(e => {
+                        console.warn("Youdao TTS play blocked/failed, falling back to Google Translate:", e);
+                        window.currentAudioElement = null;
+                        playGoogleTts(text, rate);
+                    });
+                } catch (err) {
+                    console.warn("Youdao TTS initialization failed, falling back to Google Translate:", err);
+                    playGoogleTts(text, rate);
+                }
+            };
+
+            const playGoogleTts = (text, rate = 0.85) => {
                 try {
                     const encodedText = encodeURIComponent(text.toLowerCase());
                     const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodedText}`;
@@ -430,7 +543,7 @@
                     };
 
                     audio.play().catch(e => {
-                        console.warn("Audio autoplay blocked/failed, falling back to native SpeechSynthesis:", e);
+                        console.warn("Google TTS play blocked/failed, falling back to native SpeechSynthesis:", e);
                         window.currentAudioElement = null;
                         fallbackSpeakText(text, rate);
                     });
@@ -439,6 +552,7 @@
                     fallbackSpeakText(text, rate);
                 }
             };
+
 
             const fallbackSpeakText = (text, rate = 0.85) => {
                 if (!('speechSynthesis' in window)) {
