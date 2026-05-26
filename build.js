@@ -1035,6 +1035,10 @@ window.DefinitionManager = {
     console.log('> Building Spelling Bee...');
     copyRecursiveWithLog(path.join(__dirname, 'spellingbee'), path.join(distDir, 'spellingbee'));
 
+    // 8j. Build Cyber Birds (Static + Assets)
+    console.log('> Building Cyber Birds...');
+    copyRecursiveWithLog(path.join(__dirname, 'cyberbirds'), path.join(distDir, 'cyberbirds'));
+
     // 9. Copy Shared Scripts/Assets
     console.log('> Copying Shared Assets...');
     copyRecursiveWithLog(path.join(__dirname, 'shared'), path.join(distDir, 'shared'));
