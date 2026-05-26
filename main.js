@@ -34,8 +34,8 @@ function initializeFavorites() {
     const allGamesGrid = document.getElementById('allGamesGrid');
     if (!favoritesGrid || !allGamesGrid) return;
 
-    // Fetch all cards from both ALL_MODULES and BETA_MODULES sections
-    const allCards = Array.from(document.querySelectorAll('#allGamesGrid .cyber-card, #betaGamesGrid .cyber-card'));
+    // Fetch all cards from ALL_MODULES
+    const allCards = Array.from(allGamesGrid.querySelectorAll('.cyber-card'));
     if (allCards.length === 0) return;
 
     // Load all-time play counts from localStorage

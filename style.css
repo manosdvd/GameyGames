@@ -150,7 +150,6 @@ h1, h2, h3 {
 .bg-pixel { background: radial-gradient(circle, #006633 0%, #03030c 80%); }
 .bg-mine { background: repeating-linear-gradient(45deg, #3a0000, #3a0000 8px, #03030c 8px, #03030c 16px); }
 .bg-spelling { background: radial-gradient(circle, #4a3500 0%, #03030c 80%); }
-.bg-cyberbirds { background: radial-gradient(circle, #0b1a4a 0%, #03030c 80%); }
 
 .card-content {
     padding: 1.15rem;
