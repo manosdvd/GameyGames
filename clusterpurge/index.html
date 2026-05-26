@@ -72,32 +72,61 @@
             padding: 8px 15px;
         }
 
+        /* Cybernetic Recipe Board with brackets */
         #recipe-container {
             display: flex;
             gap: 10px;
             justify-content: center;
-            align-items: center;
+            align-items: stretch;
             flex-wrap: wrap;
-            width: 100%;
+            width: calc(100% - 20px);
             max-width: 600px;
-            margin: 5px 0 8px 0;
-            padding: 8px 15px;
-            background: rgba(10, 10, 31, 0.45);
-            border: 1px solid rgba(0, 243, 255, 0.2);
+            margin: 5px 10px 8px 10px;
+            padding: 12px 15px;
+            background: rgba(10, 10, 31, 0.65);
+            border: 1px solid rgba(0, 243, 255, 0.18);
             border-radius: var(--md-shape-corner-medium);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(14px);
             box-shadow: var(--cyber-glass-shadow);
             z-index: 10;
+            position: relative;
+        }
+
+        #recipe-container::before, #recipe-container::after,
+        #game-container::before, #game-container::after {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--cyber-cyan);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #recipe-container::before, #game-container::before {
+            top: -2px;
+            left: -2px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        #recipe-container::after, #game-container::after {
+            bottom: -2px;
+            right: -2px;
+            border-left: none;
+            border-top: none;
         }
 
         .recipe-item {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 5px 12px;
-            border-radius: var(--md-shape-corner-full);
+            flex-direction: column;
+            justify-content: space-between;
+            min-width: 75px;
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: var(--md-shape-corner-small);
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.06);
             font-family: 'Orbitron', monospace;
             font-size: 0.85rem;
             font-weight: 700;
@@ -105,14 +134,14 @@
         }
 
         .recipe-item.complete {
-            background: rgba(0, 255, 102, 0.08);
+            background: rgba(0, 255, 102, 0.07);
             border-color: rgba(0, 255, 102, 0.4);
             color: #00ff66;
-            box-shadow: 0 0 10px rgba(0, 255, 102, 0.15);
+            box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.05);
         }
 
         .recipe-symbol {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -120,6 +149,7 @@
 
         .recipe-progress {
             color: var(--cyber-text);
+            font-size: 0.8rem;
         }
 
         .recipe-item.complete .recipe-progress {
@@ -139,12 +169,12 @@
 
         #game-container {
             position: relative;
-            background: rgba(10, 10, 31, 0.4);
+            background: rgba(8, 8, 24, 0.55);
             border: 2px solid rgba(0, 243, 255, 0.25);
             border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-            width: min(90vw, 48dvh);
-            height: min(115vw, 62dvh);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.65);
+            width: min(90vw, 47dvh);
+            height: min(115vw, 61dvh);
             box-sizing: border-box;
             overflow: hidden;
             display: flex;
@@ -191,14 +221,19 @@
             to { border-color: rgba(255, 0, 255, 0.8); }
         }
 
+        @keyframes pulse-glow-cyan {
+            from { color: rgba(0, 243, 255, 0.4); text-shadow: none; }
+            to { color: rgba(0, 243, 255, 1); text-shadow: 0 0 8px rgba(0, 243, 255, 0.75); }
+        }
+
         #win-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100dvh;
-            background: rgba(5, 5, 20, 0.96);
-            backdrop-filter: blur(8px);
+            background: rgba(4, 4, 15, 0.97);
+            backdrop-filter: blur(10px);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -276,7 +311,7 @@
             top: 40%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0.9);
-            background: rgba(255, 0, 85, 0.95);
+            background: rgba(255, 0, 85, 0.96);
             border: 2px solid #ff0055;
             box-shadow: 0 0 25px #ff0055;
             color: white;
@@ -902,7 +937,6 @@
 
         function getLevelConfig(lvl) {
             if (lvl <= levels.length) {
-                // Copy level config so we don't mutate defaults
                 const cfg = levels[lvl - 1];
                 return {
                     name: cfg.name,
@@ -931,6 +965,25 @@
             const container = document.getElementById('recipe-container');
             container.innerHTML = '';
             
+            // Cybernetic panel mini header
+            const header = document.createElement('div');
+            header.style.width = '100%';
+            header.style.textAlign = 'left';
+            header.style.fontFamily = "'Orbitron', sans-serif";
+            header.style.fontSize = '0.65rem';
+            header.style.color = 'var(--cyber-cyan)';
+            header.style.letterSpacing = '1px';
+            header.style.marginBottom = '6px';
+            header.style.display = 'flex';
+            header.style.justifyContent = 'space-between';
+            header.style.opacity = '0.85';
+            
+            header.innerHTML = `
+                <span>[MATRIX_RECIPE_DECODER // ACTIVE]</span>
+                <span style="animation: pulse-glow-cyan 0.8s infinite alternate; font-weight: 800;">● SYSTEM_STABLE</span>
+            `;
+            container.appendChild(header);
+            
             activeRecipes.forEach(recipe => {
                 const colorHex = colorMap[recipe.colorIdx];
                 const symbol = symbols[recipe.colorIdx];
@@ -940,19 +993,34 @@
                 item.className = `recipe-item ${isDone ? 'complete' : ''}`;
                 item.style.borderColor = isDone ? 'rgba(0, 255, 102, 0.4)' : `${colorHex}35`;
                 
+                // Progress gauge percentage
+                const pct = Math.min(100, (recipe.collected / recipe.target) * 100);
+                
                 item.innerHTML = `
-                    <span class="recipe-symbol" style="color: ${colorHex}; text-shadow: 0 0 5px ${colorHex}">${symbol}</span>
-                    <span class="recipe-progress">${recipe.collected}/${recipe.target}</span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                        <span class="recipe-symbol" style="color: ${colorHex}; text-shadow: 0 0 5px ${colorHex}">${symbol}</span>
+                        <span class="recipe-progress">${recipe.collected}/${recipe.target}</span>
+                    </div>
+                    <!-- Mini progress gauge -->
+                    <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04);">
+                        <div style="width: ${pct}%; height: 100%; background: ${isDone ? '#00ff66' : colorHex}; box-shadow: 0 0 6px ${isDone ? '#00ff66' : colorHex}; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                    </div>
                 `;
                 container.appendChild(item);
             });
         }
 
         function recordRecipeProgress(colorIdx) {
-            activeRecipes.forEach(recipe => {
-                if (recipe.colorIdx === colorIdx) {
-                    recipe.collected = Math.min(recipe.target, recipe.collected + 1);
-                }
+            recordRecipeProgressMultiple([colorIdx]);
+        }
+
+        function recordRecipeProgressMultiple(colorIndices) {
+            colorIndices.forEach(colorIdx => {
+                activeRecipes.forEach(recipe => {
+                    if (recipe.colorIdx === colorIdx) {
+                        recipe.collected = Math.min(recipe.target, recipe.collected + 1);
+                    }
+                });
             });
             updateRecipeUI();
             checkLevelWinCondition();
@@ -970,7 +1038,7 @@
         function triggerLevelWin() {
             if (window.GlobalScore) {
                 window.GlobalScore.playDopamineChime();
-                window.GlobalScore.add(500); // 500 bonus
+                window.GlobalScore.add(500); 
             }
             
             winOverlayEl.classList.add('show');
@@ -981,7 +1049,6 @@
             winStatsTextEl.innerText = `LEVEL ${currentLevel} CLEARED!\nBONUS XP: +500\nTOTAL SCORE: ${score}`;
             btnWinRestart.innerText = `PROCEED TO LEVEL ${nextLvl}`;
             
-            // Re-bind win button to advance
             btnWinRestart.onclick = () => {
                 currentLevel = nextLvl;
                 initGame();
@@ -996,7 +1063,6 @@
             winStatsTextEl.innerText = `MATRIX SATURATED! NO MOVES REMAINING.\nLEVEL REACHED: ${currentLevel}\nFINAL SCORE: ${score}`;
             btnWinRestart.innerText = "RESTART LEVEL";
             
-            // Re-bind win button to restart
             btnWinRestart.onclick = () => {
                 initGame();
             };
@@ -1014,9 +1080,7 @@
                     restitution: 0.4,
                     friction: 0.005,
                     density: 0.04,
-                    render: {
-                        visible: false // custom renderer handles it
-                    }
+                    render: { visible: false }
                 });
                 ball.colorIdx = cIdx;
                 ball.hexColor = cHex;
@@ -1040,7 +1104,6 @@
             scoreCountEl.innerText = score;
             levelCountEl.innerText = currentLevel;
             
-            // Load Level Configuration
             const cfg = getLevelConfig(currentLevel);
             activeRecipes = cfg.recipes;
             updateRecipeUI();
@@ -1051,14 +1114,96 @@
             spawnBalls(cfg.numBalls);
         }
 
-        // --- Custom Renderer in Matter.js ---
+        // --- Scrolling Tech Grid Background ---
+        Matter.Events.on(render, 'beforeRender', () => {
+            const ctx = render.context;
+            const time = Date.now();
+            
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.045)';
+            ctx.lineWidth = 1;
+            
+            const gridSize = 45;
+            // Scrolling speed drift
+            const offsetX = (time / 110) % gridSize;
+            const offsetY = (time / 110) % gridSize;
+            
+            // Vertical grids
+            for (let x = offsetX; x < width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            
+            // Horizontal grids
+            for (let y = offsetY; y < height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+            
+            // Neon vignette shading
+            const vignette = ctx.createRadialGradient(
+                width/2, height/2, width/3,
+                width/2, height/2, width
+            );
+            vignette.addColorStop(0, 'rgba(8, 8, 24, 0)');
+            vignette.addColorStop(1, 'rgba(4, 4, 15, 0.72)');
+            ctx.fillStyle = vignette;
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.restore();
+        });
+
+        // --- Custom Canvas rendering with 2.5D Shadows ---
         Matter.Events.on(render, 'afterRender', () => {
             const ctx = render.context;
             const bodies = Composite.allBodies(world).filter(b => !b.isStatic);
+            const time = Date.now();
             
+            // Phase 1: Draw realistic dark drop shadows beneath all floating bodies
+            ctx.save();
             bodies.forEach(body => {
                 const { x, y } = body.position;
-                const radius = body.circleRadius;
+                const radius = body.circleRadius || (body.circleRadius === 0 ? 0 : ballRadius);
+                
+                ctx.save();
+                ctx.translate(x + 5, y + 8); // Offset direction
+                ctx.beginPath();
+                ctx.arc(0, 0, radius - 1, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.restore();
+                
+                // Emit trailing rainbow sparkles constantly
+                if (body.isPowerUp && body.powerUpType === 'rainbow' && Math.random() < 0.16) {
+                    const rect = render.canvas.getBoundingClientRect();
+                    const scaleX = rect.width / render.canvas.width;
+                    const scaleY = rect.height / render.canvas.height;
+                    const rx = rect.left + (body.position.x + (Math.random() - 0.5) * radius * 1.5) / scaleX;
+                    const ry = rect.top + (body.position.y + (Math.random() - 0.5) * radius * 1.5) / scaleY;
+                    
+                    particles.push({
+                        type: 'spark',
+                        x: rx, y: ry,
+                        vx: (Math.random() - 0.5) * 1.6,
+                        vy: -Math.random() * 1.8 - 0.5,
+                        life: 0.85, decay: 0.035,
+                        color: `hsl(${Math.random() * 360}, 100%, 75%)`,
+                        size: Math.random() * 2.8 + 1
+                    });
+                }
+            });
+            ctx.restore();
+            
+            // Phase 2: Draw the high-fidelity 3D marbles
+            bodies.forEach(body => {
+                const { x, y } = body.position;
+                const radius = body.circleRadius || (body.circleRadius === 0 ? 0 : ballRadius);
                 const angle = body.angle;
                 
                 ctx.save();
@@ -1066,7 +1211,7 @@
                 ctx.rotate(angle);
                 
                 if (body.isPowerUp) {
-                    drawPowerUpBody(ctx, body, radius);
+                    drawPowerUpBody(ctx, body, radius, time);
                 } else {
                     draw3DBall(ctx, body, radius);
                 }
@@ -1079,7 +1224,7 @@
             const colorIdx = body.colorIdx;
             const scheme = sphereColors[colorIdx] || sphereColors[0];
             
-            // 1. Draw dynamic outer glow
+            // 1. Draw outer neon glow
             ctx.shadowBlur = 12;
             ctx.shadowColor = scheme.shadowColor;
             ctx.beginPath();
@@ -1088,7 +1233,7 @@
             ctx.fill();
             ctx.shadowBlur = 0; // reset
             
-            // 2. Draw 3D radial gradient sphere
+            // 2. Beautiful 3D radial gradient sphere shading
             const grad = ctx.createRadialGradient(
                 -radius * 0.25, -radius * 0.25, radius * 0.05,
                 0, 0, radius
@@ -1109,7 +1254,7 @@
             ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
             ctx.fill();
             
-            // 4. Accessibility Symbol
+            // 4. Accessibility Icon
             drawAccessibilitySymbol(ctx, colorIdx, radius, scheme.symbolColor);
         }
 
@@ -1173,14 +1318,24 @@
             ctx.restore();
         }
 
-        function drawPowerUpBody(ctx, body, radius) {
-            const time = Date.now();
+        function drawPowerUpBody(ctx, body, radius, time) {
             const pulse = 1.0 + Math.sin(time / 110) * 0.07;
             const finalRadius = radius * pulse;
             
             if (body.powerUpType === 'bomb') {
                 ctx.shadowBlur = 18;
                 ctx.shadowColor = '#ff3c00';
+                
+                // Rotating dashed hazard rings
+                ctx.save();
+                ctx.rotate(-time / 550);
+                ctx.strokeStyle = 'rgba(255, 60, 0, 0.45)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 6]);
+                ctx.beginPath();
+                ctx.arc(0, 0, finalRadius * 0.75, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
                 
                 const grad = ctx.createRadialGradient(
                     -finalRadius * 0.25, -finalRadius * 0.25, finalRadius * 0.05,
@@ -1197,20 +1352,17 @@
                 ctx.fill();
                 ctx.shadowBlur = 0;
                 
-                // Nuclear glow rings
                 ctx.strokeStyle = 'rgba(255, 60, 0, 0.75)';
                 ctx.lineWidth = 2.5;
                 ctx.beginPath();
                 ctx.arc(0, 0, finalRadius * 0.85, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                // Bomb center fuse icon
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
                 ctx.arc(0, 0, finalRadius * 0.35, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Spark fuse path
                 const sparkAngle = (time / 140) % (Math.PI * 2);
                 const fuseX = Math.cos(sparkAngle) * finalRadius * 0.65;
                 const fuseY = Math.sin(sparkAngle) * finalRadius * 0.65;
@@ -1231,6 +1383,16 @@
                 ctx.shadowBlur = 18;
                 ctx.shadowColor = '#00f3ff';
                 
+                // Gyroscopic wireframe orbit ring
+                ctx.save();
+                ctx.rotate(-time / 220);
+                ctx.strokeStyle = 'rgba(0, 243, 255, 0.45)';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, finalRadius * 1.25, finalRadius * 0.35, Math.PI / 6, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+                
                 const grad = ctx.createRadialGradient(
                     -finalRadius * 0.25, -finalRadius * 0.25, finalRadius * 0.05,
                     0, 0, finalRadius
@@ -1246,7 +1408,6 @@
                 ctx.fill();
                 ctx.shadowBlur = 0;
                 
-                // Spin electric arrows
                 ctx.save();
                 ctx.rotate(time / 350);
                 ctx.strokeStyle = '#ffffff';
@@ -1293,7 +1454,6 @@
                 ctx.fill();
                 ctx.shadowBlur = 0;
                 
-                // Prism core
                 ctx.save();
                 ctx.rotate(-time / 550);
                 ctx.fillStyle = '#ffffff';
@@ -1321,7 +1481,7 @@
         render.canvas.addEventListener('touchstart', handleTap, {passive: true});
 
         function handleTap(e) {
-            if (levelIsWon) return; // ignore click if already won
+            if (levelIsWon) return; 
             
             let clientX, clientY;
             if (e.touches && e.touches.length > 0) {
@@ -1386,12 +1546,29 @@
                 if (window.GlobalScore) window.GlobalScore.add(pts);
                 scoreCountEl.innerText = score;
 
-                // Log recipe goals
+                // Dynamic progress logs
                 bodiesToRemove.forEach(b => {
                     recordRecipeProgress(b.colorIdx);
                 });
 
-                // Spawns power-up if cluster size is 5 or more!
+                // Spawn shockwave ring for standard match pop
+                const rect = render.canvas.getBoundingClientRect();
+                const scaleX = rect.width / render.canvas.width;
+                const scaleY = rect.height / render.canvas.height;
+                const pX = rect.left + startBody.position.x / scaleX;
+                const pY = rect.top + startBody.position.y / scaleY;
+                
+                particles.push({
+                    type: 'ring',
+                    x: pX, y: pY,
+                    radius: 2,
+                    maxRadius: ballRadius * 3.5,
+                    lineWidth: 3.5,
+                    color: startBody.hexColor,
+                    life: 1.0, decay: 0.055
+                });
+
+                // Spawns power-up if cluster size is 5 or more
                 if (cluster.size >= 5) {
                     const pUpType = cluster.size >= 9 ? 'rainbow' : (cluster.size >= 7 ? 'laser' : 'bomb');
                     const spawnX = startBody.position.x;
@@ -1412,10 +1589,6 @@
                     if (scaleTicks >= 6) {
                         clearInterval(popInterval);
                         Composite.remove(world, bodiesToRemove);
-
-                        const rect = render.canvas.getBoundingClientRect();
-                        const scaleX = rect.width / render.canvas.width;
-                        const scaleY = rect.height / render.canvas.height;
                         
                         bodiesToRemove.forEach(b => {
                             const screenX = rect.left + b.position.x / scaleX;
@@ -1434,7 +1607,7 @@
         function spawnPowerUp(x, y, type) {
             playSound('powerup_spawn');
             
-            const pUp = Bodies.circle(x, y, ballRadius * 1.1, {
+            const pUp = Bodies.circle(x, y, ballRadius * 1.15, {
                 restitution: 0.5,
                 friction: 0.005,
                 density: 0.045,
@@ -1445,7 +1618,6 @@
             
             Composite.add(world, pUp);
             
-            // Energy ring spawn sparks
             const rect = render.canvas.getBoundingClientRect();
             const scaleX = rect.width / render.canvas.width;
             const scaleY = rect.height / render.canvas.height;
@@ -1491,16 +1663,16 @@
                 if (dist <= range) affected.push(b);
             });
             
-            // Pop processing
             affected.forEach(b => Matter.Body.setStatic(b, true));
             const pts = affected.length * 15;
             score += pts;
             if (window.GlobalScore) window.GlobalScore.add(pts);
             scoreCountEl.innerText = score;
             
-            affected.forEach(b => recordRecipeProgress(b.colorIdx));
+            // Batch update all bomb-destroyed balls into the recipes!
+            const colorIndices = affected.map(b => b.colorIdx).filter(c => c !== undefined);
+            recordRecipeProgressMultiple(colorIndices);
             
-            // FX particles
             const rect = render.canvas.getBoundingClientRect();
             const scaleX = rect.width / render.canvas.width;
             const scaleY = rect.height / render.canvas.height;
@@ -1548,7 +1720,9 @@
             if (window.GlobalScore) window.GlobalScore.add(pts);
             scoreCountEl.innerText = score;
             
-            affected.forEach(b => recordRecipeProgress(b.colorIdx));
+            // Batch update all laser-destroyed balls into the recipes!
+            const colorIndices = affected.map(b => b.colorIdx).filter(c => c !== undefined);
+            recordRecipeProgressMultiple(colorIndices);
             
             const rect = render.canvas.getBoundingClientRect();
             const scaleX = rect.width / render.canvas.width;
@@ -1575,39 +1749,6 @@
             }, 16);
         }
 
-        function getRainbowTargetColorIndex() {
-            // Priority: recipe colors that still need targets
-            let maxNeededCount = -1;
-            let maxNeededIdx = -1;
-            
-            activeRecipes.forEach(recipe => {
-                const needed = recipe.target - recipe.collected;
-                if (needed > 0 && needed > maxNeededCount) {
-                    maxNeededCount = needed;
-                    maxNeededIdx = recipe.colorIdx;
-                }
-            });
-            
-            if (maxNeededIdx !== -1) return maxNeededIdx;
-            
-            // Fallback: color with the most balls on screen
-            const bodies = Composite.allBodies(world).filter(b => !b.isStatic && !b.isPowerUp);
-            const counts = [0, 0, 0, 0, 0];
-            bodies.forEach(b => {
-                if (b.colorIdx !== undefined) counts[b.colorIdx]++;
-            });
-            
-            let maxCount = -1;
-            let maxIdx = 0;
-            for (let i = 0; i < counts.length; i++) {
-                if (counts[i] > maxCount) {
-                    maxCount = counts[i];
-                    maxIdx = i;
-                }
-            }
-            return maxIdx;
-        }
-
         function triggerRainbow(startX, startY) {
             playSound('rainbow_sweep');
             screenShake(15);
@@ -1621,10 +1762,11 @@
             if (window.GlobalScore) window.GlobalScore.add(pts);
             scoreCountEl.innerText = score;
             
-            // Rainbow electric connection lines
             spawnRainbowFX(startX, startY, affected);
             
-            affected.forEach(b => recordRecipeProgress(b.colorIdx));
+            // Batch update all rainbow-wiped balls into the recipes!
+            const colorIndices = affected.map(b => b.colorIdx).filter(c => c !== undefined);
+            recordRecipeProgressMultiple(colorIndices);
             
             let ticks = 0;
             const popInterval = setInterval(() => {
@@ -1640,6 +1782,22 @@
             }, 16);
         }
 
+        // --- Intelligent Refill Color Generator ---
+        function getRefillColorIndex() {
+            const neededColors = activeRecipes
+                .filter(r => r.collected < r.target)
+                .map(r => r.colorIdx);
+            
+            if (neededColors.length > 0 && Math.random() < 0.75) {
+                // 75% chance to drop a color that is still needed for the active targets!
+                const randIdx = Math.floor(Math.random() * neededColors.length);
+                return neededColors[randIdx];
+            } else {
+                // 25% chance to drop a completely random color
+                return Math.floor(Math.random() * colorMap.length);
+            }
+        }
+
         // --- Refill Mechanic ---
         function triggerRefill() {
             if (refillsLeft <= 0 || btnRefill.classList.contains('cooldown') || levelIsWon) return;
@@ -1647,15 +1805,15 @@
             refillsLeft--;
             refillCountEl.innerText = refillsLeft;
             btnRefill.classList.add('cooldown');
-            noMovesToast.classList.remove('show'); // clear toast if it was up
+            noMovesToast.classList.remove('show'); 
             
             playSound('refill');
             
-            // Drop 18 random balls dynamically from above viewport
+            // Drop 18 balls dynamically from above viewport with weighted color selections
             const dropCount = 18;
             const balls = [];
             for (let i = 0; i < dropCount; i++) {
-                const cIdx = Math.floor(Math.random() * colorMap.length);
+                const cIdx = getRefillColorIndex();
                 const cHex = colorMap[cIdx];
                 const x = 50 + Math.random() * (width - 100);
                 const y = -60 - Math.random() * 450; 
@@ -1674,7 +1832,6 @@
             
             setTimeout(() => {
                 btnRefill.classList.remove('cooldown');
-                // Re-verify after drop has settled
                 clearTimeout(gameOverCheckTimer);
                 gameOverCheckTimer = setTimeout(checkGameOver, 2000);
             }, 2000);
@@ -1688,7 +1845,6 @@
             let hasMoves = false;
             const threshold = ballRadius * 2 + 15; 
 
-            // If player has a power-up on board, those count as active moves!
             const powerups = bodies.filter(b => b.isPowerUp);
             if (powerups.length > 0) return;
 
@@ -1709,17 +1865,15 @@
 
             if (!hasMoves) {
                 if (refillsLeft > 0) {
-                    // Prompt player to trigger refill
                     noMovesToast.classList.add('show');
                 } else {
-                    // Out of moves AND out of refills
                     triggerLevelLoss();
                 }
             }
         }
 
         btnNew.addEventListener('click', () => {
-            currentLevel = 1; // Restart full protocol
+            currentLevel = 1; 
             initGame();
         });
         btnRefill.addEventListener('click', triggerRefill);
