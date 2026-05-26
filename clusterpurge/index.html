@@ -60,7 +60,7 @@
             justify-content: center;
             width: 100%;
             max-width: 600px;
-            margin: 20px 0 10px 0;
+            margin: 15px 0 5px 0;
             padding: 0 10px;
             z-index: 10;
         }
@@ -72,6 +72,60 @@
             padding: 8px 15px;
         }
 
+        #recipe-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 600px;
+            margin: 5px 0 8px 0;
+            padding: 8px 15px;
+            background: rgba(10, 10, 31, 0.45);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: var(--md-shape-corner-medium);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--cyber-glass-shadow);
+            z-index: 10;
+        }
+
+        .recipe-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px;
+            border-radius: var(--md-shape-corner-full);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-family: 'Orbitron', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .recipe-item.complete {
+            background: rgba(0, 255, 102, 0.08);
+            border-color: rgba(0, 255, 102, 0.4);
+            color: #00ff66;
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.15);
+        }
+
+        .recipe-symbol {
+            font-size: 1.1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .recipe-progress {
+            color: var(--cyber-text);
+        }
+
+        .recipe-item.complete .recipe-progress {
+            color: #00ff66;
+        }
+
         #game-wrapper {
             flex: 1;
             width: 100%;
@@ -79,7 +133,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px;
+            padding: 5px 10px;
             z-index: 10;
         }
 
@@ -89,8 +143,8 @@
             border: 2px solid rgba(0, 243, 255, 0.25);
             border-radius: 8px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-            width: min(90vw, 50dvh);
-            height: min(120vw, 65dvh);
+            width: min(90vw, 48dvh);
+            height: min(115vw, 62dvh);
             box-sizing: border-box;
             overflow: hidden;
             display: flex;
@@ -110,7 +164,7 @@
             gap: 15px;
             width: 100%;
             max-width: 600px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             padding: 0 15px;
             z-index: 10;
         }
@@ -123,6 +177,18 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            flex: 1;
+        }
+
+        #btnRefill.cooldown {
+            opacity: 0.6;
+            pointer-events: none;
+            animation: pulse-refill-border 0.8s infinite alternate;
+        }
+
+        @keyframes pulse-refill-border {
+            from { border-color: rgba(255, 0, 255, 0.3); }
+            to { border-color: rgba(255, 0, 255, 0.8); }
         }
 
         #win-overlay {
@@ -166,6 +232,7 @@
             margin-bottom: 35px;
             text-align: center;
             line-height: 1.6;
+            white-space: pre-line;
         }
 
         .btn-restart {
@@ -203,8 +270,40 @@
             z-index: 20;
         }
 
+        /* Pulsing Alert Toast */
+        .hud-toast {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(255, 0, 85, 0.95);
+            border: 2px solid #ff0055;
+            box-shadow: 0 0 25px #ff0055;
+            color: white;
+            padding: 15px 30px;
+            border-radius: var(--md-shape-corner-medium);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            z-index: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+        }
+        .hud-toast.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.0);
+            animation: pulse-glow 1s infinite alternate;
+        }
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 15px #ff0055; }
+            to { box-shadow: 0 0 30px #ff0055; }
+        }
+
         @media (min-width: 768px) {
-            .hud-stats-bar { margin: 30px 0 20px 0; }
+            .hud-stats-bar { margin: 25px 0 10px 0; }
             .win-title { font-size: 4rem; }
         }
     </style>
@@ -231,10 +330,13 @@
             <span class="hud-value" id="scoreCount">0</span>
         </div>
         <div class="hud-pill">
-            <span>TARGET</span>
-            <span class="hud-value" id="targetCount">CLEAN_MATRIX</span>
+            <span>LEVEL</span>
+            <span class="hud-value" id="levelCount">1</span>
         </div>
     </div>
+
+    <!-- Active recipes display -->
+    <div id="recipe-container"></div>
 
     <div id="game-wrapper">
         <div id="game-container">
@@ -242,15 +344,24 @@
         </div>
     </div>
 
+    <!-- Pulsing Alert for No Moves Left -->
+    <div id="no-moves-toast" class="hud-toast">
+        NO MOVES DETECTED!<br>TRIGGER REFILL NOW!
+    </div>
+
     <div class="controls-panel">
         <button class="cyber-btn" id="btnNew">
             <span class="material-symbols-outlined" style="font-size: 1.15rem;">cached</span>
             REGENERATE
         </button>
+        <button class="cyber-btn" id="btnRefill" style="border-color: var(--cyber-magenta); color: var(--cyber-magenta); box-shadow: inset 0 0 5px rgba(255,0,255,0.15);">
+            <span class="material-symbols-outlined" style="font-size: 1.15rem; color: var(--cyber-magenta);" id="refillIcon">arrow_downward</span>
+            REFILL (<span id="refillCount">3</span>)
+        </button>
     </div>
 
     <div id="win-overlay">
-        <div class="win-title">PURGE_COMPLETE</div>
+        <div class="win-title" id="winTitleText">PURGE_COMPLETE</div>
         <div class="win-stats" id="winStatsText">
             FINAL SCORE: 0
         </div>
@@ -259,13 +370,24 @@
 
     <script>
         let score = 0;
+        let currentLevel = 1;
+        let refillsLeft = 3;
+        const maxRefills = 3;
+        let activeRecipes = [];
+        let levelIsWon = false;
+        
         const scoreCountEl = document.getElementById('scoreCount');
+        const levelCountEl = document.getElementById('levelCount');
+        const refillCountEl = document.getElementById('refillCount');
         const btnNew = document.getElementById('btnNew');
+        const btnRefill = document.getElementById('btnRefill');
         const btnSoundToggle = document.getElementById('btnSoundToggle');
         const soundIconEl = document.getElementById('soundIcon');
         const winOverlayEl = document.getElementById('win-overlay');
+        const winTitleTextEl = document.getElementById('winTitleText');
         const winStatsTextEl = document.getElementById('winStatsText');
         const btnWinRestart = document.getElementById('btnWinRestart');
+        const noMovesToast = document.getElementById('no-moves-toast');
         
         const canvas = document.getElementById('fx-canvas');
         const ctx = canvas.getContext('2d');
@@ -281,14 +403,15 @@
         function spawnParticles(x, y, color, count = 20) {
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 12 + 3;
+                const speed = Math.random() * 10 + 2;
                 particles.push({
+                    type: 'spark',
                     x: x, y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
                     life: 1.0, decay: Math.random() * 0.04 + 0.02,
                     color: color,
-                    size: Math.random() * 6 + 3
+                    size: Math.random() * 5 + 2
                 });
             }
         }
@@ -308,26 +431,221 @@
             });
         }
 
+        // --- Custom FX Particle Animations ---
+        function spawnBombFX(x, y) {
+            // Ring shockwaves
+            particles.push({
+                type: 'ring',
+                x, y,
+                radius: 5,
+                maxRadius: 180,
+                lineWidth: 8,
+                color: '#ff5500',
+                life: 1.0, decay: 0.025
+            });
+            particles.push({
+                type: 'ring',
+                x, y,
+                radius: 5,
+                maxRadius: 120,
+                lineWidth: 4,
+                color: '#ffaa00',
+                life: 1.0, decay: 0.035
+            });
+            
+            // Explosive sparks
+            for (let i = 0; i < 40; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 14 + 4;
+                particles.push({
+                    type: 'spark',
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0, decay: Math.random() * 0.03 + 0.015,
+                    color: Math.random() > 0.4 ? '#ff3300' : '#ff9900',
+                    size: Math.random() * 7 + 2.5
+                });
+            }
+        }
+        
+        function spawnLaserFX(x, y) {
+            // Laser beams
+            particles.push({
+                type: 'laser_beam',
+                x, y,
+                dir: 'horizontal',
+                width: ballRadius * 2.2,
+                color: 'rgba(0, 243, 255, 0.85)',
+                life: 1.0, decay: 0.05
+            });
+            particles.push({
+                type: 'laser_beam',
+                x, y,
+                dir: 'vertical',
+                width: ballRadius * 2.2,
+                color: 'rgba(0, 243, 255, 0.85)',
+                life: 1.0, decay: 0.05
+            });
+            
+            // Electric sizzling sparks
+            for (let i = 0; i < 30; i++) {
+                const isHoriz = Math.random() > 0.5;
+                const speed = (Math.random() - 0.5) * 25;
+                particles.push({
+                    type: 'spark',
+                    x: isHoriz ? x + (Math.random() - 0.5) * width : x,
+                    y: isHoriz ? y : y + (Math.random() - 0.5) * height,
+                    vx: isHoriz ? speed : 0,
+                    vy: isHoriz ? 0 : speed,
+                    life: 1.0, decay: Math.random() * 0.04 + 0.02,
+                    color: '#00f3ff',
+                    size: Math.random() * 5 + 2
+                });
+            }
+        }
+        
+        function generateLightningPath(x1, y1, x2, y2) {
+            const segments = [{ x: x1, y: y1 }];
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const steps = Math.max(3, Math.floor(dist / 30));
+            
+            for (let i = 1; i < steps; i++) {
+                const t = i / steps;
+                const px = x1 + dx * t;
+                const py = y1 + dy * t;
+                
+                const nx = -dy / dist;
+                const ny = dx / dist;
+                const offset = (Math.random() - 0.5) * 24;
+                
+                segments.push({
+                    x: px + nx * offset,
+                    y: py + ny * offset
+                });
+            }
+            segments.push({ x: x2, y: y2 });
+            return segments;
+        }
+
+        function spawnRainbowFX(startX, startY, targetBodies) {
+            const rect = render.canvas.getBoundingClientRect();
+            const scaleX = rect.width / render.canvas.width;
+            const scaleY = rect.height / render.canvas.height;
+            
+            const scrX = rect.left + startX / scaleX;
+            const scrY = rect.top + startY / scaleY;
+            
+            targetBodies.forEach(b => {
+                const targetScrX = rect.left + b.position.x / scaleX;
+                const targetScrY = rect.top + b.position.y / scaleY;
+                
+                // Lightning electric links
+                particles.push({
+                    type: 'lightning',
+                    x1: scrX, y1: scrY,
+                    x2: targetScrX, y2: targetScrY,
+                    color: `hsl(${Math.random() * 360}, 100%, 75%)`,
+                    life: 1.0, decay: 0.05,
+                    segments: generateLightningPath(scrX, scrY, targetScrX, targetScrY)
+                });
+                
+                // Delayed sparkle explosion
+                setTimeout(() => {
+                    for (let i = 0; i < 8; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = Math.random() * 6 + 1.5;
+                        particles.push({
+                            type: 'spark',
+                            x: targetScrX, y: targetScrY,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed,
+                            life: 1.0, decay: Math.random() * 0.05 + 0.03,
+                            color: b.hexColor,
+                            size: Math.random() * 4.5 + 2
+                        });
+                    }
+                }, 80);
+            });
+        }
+
         function animateParticles() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
-                p.x += p.vx; p.y += p.vy;
-                p.vy += 0.1;
-                p.life -= p.decay;
-                if (p.life <= 0) {
-                    particles.splice(i, 1);
-                    continue;
+                
+                if (p.type === 'ring') {
+                    p.radius += (p.maxRadius - p.radius) * 0.14;
+                    p.life -= p.decay;
+                    if (p.life <= 0) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = p.color;
+                    ctx.lineWidth = p.lineWidth * p.life;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = p.color;
+                    ctx.stroke();
+                    ctx.restore();
+                } else if (p.type === 'laser_beam') {
+                    p.life -= p.decay;
+                    if (p.life <= 0) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = p.color;
+                    if (p.dir === 'horizontal') {
+                        ctx.fillRect(0, p.y - p.width/2 * p.life, canvas.width, p.width * p.life);
+                    } else {
+                        ctx.fillRect(p.x - p.width/2 * p.life, 0, p.width * p.life, canvas.height);
+                    }
+                    ctx.restore();
+                } else if (p.type === 'lightning') {
+                    p.life -= p.decay;
+                    if (p.life <= 0) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.strokeStyle = p.color;
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = p.color;
+                    ctx.lineWidth = 4 * p.life;
+                    ctx.beginPath();
+                    ctx.moveTo(p.segments[0].x, p.segments[0].y);
+                    for (let s = 1; s < p.segments.length; s++) {
+                        ctx.lineTo(p.segments[s].x, p.segments[s].y);
+                    }
+                    ctx.stroke();
+                    ctx.restore();
+                } else {
+                    // Regular sparks
+                    p.x += p.vx; p.y += p.vy;
+                    p.vy += 0.12; // gravity
+                    p.life -= p.decay;
+                    if (p.life <= 0) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
                 }
-                ctx.save();
-                ctx.globalAlpha = p.life;
-                ctx.fillStyle = p.color;
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
             }
             requestAnimationFrame(animateParticles);
         }
@@ -344,23 +662,95 @@
                 const now = audioCtx.currentTime;
                 
                 if (type === 'pop') {
-                    const baseFreq = 200 + Math.min(count * 20, 600);
+                    const baseFreq = 200 + Math.min(count * 22, 600);
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(baseFreq, now);
-                    osc.frequency.exponentialRampToValueAtTime(baseFreq * 2, now + 0.1);
-                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                    osc.start(now); osc.stop(now + 0.1);
+                    osc.type = 'triangle'; 
+                    osc.frequency.setValueAtTime(baseFreq, now);
+                    osc.frequency.exponentialRampToValueAtTime(baseFreq * 2.2, now + 0.12);
+                    gain.gain.setValueAtTime(0.1, now); 
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    osc.start(now); osc.stop(now + 0.12);
                 } else if (type === 'over') {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(200, now);
-                    osc.frequency.linearRampToValueAtTime(50, now + 0.5);
-                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-                    osc.start(now); osc.stop(now + 0.5);
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.linearRampToValueAtTime(45, now + 0.6);
+                    gain.gain.setValueAtTime(0.12, now); 
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    osc.start(now); osc.stop(now + 0.6);
+                } else if (type === 'refill') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(100, now);
+                    osc.frequency.exponentialRampToValueAtTime(900, now + 0.35);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now); osc.stop(now + 0.35);
+                } else if (type === 'powerup_spawn') {
+                    const playBeep = (freq, time, dur) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(freq, time);
+                        g.gain.setValueAtTime(0.05, time);
+                        g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+                        o.connect(g); g.connect(audioCtx.destination);
+                        o.start(time); o.stop(time + dur);
+                    };
+                    playBeep(700, now, 0.08);
+                    playBeep(1100, now + 0.06, 0.08);
+                    playBeep(1500, now + 0.12, 0.15);
+                } else if (type === 'bomb_explosion') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    const filter = audioCtx.createBiquadFilter();
+                    
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.linearRampToValueAtTime(25, now + 0.85);
+                    
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(180, now);
+                    
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+                    
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    
+                    osc.start(now); osc.stop(now + 0.85);
+                } else if (type === 'laser_zap') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(1100, now);
+                    osc.frequency.exponentialRampToValueAtTime(120, now + 0.28);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                    osc.start(now); osc.stop(now + 0.28);
+                } else if (type === 'rainbow_sweep') {
+                    const playNote = (freq, time, dur) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(freq, time);
+                        g.gain.setValueAtTime(0.06, time);
+                        g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+                        o.connect(g); g.connect(audioCtx.destination);
+                        o.start(time); o.stop(time + dur);
+                    };
+                    playNote(400, now, 0.12);
+                    playNote(600, now + 0.08, 0.12);
+                    playNote(900, now + 0.16, 0.12);
+                    playNote(1350, now + 0.24, 0.25);
                 }
             } catch (e) {}
         }
@@ -393,7 +783,6 @@
         const world = engine.world;
         const gameContainer = document.getElementById('game-container');
         
-        // Logical resolution
         const width = 600;
         const height = 800;
         
@@ -412,7 +801,7 @@
         const runner = Runner.create();
         Runner.run(runner, engine);
 
-        // Invisible boundaries
+        // Boundaries
         const wallOptions = { isStatic: true, render: { visible: false }, friction: 0.1, restitution: 0.2 };
         const leftWall = Bodies.rectangle(-25, height/2, 50, height * 2, wallOptions);
         const rightWall = Bodies.rectangle(width + 25, height/2, 50, height * 2, wallOptions);
@@ -420,27 +809,213 @@
         Composite.add(world, [leftWall, rightWall, bottomWall]);
 
         const colorMap = ['#00f3ff', '#ff00ff', '#ffe600', '#00ff66', '#ff3333'];
-        const numBalls = 90;
-        // ballRadius calculated so they fit roughly 10 across
-        const ballRadius = (width / 10) / 2; 
+        const symbols = ['▲', '■', '★', '○', '✚'];
+        
+        // 3D Spheres Style Specifications
+        const sphereColors = [
+            { // Cyan (Triangle)
+                highlight: '#ffffff',
+                mid: '#00f3ff',
+                dark: '#005f73',
+                shadow: '#002530',
+                symbolColor: 'rgba(255, 255, 255, 0.85)',
+                shadowColor: '#00f3ff'
+            },
+            { // Magenta (Square)
+                highlight: '#ffffff',
+                mid: '#ff00ff',
+                dark: '#8b008b',
+                shadow: '#360036',
+                symbolColor: 'rgba(255, 255, 255, 0.85)',
+                shadowColor: '#ff00ff'
+            },
+            { // Yellow (Star)
+                highlight: '#ffffff',
+                mid: '#ffe600',
+                dark: '#9a8b00',
+                shadow: '#403a00',
+                symbolColor: 'rgba(0, 0, 0, 0.75)',
+                shadowColor: '#ffe600'
+            },
+            { // Green (Ring)
+                highlight: '#ffffff',
+                mid: '#00ff66',
+                dark: '#008f39',
+                shadow: '#003615',
+                symbolColor: 'rgba(255, 255, 255, 0.85)',
+                shadowColor: '#00ff66'
+            },
+            { // Red (Cross)
+                highlight: '#ffffff',
+                mid: '#ff3333',
+                dark: '#990000',
+                shadow: '#400000',
+                symbolColor: 'rgba(255, 255, 255, 0.85)',
+                shadowColor: '#ff3333'
+            }
+        ];
 
-        function spawnBalls() {
+        const ballRadius = (width / 10) / 2;
+
+        // Level Configurations
+        const levels = [
+            {
+                name: "CYBER_SEED",
+                recipes: [
+                    { colorIdx: 0, target: 10, collected: 0 },
+                    { colorIdx: 1, target: 10, collected: 0 },
+                    { colorIdx: 2, target: 10, collected: 0 }
+                ],
+                numBalls: 70
+            },
+            {
+                name: "MATRIX_SHIFT",
+                recipes: [
+                    { colorIdx: 0, target: 12, collected: 0 },
+                    { colorIdx: 3, target: 12, collected: 0 },
+                    { colorIdx: 4, target: 12, collected: 0 }
+                ],
+                numBalls: 80
+            },
+            {
+                name: "QUANTUM_GRID",
+                recipes: [
+                    { colorIdx: 0, target: 15, collected: 0 },
+                    { colorIdx: 1, target: 15, collected: 0 },
+                    { colorIdx: 2, target: 15, collected: 0 },
+                    { colorIdx: 3, target: 15, collected: 0 }
+                ],
+                numBalls: 90
+            },
+            {
+                name: "NEXUS_CORE",
+                recipes: [
+                    { colorIdx: 0, target: 15, collected: 0 },
+                    { colorIdx: 1, target: 15, collected: 0 },
+                    { colorIdx: 2, target: 15, collected: 0 },
+                    { colorIdx: 3, target: 15, collected: 0 },
+                    { colorIdx: 4, target: 15, collected: 0 }
+                ],
+                numBalls: 95
+            }
+        ];
+
+        function getLevelConfig(lvl) {
+            if (lvl <= levels.length) {
+                // Copy level config so we don't mutate defaults
+                const cfg = levels[lvl - 1];
+                return {
+                    name: cfg.name,
+                    numBalls: cfg.numBalls,
+                    recipes: cfg.recipes.map(r => ({ ...r, collected: 0 }))
+                };
+            } else {
+                // Infinite Mode
+                const numColors = Math.min(3 + Math.floor(Math.random() * 3), 5); // 3-5 colors
+                const colorsToUse = [];
+                while (colorsToUse.length < numColors) {
+                    const rIdx = Math.floor(Math.random() * colorMap.length);
+                    if (!colorsToUse.includes(rIdx)) colorsToUse.push(rIdx);
+                }
+                const targetCount = 10 + lvl * 2;
+                const recipes = colorsToUse.map(c => ({ colorIdx: c, target: targetCount, collected: 0 }));
+                return {
+                    name: `HYPER_MATRIX_${lvl}`,
+                    numBalls: Math.min(90 + lvl * 2, 115),
+                    recipes: recipes
+                };
+            }
+        }
+
+        function updateRecipeUI() {
+            const container = document.getElementById('recipe-container');
+            container.innerHTML = '';
+            
+            activeRecipes.forEach(recipe => {
+                const colorHex = colorMap[recipe.colorIdx];
+                const symbol = symbols[recipe.colorIdx];
+                const isDone = recipe.collected >= recipe.target;
+                
+                const item = document.createElement('div');
+                item.className = `recipe-item ${isDone ? 'complete' : ''}`;
+                item.style.borderColor = isDone ? 'rgba(0, 255, 102, 0.4)' : `${colorHex}35`;
+                
+                item.innerHTML = `
+                    <span class="recipe-symbol" style="color: ${colorHex}; text-shadow: 0 0 5px ${colorHex}">${symbol}</span>
+                    <span class="recipe-progress">${recipe.collected}/${recipe.target}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function recordRecipeProgress(colorIdx) {
+            activeRecipes.forEach(recipe => {
+                if (recipe.colorIdx === colorIdx) {
+                    recipe.collected = Math.min(recipe.target, recipe.collected + 1);
+                }
+            });
+            updateRecipeUI();
+            checkLevelWinCondition();
+        }
+
+        function checkLevelWinCondition() {
+            if (levelIsWon) return;
+            const allDone = activeRecipes.every(r => r.collected >= r.target);
+            if (allDone) {
+                levelIsWon = true;
+                setTimeout(triggerLevelWin, 600);
+            }
+        }
+
+        function triggerLevelWin() {
+            if (window.GlobalScore) {
+                window.GlobalScore.playDopamineChime();
+                window.GlobalScore.add(500); // 500 bonus
+            }
+            
+            winOverlayEl.classList.add('show');
+            winTitleTextEl.innerText = "LEVEL COMPLETE";
+            winTitleTextEl.style.textShadow = "0 0 20px var(--cyber-cyan), 0 0 35px var(--cyber-cyan)";
+            
+            const nextLvl = currentLevel + 1;
+            winStatsTextEl.innerText = `LEVEL ${currentLevel} CLEARED!\nBONUS XP: +500\nTOTAL SCORE: ${score}`;
+            btnWinRestart.innerText = `PROCEED TO LEVEL ${nextLvl}`;
+            
+            // Re-bind win button to advance
+            btnWinRestart.onclick = () => {
+                currentLevel = nextLvl;
+                initGame();
+            };
+        }
+
+        function triggerLevelLoss() {
+            playSound('over');
+            winOverlayEl.classList.add('show');
+            winTitleTextEl.innerText = "PURGE FAILED";
+            winTitleTextEl.style.textShadow = "0 0 20px var(--cyber-magenta), 0 0 35px var(--cyber-magenta)";
+            winStatsTextEl.innerText = `MATRIX SATURATED! NO MOVES REMAINING.\nLEVEL REACHED: ${currentLevel}\nFINAL SCORE: ${score}`;
+            btnWinRestart.innerText = "RESTART LEVEL";
+            
+            // Re-bind win button to restart
+            btnWinRestart.onclick = () => {
+                initGame();
+            };
+        }
+
+        function spawnBalls(count) {
             const balls = [];
-            for (let i = 0; i < numBalls; i++) {
+            for (let i = 0; i < count; i++) {
                 const cIdx = Math.floor(Math.random() * colorMap.length);
                 const cHex = colorMap[cIdx];
-                // Scatter spawn positions above the bucket
                 const x = 50 + Math.random() * (width - 100);
-                const y = -100 - Math.random() * 800; 
+                const y = -100 - Math.random() * 850; 
                 
                 const ball = Bodies.circle(x, y, ballRadius * 0.95, {
                     restitution: 0.4,
                     friction: 0.005,
                     density: 0.04,
                     render: {
-                        fillStyle: cHex,
-                        strokeStyle: 'rgba(255,255,255,0.8)',
-                        lineWidth: 2
+                        visible: false // custom renderer handles it
                     }
                 });
                 ball.colorIdx = cIdx;
@@ -452,13 +1027,293 @@
 
         function initGame() {
             winOverlayEl.classList.remove('show');
-            score = 0;
+            noMovesToast.classList.remove('show');
+            
+            levelIsWon = false;
+            refillsLeft = maxRefills;
+            refillCountEl.innerText = refillsLeft;
+            document.getElementById('btnRefill').classList.remove('cooldown');
+            
+            if (currentLevel === 1) {
+                score = 0;
+            }
             scoreCountEl.innerText = score;
+            levelCountEl.innerText = currentLevel;
+            
+            // Load Level Configuration
+            const cfg = getLevelConfig(currentLevel);
+            activeRecipes = cfg.recipes;
+            updateRecipeUI();
             
             const bodies = Composite.allBodies(world).filter(b => !b.isStatic);
             Composite.remove(world, bodies);
             
-            spawnBalls();
+            spawnBalls(cfg.numBalls);
+        }
+
+        // --- Custom Renderer in Matter.js ---
+        Matter.Events.on(render, 'afterRender', () => {
+            const ctx = render.context;
+            const bodies = Composite.allBodies(world).filter(b => !b.isStatic);
+            
+            bodies.forEach(body => {
+                const { x, y } = body.position;
+                const radius = body.circleRadius;
+                const angle = body.angle;
+                
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle);
+                
+                if (body.isPowerUp) {
+                    drawPowerUpBody(ctx, body, radius);
+                } else {
+                    draw3DBall(ctx, body, radius);
+                }
+                
+                ctx.restore();
+            });
+        });
+
+        function draw3DBall(ctx, body, radius) {
+            const colorIdx = body.colorIdx;
+            const scheme = sphereColors[colorIdx] || sphereColors[0];
+            
+            // 1. Draw dynamic outer glow
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = scheme.shadowColor;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius - 1, 0, Math.PI * 2);
+            ctx.fillStyle = scheme.mid;
+            ctx.fill();
+            ctx.shadowBlur = 0; // reset
+            
+            // 2. Draw 3D radial gradient sphere
+            const grad = ctx.createRadialGradient(
+                -radius * 0.25, -radius * 0.25, radius * 0.05,
+                0, 0, radius
+            );
+            grad.addColorStop(0, scheme.highlight);
+            grad.addColorStop(0.18, scheme.mid);
+            grad.addColorStop(0.7, scheme.dark);
+            grad.addColorStop(1, scheme.shadow);
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+            
+            // 3. Highlight crescent reflect
+            ctx.beginPath();
+            ctx.ellipse(-radius * 0.35, -radius * 0.35, radius * 0.3, radius * 0.15, -Math.PI / 4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.fill();
+            
+            // 4. Accessibility Symbol
+            drawAccessibilitySymbol(ctx, colorIdx, radius, scheme.symbolColor);
+        }
+
+        function drawAccessibilitySymbol(ctx, colorIdx, radius, symbolColor) {
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+            ctx.shadowBlur = 3;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 2;
+            
+            ctx.fillStyle = symbolColor;
+            ctx.strokeStyle = colorIdx === 2 ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1.2;
+            
+            if (colorIdx === 0) { // Cyan Triangle
+                ctx.beginPath();
+                const h = radius * 0.58;
+                ctx.moveTo(0, -h/2);
+                ctx.lineTo(h/2, h/2);
+                ctx.lineTo(-h/2, h/2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            } else if (colorIdx === 1) { // Magenta Square
+                const sz = radius * 0.52;
+                ctx.fillRect(-sz/2, -sz/2, sz, sz);
+                ctx.strokeRect(-sz/2, -sz/2, sz, sz);
+            } else if (colorIdx === 2) { // Yellow Star
+                ctx.beginPath();
+                const spikes = 5;
+                const outer = radius * 0.42;
+                const inner = radius * 0.18;
+                let rot = -Math.PI / 2;
+                const step = Math.PI / spikes;
+                
+                ctx.moveTo(0, -outer);
+                for (let i = 0; i < spikes; i++) {
+                    ctx.lineTo(Math.cos(rot) * outer, Math.sin(rot) * outer);
+                    rot += step;
+                    ctx.lineTo(Math.cos(rot) * inner, Math.sin(rot) * inner);
+                    rot += step;
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            } else if (colorIdx === 3) { // Green Ring
+                ctx.beginPath();
+                ctx.arc(0, 0, radius * 0.26, 0, Math.PI * 2);
+                ctx.lineWidth = radius * 0.15;
+                ctx.strokeStyle = symbolColor;
+                ctx.stroke();
+            } else if (colorIdx === 4) { // Red Cross
+                const len = radius * 0.55;
+                const thk = radius * 0.16;
+                ctx.fillRect(-len/2, -thk/2, len, thk);
+                ctx.fillRect(-thk/2, -len/2, thk, len);
+                ctx.strokeRect(-len/2, -thk/2, len, thk);
+                ctx.strokeRect(-thk/2, -len/2, thk, len);
+            }
+            
+            ctx.restore();
+        }
+
+        function drawPowerUpBody(ctx, body, radius) {
+            const time = Date.now();
+            const pulse = 1.0 + Math.sin(time / 110) * 0.07;
+            const finalRadius = radius * pulse;
+            
+            if (body.powerUpType === 'bomb') {
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = '#ff3c00';
+                
+                const grad = ctx.createRadialGradient(
+                    -finalRadius * 0.25, -finalRadius * 0.25, finalRadius * 0.05,
+                    0, 0, finalRadius
+                );
+                grad.addColorStop(0, '#ffaa00');
+                grad.addColorStop(0.3, '#ff3b30');
+                grad.addColorStop(0.8, '#1e0500');
+                grad.addColorStop(1, '#050100');
+                
+                ctx.beginPath();
+                ctx.arc(0, 0, finalRadius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // Nuclear glow rings
+                ctx.strokeStyle = 'rgba(255, 60, 0, 0.75)';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, finalRadius * 0.85, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Bomb center fuse icon
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, finalRadius * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Spark fuse path
+                const sparkAngle = (time / 140) % (Math.PI * 2);
+                const fuseX = Math.cos(sparkAngle) * finalRadius * 0.65;
+                const fuseY = Math.sin(sparkAngle) * finalRadius * 0.65;
+                
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(fuseX/2, -fuseY/2, fuseX, fuseY);
+                ctx.strokeStyle = '#ffaa00';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = '#fffae6';
+                ctx.beginPath();
+                ctx.arc(fuseX, fuseY, 4.5, 0, Math.PI * 2);
+                ctx.fill();
+                
+            } else if (body.powerUpType === 'laser') {
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = '#00f3ff';
+                
+                const grad = ctx.createRadialGradient(
+                    -finalRadius * 0.25, -finalRadius * 0.25, finalRadius * 0.05,
+                    0, 0, finalRadius
+                );
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.35, '#00f3ff');
+                grad.addColorStop(0.75, '#002540');
+                grad.addColorStop(1, '#000c14');
+                
+                ctx.beginPath();
+                ctx.arc(0, 0, finalRadius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // Spin electric arrows
+                ctx.save();
+                ctx.rotate(time / 350);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3.5;
+                
+                ctx.beginPath();
+                ctx.moveTo(-finalRadius * 0.6, 0); ctx.lineTo(finalRadius * 0.6, 0);
+                ctx.moveTo(0, -finalRadius * 0.6); ctx.lineTo(0, finalRadius * 0.6);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                // Right Arrow
+                ctx.moveTo(finalRadius * 0.6, 0); ctx.lineTo(finalRadius * 0.4, -4.5); ctx.lineTo(finalRadius * 0.4, 4.5);
+                // Left Arrow
+                ctx.moveTo(-finalRadius * 0.6, 0); ctx.lineTo(-finalRadius * 0.4, -4.5); ctx.lineTo(-finalRadius * 0.4, 4.5);
+                // Top Arrow
+                ctx.moveTo(0, -finalRadius * 0.6); ctx.lineTo(-4.5, -finalRadius * 0.4); ctx.lineTo(4.5, -finalRadius * 0.4);
+                // Bottom Arrow
+                ctx.moveTo(0, finalRadius * 0.6); ctx.lineTo(-4.5, finalRadius * 0.4); ctx.lineTo(4.5, finalRadius * 0.4);
+                ctx.fill();
+                ctx.restore();
+                
+            } else if (body.powerUpType === 'rainbow') {
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = 'rgba(255, 0, 255, 0.8)';
+                
+                const hue1 = (time / 8) % 360;
+                const hue2 = (hue1 + 120) % 360;
+                const hue3 = (hue1 + 240) % 360;
+                
+                const grad = ctx.createRadialGradient(
+                    -finalRadius * 0.25, -finalRadius * 0.25, finalRadius * 0.05,
+                    0, 0, finalRadius
+                );
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.3, `hsl(${hue1}, 100%, 60%)`);
+                grad.addColorStop(0.75, `hsl(${hue2}, 100%, 40%)`);
+                grad.addColorStop(1, `hsl(${hue3}, 100%, 15%)`);
+                
+                ctx.beginPath();
+                ctx.arc(0, 0, finalRadius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // Prism core
+                ctx.save();
+                ctx.rotate(-time / 550);
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                const spikes = 8;
+                const outer = finalRadius * 0.55;
+                const inner = finalRadius * 0.25;
+                let rot = 0;
+                const step = Math.PI / spikes;
+                
+                ctx.moveTo(outer, 0);
+                for (let i = 0; i < spikes * 2; i++) {
+                    let r = i % 2 === 0 ? outer : inner;
+                    ctx.lineTo(Math.cos(rot) * r, Math.sin(rot) * r);
+                    rot += step;
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
         }
 
         // Tap handling
@@ -466,6 +1321,8 @@
         render.canvas.addEventListener('touchstart', handleTap, {passive: true});
 
         function handleTap(e) {
+            if (levelIsWon) return; // ignore click if already won
+            
             let clientX, clientY;
             if (e.touches && e.touches.length > 0) {
                 clientX = e.touches[0].clientX;
@@ -485,7 +1342,11 @@
             const clicked = Query.point(bodies, { x, y })[0];
             
             if (clicked) {
-                findAndDestroyCluster(clicked);
+                if (clicked.isPowerUp) {
+                    activatePowerUp(clicked);
+                } else {
+                    findAndDestroyCluster(clicked);
+                }
             }
         }
 
@@ -496,14 +1357,13 @@
             const cluster = new Set();
             const stack = [startBody];
             
-            // Allow slight gap to account for jitter and resting distance
             const threshold = ballRadius * 2 + 10; 
             
             while(stack.length > 0) {
                 const body = stack.pop();
                 if (!cluster.has(body)) {
                     cluster.add(body);
-                    const allBodies = Composite.allBodies(world).filter(b => !b.isStatic && !cluster.has(b) && b.colorIdx === targetColor);
+                    const allBodies = Composite.allBodies(world).filter(b => !b.isStatic && !cluster.has(b) && b.colorIdx === targetColor && !b.isPowerUp);
                     
                     for (const other of allBodies) {
                         const dist = Vector.magnitude(Vector.sub(body.position, other.position));
@@ -516,16 +1376,31 @@
 
             if (cluster.size >= 2) {
                 const bodiesToRemove = Array.from(cluster);
-                // Make them static so they stop affecting the pile while popping
                 bodiesToRemove.forEach(b => Matter.Body.setStatic(b, true));
                 
-                screenShake(Math.min(cluster.size * 2, 20));
+                screenShake(Math.min(cluster.size * 2, 18));
                 playSound('pop', cluster.size);
 
                 const pts = Math.pow(cluster.size - 1, 2) * 10;
                 score += pts;
                 if (window.GlobalScore) window.GlobalScore.add(pts);
                 scoreCountEl.innerText = score;
+
+                // Log recipe goals
+                bodiesToRemove.forEach(b => {
+                    recordRecipeProgress(b.colorIdx);
+                });
+
+                // Spawns power-up if cluster size is 5 or more!
+                if (cluster.size >= 5) {
+                    const pUpType = cluster.size >= 9 ? 'rainbow' : (cluster.size >= 7 ? 'laser' : 'bomb');
+                    const spawnX = startBody.position.x;
+                    const spawnY = startBody.position.y;
+                    
+                    setTimeout(() => {
+                        spawnPowerUp(spawnX, spawnY, pUpType);
+                    }, 450);
+                }
 
                 let scaleTicks = 0;
                 const popInterval = setInterval(() => {
@@ -555,10 +1430,267 @@
             }
         }
 
+        // --- Power-up Spawning and Activation ---
+        function spawnPowerUp(x, y, type) {
+            playSound('powerup_spawn');
+            
+            const pUp = Bodies.circle(x, y, ballRadius * 1.1, {
+                restitution: 0.5,
+                friction: 0.005,
+                density: 0.045,
+                render: { visible: false }
+            });
+            pUp.isPowerUp = true;
+            pUp.powerUpType = type;
+            
+            Composite.add(world, pUp);
+            
+            // Energy ring spawn sparks
+            const rect = render.canvas.getBoundingClientRect();
+            const scaleX = rect.width / render.canvas.width;
+            const scaleY = rect.height / render.canvas.height;
+            const sX = rect.left + x / scaleX;
+            const sY = rect.top + y / scaleY;
+            
+            particles.push({
+                type: 'ring',
+                x: sX, y: sY,
+                radius: 2,
+                maxRadius: 40,
+                lineWidth: 3,
+                color: type === 'rainbow' ? '#ff00ff' : (type === 'laser' ? '#00f3ff' : '#ff5500'),
+                life: 1.0, decay: 0.05
+            });
+        }
+
+        function activatePowerUp(body) {
+            const { x, y } = body.position;
+            const type = body.powerUpType;
+            
+            Composite.remove(world, body);
+            
+            if (type === 'bomb') {
+                triggerBomb(x, y);
+            } else if (type === 'laser') {
+                triggerLaser(x, y);
+            } else if (type === 'rainbow') {
+                triggerRainbow(x, y);
+            }
+        }
+
+        function triggerBomb(x, y) {
+            playSound('bomb_explosion');
+            screenShake(24);
+            
+            const bodies = Composite.allBodies(world).filter(b => !b.isStatic && !b.isPowerUp);
+            const range = ballRadius * 6.5;
+            const affected = [];
+            
+            bodies.forEach(b => {
+                const dist = Vector.magnitude(Vector.sub(b.position, { x, y }));
+                if (dist <= range) affected.push(b);
+            });
+            
+            // Pop processing
+            affected.forEach(b => Matter.Body.setStatic(b, true));
+            const pts = affected.length * 15;
+            score += pts;
+            if (window.GlobalScore) window.GlobalScore.add(pts);
+            scoreCountEl.innerText = score;
+            
+            affected.forEach(b => recordRecipeProgress(b.colorIdx));
+            
+            // FX particles
+            const rect = render.canvas.getBoundingClientRect();
+            const scaleX = rect.width / render.canvas.width;
+            const scaleY = rect.height / render.canvas.height;
+            spawnBombFX(rect.left + x / scaleX, rect.top + y / scaleY);
+            
+            let ticks = 0;
+            const popInterval = setInterval(() => {
+                ticks++;
+                affected.forEach(b => Matter.Body.scale(b, 1.15, 1.15));
+                if (ticks >= 6) {
+                    clearInterval(popInterval);
+                    Composite.remove(world, affected);
+                    
+                    affected.forEach(b => {
+                        const sX = rect.left + b.position.x / scaleX;
+                        const sY = rect.top + b.position.y / scaleY;
+                        spawnParticles(sX, sY, b.hexColor, 8);
+                    });
+                    
+                    clearTimeout(gameOverCheckTimer);
+                    gameOverCheckTimer = setTimeout(checkGameOver, 1500);
+                }
+            }, 16);
+        }
+
+        function triggerLaser(x, y) {
+            playSound('laser_zap');
+            screenShake(18);
+            
+            const bodies = Composite.allBodies(world).filter(b => !b.isStatic && !b.isPowerUp);
+            const halfThick = ballRadius * 1.5;
+            const affected = [];
+            
+            bodies.forEach(b => {
+                const dx = Math.abs(b.position.x - x);
+                const dy = Math.abs(b.position.y - y);
+                if (dx <= halfThick || dy <= halfThick) {
+                    affected.push(b);
+                }
+            });
+            
+            affected.forEach(b => Matter.Body.setStatic(b, true));
+            const pts = affected.length * 15;
+            score += pts;
+            if (window.GlobalScore) window.GlobalScore.add(pts);
+            scoreCountEl.innerText = score;
+            
+            affected.forEach(b => recordRecipeProgress(b.colorIdx));
+            
+            const rect = render.canvas.getBoundingClientRect();
+            const scaleX = rect.width / render.canvas.width;
+            const scaleY = rect.height / render.canvas.height;
+            spawnLaserFX(rect.left + x / scaleX, rect.top + y / scaleY);
+            
+            let ticks = 0;
+            const popInterval = setInterval(() => {
+                ticks++;
+                affected.forEach(b => Matter.Body.scale(b, 1.15, 1.15));
+                if (ticks >= 6) {
+                    clearInterval(popInterval);
+                    Composite.remove(world, affected);
+                    
+                    affected.forEach(b => {
+                        const sX = rect.left + b.position.x / scaleX;
+                        const sY = rect.top + b.position.y / scaleY;
+                        spawnParticles(sX, sY, b.hexColor, 8);
+                    });
+                    
+                    clearTimeout(gameOverCheckTimer);
+                    gameOverCheckTimer = setTimeout(checkGameOver, 1500);
+                }
+            }, 16);
+        }
+
+        function getRainbowTargetColorIndex() {
+            // Priority: recipe colors that still need targets
+            let maxNeededCount = -1;
+            let maxNeededIdx = -1;
+            
+            activeRecipes.forEach(recipe => {
+                const needed = recipe.target - recipe.collected;
+                if (needed > 0 && needed > maxNeededCount) {
+                    maxNeededCount = needed;
+                    maxNeededIdx = recipe.colorIdx;
+                }
+            });
+            
+            if (maxNeededIdx !== -1) return maxNeededIdx;
+            
+            // Fallback: color with the most balls on screen
+            const bodies = Composite.allBodies(world).filter(b => !b.isStatic && !b.isPowerUp);
+            const counts = [0, 0, 0, 0, 0];
+            bodies.forEach(b => {
+                if (b.colorIdx !== undefined) counts[b.colorIdx]++;
+            });
+            
+            let maxCount = -1;
+            let maxIdx = 0;
+            for (let i = 0; i < counts.length; i++) {
+                if (counts[i] > maxCount) {
+                    maxCount = counts[i];
+                    maxIdx = i;
+                }
+            }
+            return maxIdx;
+        }
+
+        function triggerRainbow(startX, startY) {
+            playSound('rainbow_sweep');
+            screenShake(15);
+            
+            const targetColorIdx = getRainbowTargetColorIndex();
+            const affected = Composite.allBodies(world).filter(b => !b.isStatic && !b.isPowerUp && b.colorIdx === targetColorIdx);
+            
+            affected.forEach(b => Matter.Body.setStatic(b, true));
+            const pts = affected.length * 20;
+            score += pts;
+            if (window.GlobalScore) window.GlobalScore.add(pts);
+            scoreCountEl.innerText = score;
+            
+            // Rainbow electric connection lines
+            spawnRainbowFX(startX, startY, affected);
+            
+            affected.forEach(b => recordRecipeProgress(b.colorIdx));
+            
+            let ticks = 0;
+            const popInterval = setInterval(() => {
+                ticks++;
+                affected.forEach(b => Matter.Body.scale(b, 1.15, 1.15));
+                if (ticks >= 6) {
+                    clearInterval(popInterval);
+                    Composite.remove(world, affected);
+                    
+                    clearTimeout(gameOverCheckTimer);
+                    gameOverCheckTimer = setTimeout(checkGameOver, 1500);
+                }
+            }, 16);
+        }
+
+        // --- Refill Mechanic ---
+        function triggerRefill() {
+            if (refillsLeft <= 0 || btnRefill.classList.contains('cooldown') || levelIsWon) return;
+            
+            refillsLeft--;
+            refillCountEl.innerText = refillsLeft;
+            btnRefill.classList.add('cooldown');
+            noMovesToast.classList.remove('show'); // clear toast if it was up
+            
+            playSound('refill');
+            
+            // Drop 18 random balls dynamically from above viewport
+            const dropCount = 18;
+            const balls = [];
+            for (let i = 0; i < dropCount; i++) {
+                const cIdx = Math.floor(Math.random() * colorMap.length);
+                const cHex = colorMap[cIdx];
+                const x = 50 + Math.random() * (width - 100);
+                const y = -60 - Math.random() * 450; 
+                
+                const ball = Bodies.circle(x, y, ballRadius * 0.95, {
+                    restitution: 0.4,
+                    friction: 0.005,
+                    density: 0.04,
+                    render: { visible: false }
+                });
+                ball.colorIdx = cIdx;
+                ball.hexColor = cHex;
+                balls.push(ball);
+            }
+            Composite.add(world, balls);
+            
+            setTimeout(() => {
+                btnRefill.classList.remove('cooldown');
+                // Re-verify after drop has settled
+                clearTimeout(gameOverCheckTimer);
+                gameOverCheckTimer = setTimeout(checkGameOver, 2000);
+            }, 2000);
+        }
+
+        // --- Game Over / Moves Checks ---
         function checkGameOver() {
+            if (levelIsWon) return;
+            
             const bodies = Composite.allBodies(world).filter(b => !b.isStatic);
             let hasMoves = false;
             const threshold = ballRadius * 2 + 15; 
+
+            // If player has a power-up on board, those count as active moves!
+            const powerups = bodies.filter(b => b.isPowerUp);
+            if (powerups.length > 0) return;
 
             for (let i = 0; i < bodies.length; i++) {
                 const b1 = bodies[i];
@@ -576,19 +1708,24 @@
             }
 
             if (!hasMoves) {
-                if (bodies.length === 0) {
-                    score += 1000;
-                    if (window.GlobalScore) window.GlobalScore.add(1000);
+                if (refillsLeft > 0) {
+                    // Prompt player to trigger refill
+                    noMovesToast.classList.add('show');
+                } else {
+                    // Out of moves AND out of refills
+                    triggerLevelLoss();
                 }
-                playSound('over');
-                winStatsTextEl.innerText = `FINAL SCORE: ${score}${bodies.length === 0 ? '\\nMATRIX PERFECTLY CLEARED!' : ''}`;
-                winOverlayEl.classList.add('show');
             }
         }
 
-        btnNew.addEventListener('click', initGame);
+        btnNew.addEventListener('click', () => {
+            currentLevel = 1; // Restart full protocol
+            initGame();
+        });
+        btnRefill.addEventListener('click', triggerRefill);
         btnWinRestart.addEventListener('click', initGame);
 
+        // Start standard protocol
         initGame();
     </script>
 </body>
