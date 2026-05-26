@@ -11,7 +11,9 @@ const PRECACHE_ASSETS = [
   './shared/theme.css',
   './shared/settings.js',
   './shared/dictionary.js',
-  './spellingbee/index.html'
+  './spellingbee/index.html',
+  './tetris/index.html',
+  './pacman/index.html'
 ];
 
 // Install Event - Precache App Shell

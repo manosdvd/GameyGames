@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="game-id" content="pacman">
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Chomp Core</title>
+    <script src="../timeLimit.js"></script>
+    <script src="../shared/settings.js"></script>
+    <link rel="stylesheet" href="../shared/theme.css">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --bg-color: var(--cyber-bg);
+            --surface-color: var(--cyber-surface);
+            --text-color: var(--cyber-text);
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100dvh;
+            width: 100vw;
+            position: relative;
+        }
+
+        /* --- Scanlines Backdrop --- */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* --- Game Main Wrapper --- */
+        .game-main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
+            width: 100%;
+            max-width: 900px;
+            flex: 1;
+            padding: 10px;
+            z-index: 10;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* --- Column Sidebars --- */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 160px;
+            flex-shrink: 0;
+        }
+
+        /* --- Card panels --- */
+        .cyber-panel {
+            background: rgba(10, 10, 31, 0.65);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            border-radius: var(--md-shape-corner-medium);
+            padding: 12px;
+            box-shadow: var(--cyber-glass-shadow);
+            backdrop-filter: var(--cyber-glass-blur);
+            -webkit-backdrop-filter: var(--cyber-glass-blur);
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            position: relative;
+        }
+
+        .panel-label {
+            font-size: 0.75rem;
+            color: var(--cyber-magenta);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            font-weight: 800;
+            text-shadow: var(--neon-magenta-glow);
+            text-transform: uppercase;
+        }
+
+        .panel-value {
+            font-size: 1.4rem;
+            color: #fff;
+            font-weight: 900;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+            margin: 4px 0;
+        }
+
+        .panel-sub {
+            font-size: 0.65rem;
+            color: #8c8c9e;
+            letter-spacing: 1px;
+        }
+
+        /* --- Ghost Monitors --- */
+        .monitor-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            padding: 4px 6px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 4px;
+            border-left: 3px solid #ccc;
+        }
+
+        .monitor-name {
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .monitor-status {
+            color: var(--cyber-cyan);
+            font-size: 0.65rem;
+            font-weight: bold;
+        }
+
+        /* --- Playfield container --- */
+        .playfield-container {
+            position: relative;
+            background: rgba(5, 5, 16, 0.95);
+            border: 2px solid var(--cyber-cyan);
+            border-radius: var(--md-shape-corner-medium);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.25), inset 0 0 15px rgba(0, 243, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-sizing: border-box;
+            height: min(70vw * 1.15, 60dvh);
+            aspect-ratio: 19 / 22;
+            transition: transform 0.05s ease-out; /* screen shake */
+        }
+
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* --- Mobile Horizontal HUD Layout --- */
+        .mobile-hud {
+            display: none;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 10px;
+            z-index: 10;
+        }
+
+        /* --- Touch D-Pad Panel --- */
+        .touch-pad {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 10;
+            margin-bottom: env(safe-area-inset-bottom, 5px);
+        }
+
+        .dpad-container {
+            position: relative;
+            width: 130px;
+            height: 130px;
+            background: rgba(10, 10, 31, 0.5);
+            border: 2px solid rgba(0, 243, 255, 0.25);
+            border-radius: 50%;
+            box-shadow: var(--cyber-glass-shadow);
+            backdrop-filter: var(--cyber-glass-blur);
+        }
+
+        .dpad-btn {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            background: rgba(10, 10, 31, 0.95);
+            border: 1px solid var(--cyber-cyan);
+            border-radius: var(--md-shape-corner-small);
+            color: var(--cyber-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
+            transition: all 0.1s;
+        }
+
+        .dpad-btn:active {
+            background: var(--cyber-cyan);
+            color: #000;
+            box-shadow: var(--cyber-glow-cyan);
+            transform: scale(0.92);
+        }
+
+        .dpad-btn.magenta-btn {
+            border-color: var(--cyber-magenta);
+            color: var(--cyber-magenta);
+        }
+
+        .dpad-btn.magenta-btn:active {
+            background: var(--cyber-magenta);
+            color: #000;
+            box-shadow: var(--cyber-glow-magenta);
+        }
+
+        .dpad-btn span {
+            font-size: 1.5rem;
+        }
+
+        .dpad-up { top: 6px; left: 47px; }
+        .dpad-down { bottom: 6px; left: 47px; }
+        .dpad-left { left: 6px; top: 47px; }
+        .dpad-right { right: 6px; top: 47px; }
+        .dpad-center { left: 47px; top: 47px; width: 36px; height: 36px; border-radius: 50%; border-color: rgba(255,255,255,0.15); pointer-events: none; }
+
+        /* --- Game Over / Start Overlay --- */
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(3, 3, 12, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--cyber-magenta);
+            text-shadow: var(--neon-magenta-glow);
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .overlay-stats {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .overlay-stats span {
+            color: var(--cyber-cyan);
+            font-weight: bold;
+        }
+
+        /* --- Responsiveness reflow for mobile --- */
+        @media (max-width: 768px) {
+            .game-main-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 5px;
+                padding: 5px;
+                justify-content: flex-start;
+            }
+
+            .sidebar {
+                display: none; /* Hide wide sidebars */
+            }
+
+            .mobile-hud {
+                display: flex; /* Show custom horizontal mobile HUD */
+            }
+
+            .playfield-container {
+                height: auto;
+                width: 92vw;
+                max-width: 330px;
+                flex: 1; /* Grow to fill screen */
+                margin-top: 5px;
+            }
+
+            .touch-pad {
+                display: flex; /* Show mobile D-pad panel */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scanlines"></div>
+
+    <!-- Header -->
+    <header class="cyber-header" style="width: 100%; box-sizing: border-box;">
+        <a href="../index.html" class="back-btn" id="btnBack"> &lt; HUB </a>
+        <div class="hud-pill">
+            <span>PROTOCOL</span>
+            <span class="hud-value">CHOMP_CORE</span>
+        </div>
+        <button class="icon-btn" id="btnSoundToggle" aria-label="Toggle Sound" style="pointer-events: auto;">
+            <span class="material-symbols-outlined" id="soundIcon">volume_up</span>
+        </button>
+    </header>
+
+    <!-- Mobile Top HUD (Row) -->
+    <div class="mobile-hud">
+        <div class="cyber-panel" style="flex: 1.2; padding: 6px 10px; display: flex; align-items: center; justify-content: space-around; gap: 4px;">
+            <div style="text-align: left;">
+                <div class="panel-label" style="font-size: 0.55rem; margin-bottom: 1px;">SCORE</div>
+                <div class="panel-value" id="mScore" style="font-size: 1rem; margin: 0;">0</div>
+            </div>
+            <div style="text-align: left; border-left: 1px solid rgba(0, 243, 255, 0.15); padding-left: 6px;">
+                <div class="panel-label" style="font-size: 0.55rem; margin-bottom: 1px;">LIVES</div>
+                <div class="panel-value" id="mLives" style="font-size: 1rem; margin: 0; color: var(--cyber-yellow);">3</div>
+            </div>
+        </div>
+
+        <div class="cyber-panel" style="flex: 0.8; padding: 6px 10px;">
+            <div class="panel-label" style="font-size: 0.55rem; margin-bottom: 1px;">LEVEL</div>
+            <div class="panel-value" id="mLevel" style="font-size: 1rem; margin: 0; color: var(--cyber-cyan);">1</div>
+        </div>
+
+        <div class="cyber-panel" style="flex: 1; padding: 6px 10px;">
+            <div class="panel-label" style="font-size: 0.55rem; margin-bottom: 1px;">SHIELD</div>
+            <div class="panel-value" id="mShieldTimer" style="font-size: 0.95rem; margin: 0; color: var(--cyber-magenta);">OFF</div>
+        </div>
+    </div>
+
+    <!-- Main Game Section (Layout reflows on Desktop/Mobile) -->
+    <div class="game-main-container">
+
+        <!-- Left Sidebar: Stats & Level (Desktop Only) -->
+        <div class="sidebar">
+            <div class="cyber-panel">
+                <div class="panel-label">ROUTING_STATS</div>
+                
+                <div style="margin-bottom: 15px;">
+                    <div class="panel-label" style="color: #8c8c9e; font-size: 0.6rem;">SCORE</div>
+                    <div class="panel-value" id="dScore">0</div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <div class="panel-label" style="color: #8c8c9e; font-size: 0.6rem;">LIVES</div>
+                    <div class="panel-value" id="dLives" style="color: var(--cyber-yellow);">3</div>
+                </div>
+                
+                <div>
+                    <div class="panel-label" style="color: #8c8c9e; font-size: 0.6rem;">SECTOR_LEVEL</div>
+                    <div class="panel-value" id="dLevel" style="color: var(--cyber-cyan);">1</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center: Playfield Board -->
+        <div class="playfield-container" id="playfieldContainer">
+            <canvas id="game-canvas" width="380" height="440"></canvas>
+
+            <!-- Start / Pause / Game Over Screens -->
+            <div id="overlayScreen" class="overlay-screen">
+                <div class="overlay-title" id="overlayTitle">SYSTEM_INITIALIZED</div>
+                <div class="overlay-stats" id="overlayStats">
+                    Grid Construct Status: <span>Offline</span><br>
+                    Load routing vector matrices.
+                </div>
+                <button class="btn-restart" id="btnAction" style="font-size: 0.95rem; padding: 12px 30px;">BOOT_SYSTEM</button>
+            </div>
+        </div>
+
+        <!-- Right Sidebar: Ghost AI Status Monitors (Desktop Only) -->
+        <div class="sidebar">
+            <div class="cyber-panel" style="padding: 10px;">
+                <div class="panel-label" style="margin-bottom: 12px;">GHOST_MONITORS</div>
+                
+                <div class="monitor-row" id="monBlinky" style="border-left-color: #ff3b30;">
+                    <span class="monitor-name" style="color: #ff3b30;">BLINKY</span>
+                    <span class="monitor-status" id="monBlinkyStatus">CHASE</span>
+                </div>
+                <div class="monitor-row" id="monPinky" style="border-left-color: #ff00ff;">
+                    <span class="monitor-name" style="color: #ff00ff;">PINKY</span>
+                    <span class="monitor-status" id="monPinkyStatus">CHASE</span>
+                </div>
+                <div class="monitor-row" id="monInky" style="border-left-color: #00f3ff;">
+                    <span class="monitor-name" style="color: #00f3ff;">INKY</span>
+                    <span class="monitor-status" id="monInkyStatus">CHASE</span>
+                </div>
+                <div class="monitor-row" id="monClyde" style="border-left-color: #ff9900;">
+                    <span class="monitor-name" style="color: #ff9900;">CLYDE</span>
+                    <span class="monitor-status" id="monClydeStatus">CHASE</span>
+                </div>
+
+                <div style="border-top: 1px solid rgba(0,243,255,0.15); margin-top: 12px; padding-top: 8px; text-align: left;">
+                    <div class="panel-label" style="font-size: 0.5rem; margin-bottom: 2px;">ENERGIZER_SHIELD</div>
+                    <div class="panel-value" id="dShieldTimer" style="font-size: 1.1rem; color: var(--cyber-magenta); text-shadow: var(--neon-magenta-glow);">OFF</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Mobile Controller Panel -->
+    <div class="touch-pad">
+        <!-- Circular D-Pad joystick styling -->
+        <div class="dpad-container">
+            <div class="dpad-btn dpad-up" id="btnUp"><span class="material-symbols-outlined">arrow_upward</span></div>
+            <div class="dpad-btn dpad-down" id="btnDown"><span class="material-symbols-outlined">arrow_downward</span></div>
+            <div class="dpad-btn dpad-left" id="btnLeft"><span class="material-symbols-outlined">arrow_back</span></div>
+            <div class="dpad-btn dpad-right" id="btnRight"><span class="material-symbols-outlined">arrow_forward</span></div>
+            <div class="dpad-center"></div>
+        </div>
+    </div>
+
+    <!-- Core Game Controller JS Script -->
+    <script>
+        // --- Maze Map Grid Matrix Specs (19 columns x 22 rows) ---
+        const COLS = 19;
+        const ROWS = 22;
+        const CELL_SIZE = 20; // internal coordinate units
+
+        // Grid Cell Types:
+        // 1 = Wall
+        // 0 = Dot (small point pellet)
+        // 3 = Energizer (flashing big neon pellet)
+        // 4 = Ghost Gate (only ghosts pass, door tile)
+        // 5 = Empty path inside house / empty corridor
+        const MAZE_GRID = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,3,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,1],
+            [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,0,1],
+            [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+            [1,1,1,1,0,1,1,1,5,1,5,1,1,1,0,1,1,1,1],
+            [5,5,5,1,0,1,5,5,5,5,5,5,5,1,0,1,5,5,5],
+            [1,1,1,1,0,1,5,1,1,4,1,1,5,1,0,1,1,1,1],
+            [5,5,5,5,0,5,5,1,5,5,5,1,5,5,0,5,5,5,5],
+            [1,1,1,1,0,1,5,1,1,1,1,1,5,1,0,1,1,1,1],
+            [5,5,5,1,0,1,5,5,5,5,5,5,5,1,0,1,5,5,5],
+            [1,1,1,1,0,1,5,1,1,1,1,1,5,1,0,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+            [1,3,0,1,0,0,0,0,0,5,0,0,0,0,0,1,0,3,1],
+            [1,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,1],
+            [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+            [1,0,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        // Directions definition mappings
+        const DIR_NONE = 0;
+        const DIR_UP = 1;
+        const DIR_DOWN = 2;
+        const DIR_LEFT = 3;
+        const DIR_RIGHT = 4;
+
+        const DIR_VECTORS = {
+            [DIR_NONE]: { x: 0, y: 0 },
+            [DIR_UP]: { x: 0, y: -1 },
+            [DIR_DOWN]: { x: 0, y: 1 },
+            [DIR_LEFT]: { x: -1, y: 0 },
+            [DIR_RIGHT]: { x: 1, y: 0 }
+        };
+
+        // --- Sound Synthesizer (Web Audio API) ---
+        let audioCtx = null;
+        let ambientSirenNode = null;
+        let sirenOsc = null;
+
+        function playSound(type) {
+            if (window.GameSettings && !window.GameSettings.get().sound) return;
+            try {
+                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtxClass) return;
+                if (!audioCtx) audioCtx = new AudioCtxClass();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'waka') {
+                    // Alternating chomp sweep
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'triangle';
+                    
+                    // alternate sweep direction to produce waka-waka
+                    const flip = Math.random() > 0.5;
+                    osc.frequency.setValueAtTime(flip ? 250 : 550, now);
+                    osc.frequency.exponentialRampToValueAtTime(flip ? 550 : 250, now + 0.08);
+                    
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'energizer') {
+                    // Ascending chime sweep
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.linearRampToValueAtTime(900, now + 0.15);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'eat_ghost') {
+                    // Snappy frequency thud
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.linearRampToValueAtTime(50, now + 0.25);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'retreat') {
+                    // High-pitch micro clicks
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(1600, now + 0.05);
+                    gain.gain.setValueAtTime(0.03, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'die') {
+                    // Classic descending pitch whistle cascade
+                    const length = 1.0;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.linearRampToValueAtTime(40, now + length);
+                    
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + length);
+                    
+                    osc.start(now);
+                    osc.stop(now + length);
+                } else if (type === 'levelup') {
+                    // Ascension arpeggio dopamine sweep
+                    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(freq, now + idx * 0.07);
+                        g.gain.setValueAtTime(0.04, now + idx * 0.07);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.2);
+                        o.start(now + idx * 0.07);
+                        o.stop(now + idx * 0.07 + 0.2);
+                    });
+                }
+            } catch(e) {
+                console.warn("Audio synthesis block failed:", e);
+            }
+        }
+
+        function startAmbientSiren() {
+            if (window.GameSettings && !window.GameSettings.get().sound) return;
+            try {
+                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtxClass) return;
+                if (!audioCtx) audioCtx = new AudioCtxClass();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                if (ambientSirenNode) return; // already active
+
+                ambientSirenNode = audioCtx.createGain();
+                ambientSirenNode.gain.setValueAtTime(0.015, audioCtx.currentTime);
+                ambientSirenNode.connect(audioCtx.destination);
+
+                sirenOsc = audioCtx.createOscillator();
+                sirenOsc.type = 'triangle';
+                sirenOsc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                sirenOsc.connect(ambientSirenNode);
+                
+                sirenOsc.start();
+                
+                // Continuous frequency modulation sweep siren loop
+                modulateSiren();
+            } catch(e) {}
+        }
+
+        function modulateSiren() {
+            if (!sirenOsc || !ambientSirenNode) return;
+            const now = audioCtx.currentTime;
+            
+            // Speed up modulation based on remaining dots percentage
+            const dotPct = remainingDotsCount() / totalDotsCount;
+            const speed = 0.2 + (1.0 - dotPct) * 0.3; // cycle time in seconds
+
+            sirenOsc.frequency.linearRampToValueAtTime(180, now);
+            sirenOsc.frequency.linearRampToValueAtTime(280, now + speed);
+            sirenOsc.frequency.linearRampToValueAtTime(180, now + speed * 2);
+
+            setTimeout(modulateSiren, speed * 2000);
+        }
+
+        function stopAmbientSiren() {
+            if (sirenOsc) {
+                try {
+                    sirenOsc.stop();
+                } catch(e) {}
+                sirenOsc = null;
+            }
+            ambientSirenNode = null;
+        }
+
+        // Haptic feedback launcher
+        function triggerHaptic(pattern) {
+            if (window.GameSettings && !window.GameSettings.get().haptics) return;
+            if (navigator.vibrate) {
+                try {
+                    navigator.vibrate(pattern);
+                } catch(e) {}
+            }
+        }
+
+        // --- Core Game Variables ---
+        let score = 0;
+        let lives = 3;
+        let level = 1;
+        let board = JSON.parse(JSON.stringify(MAZE_GRID));
+        let totalDotsCount = 0;
+        let isPlaying = false;
+        let isPaused = false;
+        let isGameOver = false;
+
+        // Frightened (power shield) timer
+        let shieldTimer = 0; // remaining frames/seconds
+        let ghostEatenMultiplier = 1;
+
+        // --- Entity: Pac-Man specs ---
+        const pacman = {
+            x: 9, // grid coordinates
+            y: 15,
+            px: 9 * CELL_SIZE + CELL_SIZE/2, // pixel position mapping
+            py: 15 * CELL_SIZE + CELL_SIZE/2,
+            speed: 1.8, // pixels per frame
+            currentDir: DIR_NONE,
+            bufferedDir: DIR_NONE,
+            mouthAngle: 0,
+            mouthDirection: 1, // 1 = opening, -1 = closing
+            isMoving: false
+        };
+
+        // --- Entity: Ghost specs ---
+        // Ghost index:
+        // 0: Blinky (Red)
+        // 1: Pinky (Pink)
+        // 2: Inky (Cyan)
+        // 3: Clyde (Orange)
+        const GHOSTS_META = [
+            { name: 'BLINKY', color: '#ff3b30', scatterX: 18, scatterY: 0, spawnX: 9, spawnY: 9, startDir: DIR_UP },
+            { name: 'PINKY', color: '#ff00ff', scatterX: 0, scatterY: 0, spawnX: 9, spawnY: 9, startDir: DIR_DOWN },
+            { name: 'INKY', color: '#00f3ff', scatterX: 18, scatterY: 21, spawnX: 8, spawnY: 9, startDir: DIR_UP },
+            { name: 'CLYDE', color: '#ff9900', scatterX: 0, scatterY: 21, spawnX: 10, spawnY: 9, startDir: DIR_UP }
+        ];
+
+        let ghosts = [];
+
+        function initGhosts() {
+            ghosts = GHOSTS_META.map((meta, idx) => {
+                return {
+                    id: idx,
+                    name: meta.name,
+                    color: meta.color,
+                    scatterX: meta.scatterX,
+                    scatterY: meta.scatterY,
+                    spawnX: meta.spawnX,
+                    spawnY: meta.spawnY,
+                    x: meta.spawnX,
+                    y: meta.spawnY,
+                    px: meta.spawnX * CELL_SIZE + CELL_SIZE/2,
+                    py: meta.spawnY * CELL_SIZE + CELL_SIZE/2,
+                    currentDir: meta.startDir,
+                    speed: 1.3,
+                    mode: 'CHASE', // CHASE, SCATTER, FRIGHTENED, RETREAT
+                    modeTimer: 0,  // frame timers
+                    targetX: 0,
+                    targetY: 0
+                };
+            });
+        }
+
+        // Utility counts for dots
+        function remainingDotsCount() {
+            let count = 0;
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] === 0 || board[r][c] === 3) count++;
+                }
+            }
+            return count;
+        }
+
+        // --- Visual Juice Canvas Particle System ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let screenShakeTime = 0;
+        let screenShakeIntensity = 0;
+
+        function spawnParticles(x, y, color, count = 10, sizeFactor = 1) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 2;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    decay: Math.random() * 0.05 + 0.03,
+                    color: color,
+                    size: (Math.random() * 3 + 1.5) * sizeFactor
+                });
+            }
+        }
+
+        function triggerScreenShake(durationMs, intensityPixels) {
+            screenShakeTime = durationMs;
+            screenShakeIntensity = intensityPixels;
+        }
+
+        // --- UI DOM connections ---
+        const overlayScreen = document.getElementById('overlayScreen');
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlayStats = document.getElementById('overlayStats');
+        const btnAction = document.getElementById('btnAction');
+
+        const btnSoundToggle = document.getElementById('btnSoundToggle');
+        const soundIcon = document.getElementById('soundIcon');
+
+        // Stats Hookups
+        const dScoreEl = document.getElementById('dScore');
+        const mScoreEl = document.getElementById('mScore');
+        const dLivesEl = document.getElementById('dLives');
+        const mLivesEl = document.getElementById('mLives');
+        const dLevelEl = document.getElementById('dLevel');
+        const mLevelEl = document.getElementById('mLevel');
+
+        const dShieldTimer = document.getElementById('dShieldTimer');
+        const mShieldTimer = document.getElementById('mShieldTimer');
+
+        // Ghost status hooks
+        const monBlinkyStatus = document.getElementById('monBlinkyStatus');
+        const monPinkyStatus = document.getElementById('monPinkyStatus');
+        const monInkyStatus = document.getElementById('monInkyStatus');
+        const monClydeStatus = document.getElementById('monClydeStatus');
+
+        function updateGhostStatusMonitors() {
+            if (ghosts.length === 0) return;
+            const getStyledMode = (g) => {
+                if (g.mode === 'RETREAT') return '<span style="color: #ff3b30;">RETREAT</span>';
+                if (g.mode === 'FRIGHTENED') return '<span style="color: var(--cyber-magenta);">SCRED</span>';
+                if (g.mode === 'SCATTER') return '<span style="color: var(--cyber-yellow);">SCATTR</span>';
+                return 'CHASE';
+            };
+            monBlinkyStatus.innerHTML = getStyledMode(ghosts[0]);
+            monPinkyStatus.innerHTML = getStyledMode(ghosts[1]);
+            monInkyStatus.innerHTML = getStyledMode(ghosts[2]);
+            monClydeStatus.innerHTML = getStyledMode(ghosts[3]);
+        }
+
+        // Initialize sound toggles from preferences singleton
+        function updateSoundButtonDisplay() {
+            if (window.GameSettings) {
+                const soundEnabled = window.GameSettings.get().sound;
+                soundIcon.innerText = soundEnabled ? 'volume_up' : 'volume_off';
+                btnSoundToggle.style.color = soundEnabled ? 'var(--cyber-cyan)' : '#666';
+            }
+        }
+        btnSoundToggle.addEventListener('click', () => {
+            if (window.GameSettings) {
+                window.GameSettings.toggle('sound');
+                updateSoundButtonDisplay();
+                if (!window.GameSettings.get().sound) stopAmbientSiren();
+                else if (isPlaying && !isPaused && !isGameOver) startAmbientSiren();
+            }
+        });
+        updateSoundButtonDisplay();
+
+        // --- Core Pac-Man Grid Collision & Turn Buffering ---
+
+        function isWallAt(gridX, gridY, isGhost = false) {
+            // Tunnel wrap check
+            if (gridX < 0 || gridX >= COLS) return false;
+            if (gridY < 0 || gridY >= ROWS) return true;
+
+            const cell = board[gridY][gridX];
+            if (cell === 1) return true;
+            // Ghost house gate
+            if (cell === 4 && !isGhost) return true;
+            
+            return false;
+        }
+
+        // Checks if Pac-Man is perfectly aligned to cell center
+        function isAlignedToGrid(entity) {
+            return (entity.px - CELL_SIZE/2) % CELL_SIZE === 0 && (entity.py - CELL_SIZE/2) % CELL_SIZE === 0;
+        }
+
+        function getGridCoords(entity) {
+            return {
+                x: Math.floor(entity.px / CELL_SIZE),
+                y: Math.floor(entity.py / CELL_SIZE)
+            };
+        }
+
+        function moveEntity(entity, isGhost = false) {
+            // If perfectly aligned to grid, evaluate directions & queue buffered turns
+            if (isAlignedToGrid(entity)) {
+                const coords = getGridCoords(entity);
+                entity.x = coords.x;
+                entity.y = coords.y;
+
+                // Wrap-around tunnel check
+                if (entity.x === 0 && entity.currentDir === DIR_LEFT) {
+                    entity.px = (COLS - 1) * CELL_SIZE + CELL_SIZE/2;
+                    entity.x = COLS - 1;
+                    return;
+                } else if (entity.x === COLS - 1 && entity.currentDir === DIR_RIGHT) {
+                    entity.px = 0 * CELL_SIZE + CELL_SIZE/2;
+                    entity.x = 0;
+                    return;
+                }
+
+                if (!isGhost) {
+                    // Turn Buffering: check if buffered direction can be executed
+                    if (entity.bufferedDir !== DIR_NONE) {
+                        const vec = DIR_VECTORS[entity.bufferedDir];
+                        if (!isWallAt(entity.x + vec.x, entity.y + vec.y, false)) {
+                            entity.currentDir = entity.bufferedDir;
+                            entity.bufferedDir = DIR_NONE;
+                        }
+                    }
+
+                    // Check if path is blocked in current direction
+                    const currentVec = DIR_VECTORS[entity.currentDir];
+                    if (isWallAt(entity.x + currentVec.x, entity.y + currentVec.y, false)) {
+                        entity.currentDir = DIR_NONE;
+                        entity.isMoving = false;
+                    } else if (entity.currentDir !== DIR_NONE) {
+                        entity.isMoving = true;
+                    }
+                } else {
+                    // Ghost target routing routing logic
+                    steerGhost(entity);
+                }
+            }
+
+            // Continuous slide movement
+            const vec = DIR_VECTORS[entity.currentDir];
+            const speed = entity.mode === 'FRIGHTENED' ? entity.speed * 0.65 : (entity.mode === 'RETREAT' ? entity.speed * 2.5 : entity.speed);
+            entity.px += vec.x * speed;
+            entity.py += vec.y * speed;
+        }
+
+        // --- Ghost Target Routing AI personality algorithms ---
+
+        function steerGhost(ghost) {
+            const nextCoords = { x: ghost.x + DIR_VECTORS[ghost.currentDir].x, y: ghost.y + DIR_VECTORS[ghost.currentDir].y };
+            
+            // Check possible turn options at the upcoming center node, excluding backwards to prevent snapping back
+            const options = [];
+            const oppositeDir = getOppositeDirection(ghost.currentDir);
+
+            [DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT].forEach(dir => {
+                if (dir === oppositeDir) return; // block backtrack
+                const vec = DIR_VECTORS[dir];
+                const checkX = nextCoords.x + vec.x;
+                const checkY = nextCoords.y + vec.y;
+                
+                if (!isWallAt(checkX, checkY, true)) {
+                    // Ghosts can pass ghost gate (4)
+                    options.push({ dir: dir, x: checkX, y: checkY });
+                }
+            });
+
+            if (options.length === 0) {
+                // If cornered somehow, force backtracking
+                ghost.currentDir = oppositeDir;
+                return;
+            }
+
+            if (options.length === 1) {
+                // Only one path, choose it
+                ghost.currentDir = options[0].dir;
+                return;
+            }
+
+            // Multi options: pick direction leading to tile closest to target grid tile
+            computeGhostTarget(ghost);
+
+            let bestOption = null;
+            let bestDist = Infinity;
+
+            options.forEach(opt => {
+                const dx = opt.x - ghost.targetX;
+                const dy = opt.y - ghost.targetY;
+                const dist = dx*dx + dy*dy; // squared distance is faster
+
+                // Classic Pac-Man tie breaker prioritizes: UP, LEFT, DOWN, RIGHT
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestOption = opt;
+                }
+            });
+
+            if (bestOption) {
+                ghost.currentDir = bestOption.dir;
+            }
+        }
+
+        function getOppositeDirection(dir) {
+            if (dir === DIR_UP) return DIR_DOWN;
+            if (dir === DIR_DOWN) return DIR_UP;
+            if (dir === DIR_LEFT) return DIR_RIGHT;
+            if (dir === DIR_RIGHT) return DIR_LEFT;
+            return DIR_NONE;
+        }
+
+        function computeGhostTarget(ghost) {
+            if (ghost.mode === 'RETREAT') {
+                // Retreat home to spawnhouse gate
+                ghost.targetX = 9;
+                ghost.targetY = 9;
+                return;
+            }
+
+            if (ghost.mode === 'FRIGHTENED') {
+                // Choose random target coordinate
+                ghost.targetX = Math.floor(Math.random() * COLS);
+                ghost.targetY = Math.floor(Math.random() * ROWS);
+                return;
+            }
+
+            if (ghost.mode === 'SCATTER') {
+                ghost.targetX = ghost.scatterX;
+                ghost.targetY = ghost.scatterY;
+                return;
+            }
+
+            // Chase Target algorithms
+            const pacCoords = getGridCoords(pacman);
+
+            if (ghost.id === 0) {
+                // Blinky (Red): Target Pac-Man directly
+                ghost.targetX = pacCoords.x;
+                ghost.targetY = pacCoords.y;
+            } else if (ghost.id === 1) {
+                // Pinky (Pink): Target 4 tiles ahead of Pac-Man's direction
+                const vec = DIR_VECTORS[pacman.currentDir];
+                ghost.targetX = pacCoords.x + vec.x * 4;
+                ghost.targetY = pacCoords.y + vec.y * 4;
+            } else if (ghost.id === 2) {
+                // Inky (Cyan): Complex vector doubling Blinky-to-Intercept
+                const blinkyCoords = getGridCoords(ghosts[0]);
+                const vec = DIR_VECTORS[pacman.currentDir];
+                const aheadX = pacCoords.x + vec.x * 2;
+                const aheadY = pacCoords.y + vec.y * 2;
+                
+                ghost.targetX = aheadX + (aheadX - blinkyCoords.x);
+                ghost.targetY = aheadY + (aheadY - blinkyCoords.y);
+            } else if (ghost.id === 3) {
+                // Clyde (Orange): Pursues directly if far; scatters bottom-left if close
+                const dx = ghost.x - pacCoords.x;
+                const dy = ghost.y - pacCoords.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist > 8) {
+                    ghost.targetX = pacCoords.x;
+                    ghost.targetY = pacCoords.y;
+                } else {
+                    ghost.targetX = ghost.scatterX;
+                    ghost.targetY = ghost.scatterY;
+                }
+            }
+        }
+
+        // --- Game Interactions & Eating Logic ---
+
+        function checkEatenPellets() {
+            const coords = getGridCoords(pacman);
+            const cell = board[coords.y][coords.x];
+
+            if (cell === 0) {
+                // Eat small dot
+                board[coords.y][coords.x] = 5; // replace with empty path
+                score += 10;
+                updateHUDStats();
+                playSound('waka');
+                triggerHaptic(5);
+
+                // micro chew sparks
+                spawnParticles(pacman.px, pacman.py, '#ffe600', 3, 0.4);
+
+                // Check level cleared
+                if (remainingDotsCount() === 0) {
+                    nextLevel();
+                }
+            } else if (cell === 3) {
+                // Eat big energizer!
+                board[coords.y][coords.x] = 5;
+                score += 50;
+                updateHUDStats();
+                playSound('energizer');
+                triggerHaptic(30);
+                triggerScreenShake(100, 3);
+
+                // Energizer glowing expand ring
+                spawnParticles(pacman.px, pacman.py, '#ff00ff', 12, 1.1);
+
+                // Trigger Ghost Frightened Mode!
+                triggerFrightenedMode();
+
+                if (remainingDotsCount() === 0) {
+                    nextLevel();
+                }
+            }
+        }
+
+        function triggerFrightenedMode() {
+            // Duration shrinks slightly per level (minimum 2 seconds)
+            shieldTimer = Math.max(120, 480 - (level - 1) * 45); // 60 frames = 1 sec
+            ghostEatenMultiplier = 1; // reset eat ghosts point scaling
+
+            ghosts.forEach(ghost => {
+                if (ghost.mode !== 'RETREAT') {
+                    ghost.mode = 'FRIGHTENED';
+                    // reverse direction
+                    ghost.currentDir = getOppositeDirection(ghost.currentDir);
+                }
+            });
+
+            updateGhostStatusMonitors();
+        }
+
+        function updateFrightenedTimer() {
+            if (shieldTimer > 0) {
+                shieldTimer--;
+                
+                const secs = Math.ceil(shieldTimer / 60);
+                dShieldTimer.innerText = secs + " SEC";
+                mShieldTimer.innerText = secs + " SEC";
+                dShieldTimer.style.textShadow = 'var(--neon-magenta-glow)';
+
+                if (shieldTimer === 0) {
+                    // Shield expired
+                    dShieldTimer.innerText = "OFF";
+                    mShieldTimer.innerText = "OFF";
+                    dShieldTimer.style.textShadow = 'none';
+                    
+                    ghosts.forEach(ghost => {
+                        if (ghost.mode === 'FRIGHTENED') {
+                            ghost.mode = 'CHASE';
+                        }
+                    });
+                    
+                    updateGhostStatusMonitors();
+                }
+            }
+        }
+
+        function checkCollisionsWithGhosts() {
+            if (isGameOver || !isPlaying || isPaused) return;
+
+            ghosts.forEach(ghost => {
+                const dx = pacman.px - ghost.px;
+                const dy = pacman.py - ghost.py;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+
+                if (dist < 12) { // bounding radius overlap
+                    if (ghost.mode === 'FRIGHTENED') {
+                        // Chomped ghost!
+                        eatGhost(ghost);
+                    } else if (ghost.mode === 'CHASE' || ghost.mode === 'SCATTER') {
+                        // Eaten by ghost! Lose life
+                        playerDeath();
+                    }
+                }
+            });
+        }
+
+        function eatGhost(ghost) {
+            ghost.mode = 'RETREAT';
+            playSound('eat_ghost');
+            triggerHaptic([40, 20, 40]);
+            triggerScreenShake(200, 6);
+
+            // Compute ascending score: 200 -> 400 -> 800 -> 1600
+            const pts = 200 * ghostEatenMultiplier;
+            score += pts;
+            ghostEatenMultiplier = Math.min(8, ghostEatenMultiplier * 2);
+            updateHUDStats();
+
+            // Commit to global dashboard
+            if (window.GlobalScore) {
+                window.GlobalScore.add(pts);
+            }
+
+            // Spawn giant colorful pixel blast matching ghost color
+            spawnParticles(ghost.px, ghost.py, ghost.color, 25, 1.4);
+
+            updateGhostStatusMonitors();
+        }
+
+        function playerDeath() {
+            isPlaying = false;
+            stopAmbientSiren();
+            playSound('die');
+            triggerHaptic(200);
+            triggerScreenShake(300, 10);
+
+            // Spawn huge yellow spark blowout
+            spawnParticles(pacman.px, pacman.py, '#ffe600', 35, 1.6);
+
+            lives--;
+            updateHUDStats();
+
+            setTimeout(() => {
+                if (lives > 0) {
+                    resetPositions();
+                    isPlaying = true;
+                    startAmbientSiren();
+                } else {
+                    gameOver();
+                }
+            }, 1500);
+        }
+
+        function resetPositions() {
+            pacman.x = 9;
+            pacman.y = 15;
+            pacman.px = 9 * CELL_SIZE + CELL_SIZE/2;
+            pacman.py = 15 * CELL_SIZE + CELL_SIZE/2;
+            pacman.currentDir = DIR_NONE;
+            pacman.bufferedDir = DIR_NONE;
+            pacman.isMoving = false;
+
+            ghosts.forEach((ghost, idx) => {
+                ghost.x = ghost.spawnX;
+                ghost.y = ghost.spawnY;
+                ghost.px = ghost.spawnX * CELL_SIZE + CELL_SIZE/2;
+                ghost.py = ghost.spawnY * CELL_SIZE + CELL_SIZE/2;
+                ghost.currentDir = GHOSTS_META[idx].startDir;
+                ghost.mode = 'CHASE';
+            });
+
+            shieldTimer = 0;
+            dShieldTimer.innerText = "OFF";
+            mShieldTimer.innerText = "OFF";
+            updateGhostStatusMonitors();
+        }
+
+        // --- Render Loops (Canvas Graphics Drawing) ---
+
+        function drawWallLine(x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1 * CELL_SIZE, y1 * CELL_SIZE);
+            ctx.lineTo(x2 * CELL_SIZE, y2 * CELL_SIZE);
+            ctx.stroke();
+        }
+
+        function drawMaze() {
+            ctx.fillStyle = '#03030c';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // High-fidelity Neon Maze Walls drawing
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.7)';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00f3ff';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] === 1) {
+                        const px = c * CELL_SIZE;
+                        const py = r * CELL_SIZE;
+
+                        // Check right neighbor
+                        if (c + 1 < COLS && board[r][c+1] === 1) {
+                            ctx.beginPath();
+                            ctx.moveTo(px + CELL_SIZE/2, py + CELL_SIZE/2);
+                            ctx.lineTo(px + CELL_SIZE + CELL_SIZE/2, py + CELL_SIZE/2);
+                            ctx.stroke();
+                        }
+                        // Check bottom neighbor
+                        if (r + 1 < ROWS && board[r+1][c] === 1) {
+                            ctx.beginPath();
+                            ctx.moveTo(px + CELL_SIZE/2, py + CELL_SIZE/2);
+                            ctx.lineTo(px + CELL_SIZE/2, py + CELL_SIZE + CELL_SIZE/2);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+            ctx.restore();
+
+            // Draw Dots & Energizers
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const px = c * CELL_SIZE + CELL_SIZE/2;
+                    const py = r * CELL_SIZE + CELL_SIZE/2;
+
+                    if (board[r][c] === 0) {
+                        // Standard dot
+                        ctx.fillStyle = '#ffe600';
+                        ctx.beginPath();
+                        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (board[r][c] === 3) {
+                        // Flashing energizer
+                        const alpha = 0.5 + Math.sin(performance.now() / 100) * 0.4;
+                        ctx.fillStyle = 'rgba(255, 0, 255, ' + alpha + ')';
+                        ctx.shadowBlur = 8;
+                        ctx.shadowColor = '#ff00ff';
+                        ctx.beginPath();
+                        ctx.arc(px, py, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    } else if (board[r][c] === 4) {
+                        // Ghost House Gate Line
+                        ctx.save();
+                        ctx.strokeStyle = '#ff00ff';
+                        ctx.lineWidth = 4;
+                        ctx.beginPath();
+                        ctx.moveTo(c * CELL_SIZE, py);
+                        ctx.lineTo((c + 1) * CELL_SIZE, py);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            }
+        }
+
+        function drawPacman() {
+            ctx.save();
+            ctx.translate(pacman.px, pacman.py);
+
+            // Compute mouth animation interpolation
+            if (pacman.isMoving) {
+                pacman.mouthAngle += 0.08 * pacman.mouthDirection;
+                if (pacman.mouthAngle >= 0.35 || pacman.mouthAngle <= 0) {
+                    pacman.mouthDirection *= -1; // bounce
+                }
+            }
+
+            // Rotate based on direction
+            let rotation = 0;
+            if (pacman.currentDir === DIR_UP) rotation = -Math.PI / 2;
+            else if (pacman.currentDir === DIR_DOWN) rotation = Math.PI / 2;
+            else if (pacman.currentDir === DIR_LEFT) rotation = Math.PI;
+            
+            ctx.rotate(rotation);
+
+            // Draw Neon Chomper Pac-Man shape
+            ctx.fillStyle = '#ffe600';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ffe600';
+            
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            
+            // Draw pie wedge chomp
+            const angle = pacman.mouthAngle * Math.PI;
+            ctx.arc(0, 0, 8, angle, Math.PI * 2 - angle);
+            
+            ctx.lineTo(0, 0);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawGhosts() {
+            ghosts.forEach(ghost => {
+                ctx.save();
+                ctx.translate(ghost.px, ghost.py);
+
+                if (ghost.mode === 'RETREAT') {
+                    // Retreating mode: Draw eyes only
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(-3, -2, 3, 0, Math.PI * 2);
+                    ctx.arc(3, -2, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // pupil mapping based on direction
+                    ctx.fillStyle = '#0045ff';
+                    ctx.beginPath();
+                    const vec = DIR_VECTORS[ghost.currentDir];
+                    ctx.arc(-3 + vec.x, -2 + vec.y, 1.2, 0, Math.PI * 2);
+                    ctx.arc(3 + vec.x, -2 + vec.y, 1.2, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Standard / Frightened Ghost
+                    ctx.shadowBlur = 8;
+                    
+                    let ghostColor = ghost.color;
+                    if (ghost.mode === 'FRIGHTENED') {
+                        // flashing warning in final seconds
+                        if (shieldTimer < 120 && Math.floor(shieldTimer / 10) % 2 === 0) {
+                            ghostColor = '#fff';
+                        } else {
+                            ghostColor = '#00f3ff';
+                        }
+                    }
+                    
+                    ctx.fillStyle = ghostColor;
+                    ctx.shadowColor = ghostColor;
+
+                    // Classic ghost round dome top body
+                    ctx.beginPath();
+                    ctx.arc(0, -1, 7, Math.PI, 0, false);
+                    ctx.lineTo(7, 7);
+                    // Wave bottom spikes
+                    const waveOffset = Math.sin(performance.now() / 60 + ghost.id) * 2;
+                    ctx.lineTo(4.5, 5 + waveOffset);
+                    ctx.lineTo(2, 7);
+                    ctx.lineTo(-0.5, 5 + waveOffset);
+                    ctx.lineTo(-3, 7);
+                    ctx.lineTo(-5.5, 5 + waveOffset);
+                    ctx.lineTo(-7, 7);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.shadowBlur = 0; // reset for eyes
+
+                    // Draw eyes
+                    if (ghost.mode === 'FRIGHTENED') {
+                        // Frightened face (sad grid cells)
+                        ctx.fillStyle = '#ffe600';
+                        ctx.fillRect(-4, -3, 2, 2);
+                        ctx.fillRect(2, -3, 2, 2);
+                        
+                        // wavy line mouth
+                        ctx.strokeStyle = '#ffe600';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(-4, 3);
+                        ctx.lineTo(-2, 1);
+                        ctx.lineTo(0, 3);
+                        ctx.lineTo(2, 1);
+                        ctx.lineTo(4, 3);
+                        ctx.stroke();
+                    } else {
+                        // Standard eyes
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.arc(-2.5, -2, 2.2, 0, Math.PI * 2);
+                        ctx.arc(2.5, -2, 2.2, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        ctx.fillStyle = '#020208';
+                        ctx.beginPath();
+                        const vec = DIR_VECTORS[ghost.currentDir];
+                        ctx.arc(-2.5 + vec.x * 0.8, -2 + vec.y * 0.8, 1, 0, Math.PI * 2);
+                        ctx.arc(2.5 + vec.x * 0.8, -2 + vec.y * 0.8, 1, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                ctx.restore();
+            });
+        }
+
+        function drawParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= p.decay;
+                
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Main game animation clock loop
+        function mainLoop(timestamp) {
+            if (!isPlaying) return;
+
+            // Handle Board screen shaking
+            const playfieldContainer = document.getElementById('playfieldContainer');
+            if (screenShakeTime > 0) {
+                const ox = (Math.random() - 0.5) * screenShakeIntensity;
+                const oy = (Math.random() - 0.5) * screenShakeIntensity;
+                playfieldContainer.style.transform = `translate(${ox}px, ${oy}px)`;
+                screenShakeTime -= 16.6; // assuming 60fps
+            } else {
+                playfieldContainer.style.transform = 'translate(0px, 0px)';
+            }
+
+            if (!isPaused && !isGameOver) {
+                // Update entities positions
+                moveEntity(pacman, false);
+                
+                ghosts.forEach(ghost => {
+                    // Check spawn restart inside spawnhouse
+                    if (ghost.mode === 'RETREAT' && ghost.x === 9 && ghost.y === 9) {
+                        ghost.mode = 'CHASE';
+                        ghost.currentDir = DIR_UP;
+                        playSound('retreat');
+                        updateGhostStatusMonitors();
+                    }
+                    moveEntity(ghost, true);
+                });
+
+                // check dot eats
+                checkEatenPellets();
+
+                // Frightened timer progression
+                updateFrightenedTimer();
+
+                // check ghost collisions
+                checkCollisionsWithGhosts();
+            }
+
+            // Redraw everything
+            drawMaze();
+            drawPacman();
+            drawGhosts();
+            drawParticles();
+
+            // Refresh monitor statuses
+            updateGhostStatusMonitors();
+
+            // Next frame
+            requestAnimationFrame(mainLoop);
+        }
+
+        // --- Keyboard Controls Hookups ---
+        window.addEventListener('keydown', (e) => {
+            if (!isPlaying || isPaused || isGameOver) {
+                if (e.key.toLowerCase() === 'p' || e.key === 'Escape') {
+                    togglePause();
+                }
+                return;
+            }
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    pacman.bufferedDir = DIR_LEFT;
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    pacman.bufferedDir = DIR_RIGHT;
+                    break;
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    pacman.bufferedDir = DIR_UP;
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    pacman.bufferedDir = DIR_DOWN;
+                    break;
+                case 'p':
+                case 'P':
+                case 'Escape':
+                    togglePause();
+                    break;
+            }
+        });
+
+        // --- Mobile Touch Pad buttons hookups ---
+        document.getElementById('btnUp').addEventListener('pointerdown', (e) => { e.preventDefault(); pacman.bufferedDir = DIR_UP; });
+        document.getElementById('btnDown').addEventListener('pointerdown', (e) => { e.preventDefault(); pacman.bufferedDir = DIR_DOWN; });
+        document.getElementById('btnLeft').addEventListener('pointerdown', (e) => { e.preventDefault(); pacman.bufferedDir = DIR_LEFT; });
+        document.getElementById('btnRight').addEventListener('pointerdown', (e) => { e.preventDefault(); pacman.bufferedDir = DIR_RIGHT; });
+
+        // --- Swipe Gestures Engine on Game Board Canvas ---
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const SWIPE_THRESHOLD = 30; // pixels of swipe movement
+        
+        canvas.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (!isPlaying || isPaused || isGameOver) return;
+
+            const touch = e.changedTouches[0];
+            const dx = touch.clientX - touchStartX;
+            const dy = touch.clientY - touchStartY;
+
+            // Check swipe actions
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // Horizontal Swipe
+                if (Math.abs(dx) > SWIPE_THRESHOLD) {
+                    if (dx > 0) pacman.bufferedDir = DIR_RIGHT;
+                    else pacman.bufferedDir = DIR_LEFT;
+                }
+            } else {
+                // Vertical Swipe
+                if (Math.abs(dy) > SWIPE_THRESHOLD) {
+                    if (dy > 0) pacman.bufferedDir = DIR_DOWN;
+                    else pacman.bufferedDir = DIR_UP;
+                }
+            }
+        });
+
+        // --- Core Game Initialization Actions ---
+
+        function initGame() {
+            score = 0;
+            lives = 3;
+            level = 1;
+            board = JSON.parse(JSON.stringify(MAZE_GRID));
+            
+            // Calculate total dots
+            totalDotsCount = 0;
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] === 0 || board[r][c] === 3) totalDotsCount++;
+                }
+            }
+
+            shieldTimer = 0;
+            dShieldTimer.innerText = "OFF";
+            mShieldTimer.innerText = "OFF";
+
+            pacman.x = 9;
+            pacman.y = 15;
+            pacman.px = 9 * CELL_SIZE + CELL_SIZE/2;
+            pacman.py = 15 * CELL_SIZE + CELL_SIZE/2;
+            pacman.currentDir = DIR_NONE;
+            pacman.bufferedDir = DIR_NONE;
+            pacman.isMoving = false;
+
+            initGhosts();
+            updateHUDStats();
+            updateGhostStatusMonitors();
+
+            // Load Wellbeing Streak if any
+            if (window.GlobalScore) {
+                window.GlobalScore.updateStreak();
+            }
+        }
+
+        function startGame() {
+            initGame();
+            isPlaying = true;
+            overlayScreen.style.opacity = '0';
+            setTimeout(() => overlayScreen.style.display = 'none', 300);
+            
+            startAmbientSiren();
+            requestAnimationFrame(mainLoop);
+        }
+
+        function nextLevel() {
+            isPlaying = false;
+            stopAmbientSiren();
+            playSound('levelup');
+            triggerScreenShake(200, 5);
+
+            level++;
+            updateHUDStats();
+
+            // increase entity speeds slightly
+            pacman.speed = Math.min(2.5, 1.8 + (level - 1) * 0.1);
+            ghosts.forEach(g => {
+                g.speed = Math.min(2.0, 1.3 + (level - 1) * 0.08);
+            });
+
+            overlayTitle.innerText = "SECTOR_CLEARED";
+            overlayStats.innerHTML = "LOADING NEW CORRIDOR MATRIX...<br>Speed Boost Engaged.<br>Score: <span>" + score + "</span> | Sector Level: <span>" + level + "</span>";
+            btnAction.innerText = "LOAD_SECTOR";
+            overlayScreen.style.display = 'flex';
+            overlayScreen.style.opacity = '1';
+
+            // reload dots map
+            board = JSON.parse(JSON.stringify(MAZE_GRID));
+        }
+
+        function togglePause() {
+            if (isGameOver) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+                stopAmbientSiren();
+                overlayTitle.innerText = "SYSTEM_PAUSED";
+                overlayStats.innerHTML = "Grid routing frozen.<br>Score: <span>" + score + "</span> | Sector: <span>" + level + "</span>";
+                btnAction.innerText = "RESUME_SYSTEM";
+                overlayScreen.style.display = 'flex';
+                overlayScreen.style.opacity = '1';
+                playSound('waka');
+            } else {
+                overlayScreen.style.opacity = '0';
+                setTimeout(() => overlayScreen.style.display = 'none', 300);
+                startAmbientSiren();
+            }
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            isGameOver = true;
+            stopAmbientSiren();
+            playSound('die');
+
+            overlayTitle.innerText = "MAZE_GRID_COLLAPSED";
+            overlayStats.innerHTML = "GAME OVER<br>Final Routing Vector Score: <span>" + score + "</span><br>Sectors Solved: <span>" + (level - 1) + "</span>";
+            btnAction.innerText = "REBOOT_GRID";
+            overlayScreen.style.display = 'flex';
+            overlayScreen.style.opacity = '1';
+        }
+
+        function updateHUDStats() {
+            dScoreEl.innerText = score;
+            mScoreEl.innerText = score;
+            dLivesEl.innerText = lives;
+            mLivesEl.innerText = lives;
+            dLevelEl.innerText = level;
+            mLevelEl.innerText = level;
+        }
+
+        // Overlay screen big boot button hook
+        btnAction.addEventListener('click', () => {
+            if (isGameOver || overlayTitle.innerText === "SYSTEM_INITIALIZED") {
+                startGame();
+            } else if (overlayTitle.innerText === "SECTOR_CLEARED") {
+                // Settle next level starting positions
+                resetPositions();
+                isPlaying = true;
+                overlayScreen.style.opacity = '0';
+                setTimeout(() => overlayScreen.style.display = 'none', 300);
+                startAmbientSiren();
+            } else {
+                // Pause resume
+                togglePause();
+            }
+        });
+    </script>
+</body>
+
+</html>

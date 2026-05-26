@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="game-id" content="tetris">
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Tetraflow</title>
+    <script src="../timeLimit.js"></script>
+    <script src="../shared/settings.js"></script>
+    <link rel="stylesheet" href="../shared/theme.css">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --bg-color: var(--cyber-bg);
+            --surface-color: var(--cyber-surface);
+            --text-color: var(--cyber-text);
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100dvh;
+            width: 100vw;
+            position: relative;
+        }
+
+        /* --- Scanlines Backdrop --- */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* --- Game Main Wrapper --- */
+        .game-main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
+            width: 100%;
+            max-width: 900px;
+            flex: 1;
+            padding: 10px;
+            z-index: 10;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* --- Column Sidebars --- */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 150px;
+            flex-shrink: 0;
+        }
+
+        /* --- Card panels --- */
+        .cyber-panel {
+            background: rgba(10, 10, 31, 0.65);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            border-radius: var(--md-shape-corner-medium);
+            padding: 12px;
+            box-shadow: var(--cyber-glass-shadow);
+            backdrop-filter: var(--cyber-glass-blur);
+            -webkit-backdrop-filter: var(--cyber-glass-blur);
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            position: relative;
+        }
+
+        .panel-label {
+            font-size: 0.75rem;
+            color: var(--cyber-magenta);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            font-weight: 800;
+            text-shadow: var(--neon-magenta-glow);
+            text-transform: uppercase;
+        }
+
+        .panel-value {
+            font-size: 1.4rem;
+            color: #fff;
+            font-weight: 900;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+            margin: 4px 0;
+        }
+
+        .panel-sub {
+            font-size: 0.65rem;
+            color: #8c8c9e;
+            letter-spacing: 1px;
+        }
+
+        /* --- Next & Hold Canvas Boxes --- */
+        .preview-box {
+            width: 70px;
+            height: 70px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 243, 255, 0.15);
+            border-radius: var(--cyber-border-radius);
+            margin: 5px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- Playfield container --- */
+        .playfield-container {
+            position: relative;
+            background: rgba(5, 5, 16, 0.85);
+            border: 2px solid var(--cyber-cyan);
+            border-radius: var(--md-shape-corner-medium);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.25), inset 0 0 15px rgba(0, 243, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-sizing: border-box;
+            /* Height will be computed dynamically or constrained */
+            height: min(70vw * 2, 60dvh);
+            aspect-ratio: 10 / 20;
+            transition: transform 0.05s ease-out; /* for screen shake */
+        }
+
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* --- Mobile Horizontal HUD Layout --- */
+        .mobile-hud {
+            display: none;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 10px;
+            z-index: 10;
+        }
+
+        /* --- Toggle switch for Cascade Mode --- */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: var(--cyber-cyan);
+            margin-top: 5px;
+        }
+
+        /* --- Touch Buttons Panel --- */
+        .touch-pad {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(2, 60px);
+            gap: 8px;
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 10;
+            margin-bottom: env(safe-area-inset-bottom, 5px);
+        }
+
+        .touch-btn {
+            background: rgba(10, 10, 31, 0.7);
+            border: 1px solid var(--cyber-cyan);
+            border-radius: var(--md-shape-corner-small);
+            color: var(--cyber-cyan);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--cyber-glass-shadow);
+            transition: all 0.1s;
+        }
+
+        .touch-btn:active {
+            background: var(--cyber-cyan);
+            color: #000;
+            box-shadow: var(--cyber-glow-cyan);
+            transform: scale(0.92);
+        }
+
+        .touch-btn.magenta-btn {
+            border-color: var(--cyber-magenta);
+            color: var(--cyber-magenta);
+        }
+
+        .touch-btn.magenta-btn:active {
+            background: var(--cyber-magenta);
+            color: #000;
+            box-shadow: var(--cyber-glow-magenta);
+        }
+
+        .touch-btn span {
+            font-size: 1.6rem;
+        }
+
+        .touch-btn label {
+            font-size: 0.55rem;
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 2px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        /* --- CSS Board Shake effect --- */
+        .board-shake {
+            animation: shake 0.15s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(3px, -2px, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 2px, 0); }
+            40%, 60% { transform: translate3d(4px, 1px, 0); }
+        }
+
+        /* --- Game Over / Start Overlay --- */
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(3, 3, 12, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--cyber-magenta);
+            text-shadow: var(--neon-magenta-glow);
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .overlay-stats {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .overlay-stats span {
+            color: var(--cyber-cyan);
+            font-weight: bold;
+        }
+
+        /* --- Responsiveness reflow for mobile --- */
+        @media (max-width: 768px) {
+            .game-main-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 5px;
+                padding: 5px;
+                justify-content: flex-start;
+            }
+
+            .sidebar {
+                display: none; /* Hide wide sidebars */
+            }
+
+            .mobile-hud {
+                display: flex; /* Show custom horizontal mobile HUD */
+            }
+
+            .playfield-container {
+                height: auto;
+                width: 90vw;
+                max-width: 320px;
+                flex: 1; /* Grow to fill screen */
+                margin-top: 5px;
+            }
+
+            .touch-pad {
+                display: grid; /* Show mobile gamepad controls */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scanlines"></div>
+
+    <!-- Header -->
+    <header class="cyber-header" style="width: 100%; box-sizing: border-box;">
+        <a href="../index.html" class="back-btn" id="btnBack"> &lt; HUB </a>
+        <div class="hud-pill">
+            <span>PROTOCOL</span>
+            <span class="hud-value">TETRAFLOW</span>
+        </div>
+        <button class="icon-btn" id="btnSoundToggle" aria-label="Toggle Sound" style="pointer-events: auto;">
+            <span class="material-symbols-outlined" id="soundIcon">volume_up</span>
+        </button>
+    </header>
+
+    <!-- Mobile Top HUD (Row) -->
+    <div class="mobile-hud">
+        <div class="cyber-panel" style="flex: 1.1; padding: 6px 10px; display: flex; align-items: center; justify-content: space-around; gap: 4px;">
+            <div style="text-align: left;">
+                <div class="panel-label" style="font-size: 0.55rem; margin-bottom: 1px;">SCORE</div>
+                <div class="panel-value" id="mScore" style="font-size: 1rem; margin: 0;">0</div>
+            </div>
+            <div style="text-align: left; border-left: 1px solid rgba(0, 243, 255, 0.15); padding-left: 6px;">
+                <div class="panel-label" style="font-size: 0.55rem; margin-bottom: 1px;">LEVEL</div>
+                <div class="panel-value" id="mLevel" style="font-size: 1rem; margin: 0; color: var(--cyber-cyan);">1</div>
+            </div>
+        </div>
+
+        <div class="cyber-panel" style="width: 54px; height: 54px; padding: 3px; display: flex; flex-direction: column; align-items: center;">
+            <div class="panel-label" style="font-size: 0.45rem; margin-bottom: 1px;">HOLD</div>
+            <div class="preview-box" style="width: 32px; height: 32px; margin: 0;">
+                <canvas id="mHoldCanvas" class="preview-canvas" width="64" height="64"></canvas>
+            </div>
+        </div>
+
+        <div class="cyber-panel" style="width: 54px; height: 54px; padding: 3px; display: flex; flex-direction: column; align-items: center;">
+            <div class="panel-label" style="font-size: 0.45rem; margin-bottom: 1px;">NEXT</div>
+            <div class="preview-box" style="width: 32px; height: 32px; margin: 0;">
+                <canvas id="mNextCanvas" class="preview-canvas" width="64" height="64"></canvas>
+            </div>
+        </div>
+
+        <div class="cyber-panel" style="flex: 0.9; padding: 5px 8px; font-family: 'Orbitron', sans-serif;">
+            <div class="panel-label" style="font-size: 0.5rem; margin-bottom: 1px;">CASCADE</div>
+            <div style="display: flex; align-items: center; justify-content: center; transform: scale(0.8); margin-top: -3px;">
+                <label class="switch">
+                    <input type="checkbox" id="mCascadeToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game Section (Layout reflows on Desktop/Mobile) -->
+    <div class="game-main-container">
+
+        <!-- Left Sidebar: Hold Box, Stats (Desktop Only) -->
+        <div class="sidebar">
+            <div class="cyber-panel">
+                <div class="panel-label">HOLD_PIECE</div>
+                <div class="preview-box">
+                    <canvas id="dHoldCanvas" class="preview-canvas" width="100" height="100"></canvas>
+                </div>
+                <div class="panel-sub">SHIFT_KEY</div>
+            </div>
+
+            <div class="cyber-panel">
+                <div class="panel-label">XP_ACCUMULATOR</div>
+                <div style="margin-bottom: 10px;">
+                    <div class="panel-label" style="color: #8c8c9e; font-size: 0.6rem;">SCORE</div>
+                    <div class="panel-value" id="dScore">0</div>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <div class="panel-label" style="color: #8c8c9e; font-size: 0.6rem;">LEVEL</div>
+                    <div class="panel-value" id="dLevel" style="color: var(--cyber-cyan);">1</div>
+                </div>
+                <div>
+                    <div class="panel-label" style="color: #8c8c9e; font-size: 0.6rem;">LINES</div>
+                    <div class="panel-value" id="dLines" style="font-size: 1.1rem;">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center: Playfield Board -->
+        <div class="playfield-container" id="playfieldContainer">
+            <canvas id="game-canvas" width="300" height="600"></canvas>
+
+            <!-- Start / Pause / Game Over Screens -->
+            <div id="overlayScreen" class="overlay-screen">
+                <div class="overlay-title" id="overlayTitle">SYSTEM_INITIALIZED</div>
+                <div class="overlay-stats" id="overlayStats">
+                    Grid Construct Status: <span>Offline</span><br>
+                    Load dynamic block alignments.
+                </div>
+                <button class="btn-restart" id="btnAction" style="font-size: 0.95rem; padding: 12px 30px;">BOOT_SYSTEM</button>
+            </div>
+        </div>
+
+        <!-- Right Sidebar: Next Box, Controls & Mode Settings (Desktop Only) -->
+        <div class="sidebar">
+            <div class="cyber-panel">
+                <div class="panel-label">NEXT_PIECE</div>
+                <div class="preview-box">
+                    <canvas id="dNextCanvas" class="preview-canvas" width="100" height="100"></canvas>
+                </div>
+                <div class="panel-sub">QUEUE_ACTIVE</div>
+            </div>
+
+            <div class="cyber-panel">
+                <div class="panel-label">GRID_MATRIX</div>
+                
+                <div class="toggle-container" style="margin-bottom: 10px;">
+                    <span>GHOST_BLOCKS</span>
+                    <label class="switch">
+                        <input type="checkbox" id="ghostToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-container" style="border-top: 1px solid rgba(0, 243, 255, 0.1); padding-top: 10px;">
+                    <span style="color: var(--cyber-yellow);">CASCADE_GRAV</span>
+                    <label class="switch">
+                        <input type="checkbox" id="dCascadeToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div style="font-size: 0.55rem; color: #8c8c9e; line-height: 1.3; text-align: left; margin-top: 4px;">
+                    Unsupported parts of settled blocks fall freely. Can chain reaction.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Mobile Controller Panel -->
+    <div class="touch-pad">
+        <!-- Row 1 -->
+        <div class="touch-btn magenta-btn" id="btnHold" style="grid-column: 1;">
+            <span class="material-symbols-outlined">cached</span>
+            <label>Hold</label>
+        </div>
+        <div class="touch-btn" id="btnLeft" style="grid-column: 2;">
+            <span class="material-symbols-outlined">arrow_back</span>
+            <label>Left</label>
+        </div>
+        <div class="touch-btn" id="btnRotateCcw" style="grid-column: 3;">
+            <span class="material-symbols-outlined">rotate_left</span>
+            <label>R_CCW</label>
+        </div>
+        <div class="touch-btn" id="btnRight" style="grid-column: 4;">
+            <span class="material-symbols-outlined">arrow_forward</span>
+            <label>Right</label>
+        </div>
+        <div class="touch-btn magenta-btn" id="btnHardDrop" style="grid-column: 5;">
+            <span class="material-symbols-outlined">arrow_upward</span>
+            <label>Hard</label>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="touch-btn magenta-btn" id="btnGhostMobile" style="grid-column: 1;">
+            <span class="material-symbols-outlined" id="ghostMobileIcon">visibility</span>
+            <label id="ghostMobileLabel">Ghost</label>
+        </div>
+        <div class="touch-btn" id="btnRotateCw" style="grid-column: 3;">
+            <span class="material-symbols-outlined">rotate_right</span>
+            <label>Rotate</label>
+        </div>
+        <div class="touch-btn" id="btnSoftDrop" style="grid-column: 4;">
+            <span class="material-symbols-outlined">arrow_downward</span>
+            <label>Soft</label>
+        </div>
+    </div>
+
+    <!-- Core Game Controller JS Script -->
+    <script>
+        // --- Game constants & configuration ---
+        const COLS = 10;
+        const ROWS = 20;
+        const BLOCK_SIZE = 30; // internal coordinate units
+
+        // Neon cyberpunk palette mapping
+        const COLORS = {
+            1: '#00f3ff', // I - Cyber Cyan (glowing blue)
+            2: '#ffe600', // O - Cyber Yellow
+            3: '#ff00ff', // T - Neon Magenta
+            4: '#39ff14', // S - Neon Green
+            5: '#ff3b30', // Z - Warning Red
+            6: '#0045ff', // J - Vibrant Indigo
+            7: '#ff9900'  // L - Laser Orange
+        };
+
+        const SHAPES = {
+            1: [ // I
+                [0,0,0,0],
+                [1,1,1,1],
+                [0,0,0,0],
+                [0,0,0,0]
+            ],
+            2: [ // O
+                [2,2],
+                [2,2]
+            ],
+            3: [ // T
+                [0,3,0],
+                [3,3,3],
+                [0,0,0]
+            ],
+            4: [ // S
+                [0,4,4],
+                [4,4,0],
+                [0,0,0]
+            ],
+            5: [ // Z
+                [5,5,0],
+                [0,5,5],
+                [0,0,0]
+            ],
+            6: [ // J
+                [6,0,0],
+                [6,6,6],
+                [0,0,0]
+            ],
+            7: [ // L
+                [0,0,7],
+                [7,7,7],
+                [0,0,0]
+            ]
+        };
+
+        // SRS Wall kick offset tables for 3x3 shapes (T, S, Z, J, L)
+        const KICK_DATA = [
+            [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]], // 0->1
+            [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],     // 1->0
+            [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],     // 1->2
+            [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]], // 2->1
+            [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],    // 2->3
+            [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],   // 3->2
+            [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],   // 3->0
+            [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]]     // 0->3
+        ];
+        // SRS Wall kick offset tables for 4x4 I shape
+        const KICK_DATA_I = [
+            [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]],   // 0->1
+            [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]],   // 1->0
+            [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]],   // 1->2
+            [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]],   // 2->1
+            [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]],   // 2->3
+            [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]],   // 3->2
+            [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]],   // 3->0
+            [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]]    // 0->3
+        ];
+
+        // --- Sound & Audio Procedural Synthesizer ---
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (window.GameSettings && !window.GameSettings.get().sound) return;
+            try {
+                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtxClass) return;
+                if (!audioCtx) audioCtx = new AudioCtxClass();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'move') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(120, now + 0.05);
+                    gain.gain.setValueAtTime(0.04, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'rotate') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(260, now);
+                    osc.frequency.exponentialRampToValueAtTime(450, now + 0.08);
+                    gain.gain.setValueAtTime(0.03, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'hold') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(330, now);
+                    osc.frequency.exponentialRampToValueAtTime(660, now + 0.12);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'land') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(90, now);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+                    osc.start(now);
+                    osc.stop(now + 0.06);
+                } else if (type === 'harddrop') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(80, now);
+                    osc.frequency.linearRampToValueAtTime(30, now + 0.18);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                    osc.start(now);
+                    osc.stop(now + 0.18);
+                } else if (type === 'clear') {
+                    // Epic Sci-Fi Synth Laser sweep
+                    const length = 0.35;
+                    const osc = audioCtx.createOscillator();
+                    const osc2 = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    osc.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(150, now + length);
+                    
+                    osc2.type = 'square';
+                    osc2.frequency.setValueAtTime(300, now);
+                    osc2.frequency.exponentialRampToValueAtTime(75, now + length);
+
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + length);
+                    
+                    osc.start(now);
+                    osc.stop(now + length);
+                    osc2.start(now);
+                    osc2.stop(now + length);
+                } else if (type === 'cascade') {
+                    // Snappy high-frequency micro chime
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now);
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.05);
+                    gain.gain.setValueAtTime(0.04, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'gameover') {
+                    // Deep slow rumbling decay
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, now);
+                    osc.frequency.linearRampToValueAtTime(20, now + 1.2);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+                    osc.start(now);
+                    osc.stop(now + 1.2);
+                }
+            } catch(e) {
+                console.warn("Synthesis audio play blocked or unsupported:", e);
+            }
+        }
+
+        // Haptic feedback launcher
+        function triggerHaptic(pattern) {
+            if (window.GameSettings && !window.GameSettings.get().haptics) return;
+            if (navigator.vibrate) {
+                try {
+                    navigator.vibrate(pattern);
+                } catch(e) {}
+            }
+        }
+
+        // --- Game State Variables ---
+        let score = 0;
+        let level = 1;
+        let lines = 0;
+        let board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+        let isPlaying = false;
+        let isPaused = false;
+        let isGameOver = false;
+
+        // active and next piece variables
+        let activePiece = null;
+        let holdPiece = null;
+        let nextPiece = null;
+        let hasHeldThisTurn = false;
+
+        // timer intervals
+        let lastDropTime = 0;
+        let dropInterval = 1000; // ms between falling steps, shrinks with levels
+
+        // lock delay variables
+        let lockTimer = null;
+        let isTouchingGround = false;
+        let lockResets = 0;
+        const MAX_LOCK_RESETS = 15;
+
+        // options toggles
+        let useGhost = true;
+        let useCascade = false;
+
+        // dynamic cascade phase tracking
+        let isCascading = false;
+
+        // 7-bag randomizer implementation
+        let bag = [];
+        function getNextPieceFromBag() {
+            if (bag.length === 0) {
+                bag = [1, 2, 3, 4, 5, 6, 7];
+                // Shuffle bag using Fisher-Yates
+                for (let i = bag.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [bag[i], bag[j]] = [bag[j], bag[i]];
+                }
+            }
+            const shapeId = bag.pop();
+            return {
+                id: shapeId,
+                matrix: JSON.parse(JSON.stringify(SHAPES[shapeId])),
+                x: Math.floor((COLS - SHAPES[shapeId][0].length) / 2),
+                y: shapeId === 1 ? -1 : 0, // Cyan vertical adjustment
+                rotation: 0
+            };
+        }
+
+        // --- Visual Juice Canvas Particle System ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let screenShakeTime = 0;
+        let screenShakeIntensity = 0;
+
+        function spawnParticles(x, y, color, count = 12, sizeFactor = 1) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6 + 3;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 1.5, // slightly upward blow
+                    life: 1.0,
+                    decay: Math.random() * 0.04 + 0.02,
+                    color: color,
+                    size: (Math.random() * 4 + 2) * sizeFactor
+                });
+            }
+        }
+
+        function triggerScreenShake(durationMs, intensityPixels) {
+            screenShakeTime = durationMs;
+            screenShakeIntensity = intensityPixels;
+        }
+
+        // --- HTML Page Setup & UI DOM connections ---
+        const overlayScreen = document.getElementById('overlayScreen');
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlayStats = document.getElementById('overlayStats');
+        const btnAction = document.getElementById('btnAction');
+
+        const btnSoundToggle = document.getElementById('btnSoundToggle');
+        const soundIcon = document.getElementById('soundIcon');
+
+        // Stats Display Hookups (Support both Sidebars & Mobile Top HUD)
+        const dScoreEl = document.getElementById('dScore');
+        const mScoreEl = document.getElementById('mScore');
+        const dLevelEl = document.getElementById('dLevel');
+        const mLevelEl = document.getElementById('mLevel');
+        const dLinesEl = document.getElementById('dLines');
+
+        // Toggles
+        const ghostToggle = document.getElementById('ghostToggle');
+        const dCascadeToggle = document.getElementById('dCascadeToggle');
+        const mCascadeToggle = document.getElementById('mCascadeToggle');
+        
+        // Mobile Ghost switch
+        const btnGhostMobile = document.getElementById('btnGhostMobile');
+        const ghostMobileIcon = document.getElementById('ghostMobileIcon');
+        const ghostMobileLabel = document.getElementById('ghostMobileLabel');
+
+        // Next & Hold Canvases
+        const dNextCanvas = document.getElementById('dNextCanvas');
+        const dHoldCanvas = document.getElementById('dHoldCanvas');
+        const mNextCanvas = document.getElementById('mNextCanvas');
+        const mHoldCanvas = document.getElementById('mHoldCanvas');
+
+        // Back action
+        document.getElementById('btnBack').addEventListener('click', (e) => {
+            // Stops loop
+            isPlaying = false;
+        });
+
+        // Initialize sound toggles from preferences singleton
+        function updateSoundButtonDisplay() {
+            if (window.GameSettings) {
+                const soundEnabled = window.GameSettings.get().sound;
+                soundIcon.innerText = soundEnabled ? 'volume_up' : 'volume_off';
+                btnSoundToggle.style.color = soundEnabled ? 'var(--cyber-cyan)' : '#666';
+            }
+        }
+        btnSoundToggle.addEventListener('click', () => {
+            if (window.GameSettings) {
+                window.GameSettings.toggle('sound');
+                updateSoundButtonDisplay();
+            }
+        });
+        updateSoundButtonDisplay();
+
+        // Sync Cascade toggles (Mobile and Desktop)
+        dCascadeToggle.addEventListener('change', (e) => {
+            useCascade = e.target.checked;
+            mCascadeToggle.checked = useCascade;
+            playSound('move');
+        });
+        mCascadeToggle.addEventListener('change', (e) => {
+            useCascade = e.target.checked;
+            dCascadeToggle.checked = useCascade;
+            playSound('move');
+        });
+
+        // Sync Ghost toggle
+        ghostToggle.addEventListener('change', (e) => {
+            useGhost = e.target.checked;
+            updateGhostMobileDisplay();
+        });
+
+        function updateGhostMobileDisplay() {
+            if (useGhost) {
+                ghostMobileIcon.innerText = 'visibility';
+                ghostMobileLabel.innerText = 'GHOST_ON';
+                btnGhostMobile.style.borderColor = 'var(--cyber-cyan)';
+                btnGhostMobile.style.color = 'var(--cyber-cyan)';
+            } else {
+                ghostMobileIcon.innerText = 'visibility_off';
+                ghostMobileLabel.innerText = 'GHOST_OFF';
+                btnGhostMobile.style.borderColor = '#666';
+                btnGhostMobile.style.color = '#666';
+            }
+        }
+
+        btnGhostMobile.addEventListener('click', () => {
+            useGhost = !useGhost;
+            ghostToggle.checked = useGhost;
+            updateGhostMobileDisplay();
+            playSound('move');
+        });
+
+        // --- Core Tetris Board Operations ---
+
+        function checkCollision(piece, ox, oy, matrixOverride = null) {
+            const mat = matrixOverride || piece.matrix;
+            for (let r = 0; r < mat.length; r++) {
+                for (let c = 0; c < mat[r].length; c++) {
+                    if (mat[r][c] !== 0) {
+                        const nextX = piece.x + c + ox;
+                        const nextY = piece.y + r + oy;
+
+                        // Check boundaries
+                        if (nextX < 0 || nextX >= COLS || nextY >= ROWS) {
+                            return true;
+                        }
+
+                        // Check settled board blocks
+                        if (nextY >= 0 && board[nextY][nextX] !== 0) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Settles active piece in place on the board grid matrix
+        function lockActivePiece() {
+            if (lockTimer) {
+                clearTimeout(lockTimer);
+                lockTimer = null;
+            }
+            isTouchingGround = false;
+
+            const mat = activePiece.matrix;
+            let blocksSlammed = [];
+
+            for (let r = 0; r < mat.length; r++) {
+                for (let c = 0; c < mat[r].length; c++) {
+                    if (mat[r][c] !== 0) {
+                        const targetX = activePiece.x + c;
+                        const targetY = activePiece.y + r;
+                        
+                        if (targetY >= 0) {
+                            board[targetY][targetX] = mat[r][c];
+                            blocksSlammed.push({x: targetX, y: targetY, color: COLORS[mat[r][c]]});
+                        } else {
+                            // Settle above ceiling = instant GAME OVER
+                            gameOver();
+                            return;
+                        }
+                    }
+                }
+            }
+
+            playSound('land');
+            triggerHaptic(20);
+
+            // spawn land dust sparks
+            blocksSlammed.forEach(b => {
+                // spawn micro sparks directly beneath
+                const pixelX = b.x * BLOCK_SIZE + BLOCK_SIZE / 2;
+                const pixelY = b.y * BLOCK_SIZE + BLOCK_SIZE;
+                spawnParticles(pixelX, pixelY, b.color, 4, 0.6);
+            });
+
+            // Perform Line checking & clear
+            checkLineClears();
+        }
+
+        // Evaluates completed lines, handles clears, cascade triggers, and scoring
+        function checkLineClears() {
+            let clearedRows = [];
+            for (let r = 0; r < ROWS; r++) {
+                if (board[r].every(cell => cell !== 0)) {
+                    clearedRows.push(r);
+                }
+            }
+
+            if (clearedRows.length > 0) {
+                // Shake board based on intensity of clears
+                triggerScreenShake(200, clearedRows.length * 3);
+                playSound('clear');
+
+                // Spawn line explosion sparks!
+                clearedRows.forEach(rowIdx => {
+                    for (let c = 0; c < COLS; c++) {
+                        const px = c * BLOCK_SIZE + BLOCK_SIZE / 2;
+                        const py = rowIdx * BLOCK_SIZE + BLOCK_SIZE / 2;
+                        const colorId = board[rowIdx][c];
+                        const particleColor = COLORS[colorId] || '#fff';
+                        spawnParticles(px, py, particleColor, 6, 1.2);
+                    }
+                });
+
+                // Clear standard line rows
+                if (!useCascade) {
+                    // Standard Tetris: remove lines, shift rows down
+                    clearedRows.forEach(rowIdx => {
+                        board.splice(rowIdx, 1);
+                        board.unshift(Array(COLS).fill(0));
+                    });
+                    
+                    applyScores(clearedRows.length, false);
+                    cycleNextPiece();
+                } else {
+                    // Cascade Mode: clear blocks by writing 0s, then trigger column gravity cascade
+                    isCascading = true;
+                    clearedRows.forEach(rowIdx => {
+                        for (let c = 0; c < COLS; c++) {
+                            board[rowIdx][c] = 0;
+                        }
+                    });
+
+                    // Update scoring for first block clear
+                    applyScores(clearedRows.length, true, 1);
+                    
+                    // Delay cascade gravity briefly so users see row blowouts
+                    setTimeout(() => {
+                        triggerCascadeGravityProcess(1);
+                    }, 250);
+                }
+            } else {
+                // No clears
+                cycleNextPiece();
+            }
+        }
+
+        // Optional Mode: Cascade gravity column sweeping
+        function triggerCascadeGravityProcess(cascadeDepth = 1) {
+            if (!isPlaying || isPaused) return;
+
+            let blocksFell = false;
+            let fallLogs = []; // log positions of falling blocks to animate sparks on impact
+
+            // Scan board column-by-column from bottom up (row ROWS-2 to 0)
+            for (let c = 0; c < COLS; c++) {
+                // Iterate bottom-to-top to settle blocks properly
+                for (let r = ROWS - 2; r >= 0; r--) {
+                    if (board[r][c] !== 0 && board[r + 1][c] === 0) {
+                        // Floating block found! Drop it as far as it can go
+                        let targetY = r;
+                        while (targetY + 1 < ROWS && board[targetY + 1][c] === 0) {
+                            targetY++;
+                        }
+                        // Swap blocks
+                        board[targetY][c] = board[r][c];
+                        board[r][c] = 0;
+                        blocksFell = true;
+                        fallLogs.push({ col: c, row: targetY, color: COLORS[board[targetY][c]] });
+                    }
+                }
+            }
+
+            if (blocksFell) {
+                playSound('cascade');
+                triggerHaptic(15);
+                triggerScreenShake(80, 2);
+
+                // Spawn splash dust on impact locations
+                fallLogs.forEach(log => {
+                    const px = log.col * BLOCK_SIZE + BLOCK_SIZE / 2;
+                    const py = log.row * BLOCK_SIZE + BLOCK_SIZE;
+                    spawnParticles(px, py, log.color, 3, 0.7);
+                });
+
+                // Recursively repeat cascade in case block order demands multiple scans
+                setTimeout(() => {
+                    triggerCascadeGravityProcess(cascadeDepth);
+                }, 100);
+            } else {
+                // Settle phase finished! Let's check if there are any *new* lines formed due to the cascade!
+                let secondaryClears = [];
+                for (let r = 0; r < ROWS; r++) {
+                    if (board[r].every(cell => cell !== 0)) {
+                        secondaryClears.push(r);
+                    }
+                }
+
+                if (secondaryClears.length > 0) {
+                    // Secondary chain clear achieved!
+                    triggerScreenShake(250, secondaryClears.length * 4);
+                    playSound('clear');
+
+                    // Spark explosion!
+                    secondaryClears.forEach(rowIdx => {
+                        for (let c = 0; c < COLS; c++) {
+                            const px = c * BLOCK_SIZE + BLOCK_SIZE / 2;
+                            const py = rowIdx * BLOCK_SIZE + BLOCK_SIZE / 2;
+                            const colorId = board[rowIdx][c];
+                            spawnParticles(px, py, COLORS[colorId] || '#fff', 8, 1.3);
+                        }
+                    });
+
+                    // Clear new lines
+                    secondaryClears.forEach(rowIdx => {
+                        for (let c = 0; c < COLS; c++) {
+                            board[rowIdx][c] = 0;
+                        }
+                    });
+
+                    // Add massive cascade chain points!
+                    applyScores(secondaryClears.length, true, cascadeDepth + 1);
+
+                    // Re-cascade after clearing rows
+                    setTimeout(() => {
+                        triggerCascadeGravityProcess(cascadeDepth + 1);
+                    }, 250);
+                } else {
+                    // Cascade completely settled
+                    isCascading = false;
+                    cycleNextPiece();
+                }
+            }
+        }
+
+        // Cycles incoming next pieces, resets hold locks
+        function cycleNextPiece() {
+            activePiece = nextPiece;
+            nextPiece = getNextPieceFromBag();
+            hasHeldThisTurn = false;
+
+            // Reset lock delay count
+            lockResets = 0;
+
+            // Check immediate overlap = Game Over
+            if (checkCollision(activePiece, 0, 0)) {
+                gameOver();
+            }
+
+            drawSidePreviews();
+        }
+
+        // Calculates scores, updates HUD level, updates global score settings
+        function applyScores(lineCount, isCascade = false, cascadeDepth = 1) {
+            let basePoints = 0;
+            if (!isCascade) {
+                if (lineCount === 1) basePoints = 100 * level;
+                else if (lineCount === 2) basePoints = 300 * level;
+                else if (lineCount === 3) basePoints = 500 * level;
+                else if (lineCount === 4) {
+                    basePoints = 800 * level; // TETRIS!
+                    // Extra trigger dopamine vibe chime on massive double/triple/tetris clears
+                    if (window.GlobalScore) {
+                        window.GlobalScore.playDopamineChime();
+                        window.GlobalScore.triggerDopamineHaptic();
+                    }
+                }
+            } else {
+                // Cascade chain score formula (super rewarding!)
+                basePoints = (200 * lineCount * cascadeDepth) * level;
+                if (cascadeDepth > 1 && window.GlobalScore) {
+                    window.GlobalScore.playDopamineChime();
+                    window.GlobalScore.triggerDopamineHaptic();
+                }
+            }
+
+            score += basePoints;
+            lines += lineCount;
+
+            // Level up every 10 lines
+            const nextLvl = Math.floor(lines / 10) + 1;
+            if (nextLvl > level) {
+                level = nextLvl;
+                dropInterval = Math.max(80, 1000 - (level - 1) * 90); // speed up descent exponentially
+                if (window.GlobalScore) window.GlobalScore.playDopamineChime();
+            }
+
+            // Sync score UI
+            updateHUDStats();
+
+            // Commit points to global NEURO_HUB score dashboard
+            if (window.GlobalScore && basePoints > 0) {
+                window.GlobalScore.add(basePoints);
+            }
+        }
+
+        function updateHUDStats() {
+            dScoreEl.innerText = score;
+            mScoreEl.innerText = score;
+            dLevelEl.innerText = level;
+            mLevelEl.innerText = level;
+            dLinesEl.innerText = lines;
+        }
+
+        // --- Active Piece Movement Actions ---
+
+        function moveLeft() {
+            if (!isPlaying || isPaused || isGameOver || isCascading) return;
+            if (!checkCollision(activePiece, -1, 0)) {
+                activePiece.x--;
+                playSound('move');
+                handleLockDelayReset();
+            }
+        }
+
+        function moveRight() {
+            if (!isPlaying || isPaused || isGameOver || isCascading) return;
+            if (!checkCollision(activePiece, 1, 0)) {
+                activePiece.x++;
+                playSound('move');
+                handleLockDelayReset();
+            }
+        }
+
+        function softDrop() {
+            if (!isPlaying || isPaused || isGameOver || isCascading) return;
+            if (!checkCollision(activePiece, 0, 1)) {
+                activePiece.y++;
+                score += 1; // Soft drop gives minor scores
+                updateHUDStats();
+                playSound('move');
+                // Reset drop clock
+                lastDropTime = performance.now();
+            } else {
+                // Touching bottom, trigger lock countdown
+                if (!lockTimer && !isCascading) {
+                    lockActivePiece();
+                }
+            }
+        }
+
+        function hardDrop() {
+            if (!isPlaying || isPaused || isGameOver || isCascading) return;
+            let droppedRows = 0;
+            while (!checkCollision(activePiece, 0, 1)) {
+                activePiece.y++;
+                droppedRows++;
+            }
+            score += droppedRows * 2; // Hard drop gives bonus score
+            updateHUDStats();
+
+            playSound('harddrop');
+            triggerHaptic([35, 10, 20]);
+            triggerScreenShake(120, 5);
+
+            // Spawn hard slam sparks at the bottom
+            const mat = activePiece.matrix;
+            for (let r = 0; r < mat.length; r++) {
+                for (let c = 0; c < mat[r].length; c++) {
+                    if (mat[r][c] !== 0) {
+                        const px = (activePiece.x + c) * BLOCK_SIZE + BLOCK_SIZE / 2;
+                        const py = (activePiece.y + r) * BLOCK_SIZE + BLOCK_SIZE;
+                        spawnParticles(px, py, COLORS[mat[r][c]], 5, 0.8);
+                    }
+                }
+            }
+
+            lockActivePiece();
+        }
+
+        // Performs Super Rotation System kicks to rotate piece smoothly
+        function rotatePiece(direction) {
+            if (!isPlaying || isPaused || isGameOver || isCascading) return;
+            
+            const shapeId = activePiece.id;
+            if (shapeId === 2) return; // Square O shape doesn't rotate
+
+            const originalMatrix = activePiece.matrix;
+            const originalRotation = activePiece.rotation;
+            
+            // Rotate matrix clockwise or counterclockwise
+            const mat = originalMatrix;
+            const n = mat.length;
+            let rotated = Array.from({length: n}, () => Array(n).fill(0));
+
+            if (direction === 'CW') {
+                for (let r = 0; r < n; r++) {
+                    for (let c = 0; c < n; c++) {
+                        rotated[c][n - 1 - r] = mat[r][c];
+                    }
+                }
+            } else {
+                for (let r = 0; r < n; r++) {
+                    for (let c = 0; c < n; c++) {
+                        rotated[n - 1 - c][r] = mat[r][c];
+                    }
+                }
+            }
+
+            const targetRotation = (originalRotation + (direction === 'CW' ? 1 : 3)) % 4;
+            
+            // Deduce the kick data array to query
+            let kickArray = [];
+            // Map state swaps to SRS index:
+            // 0->1 (0), 1->0 (1), 1->2 (2), 2->1 (3), 2->3 (4), 3->2 (5), 3->0 (6), 0->3 (7)
+            let srsIdx = 0;
+            if (originalRotation === 0 && targetRotation === 1) srsIdx = 0;
+            else if (originalRotation === 1 && targetRotation === 0) srsIdx = 1;
+            else if (originalRotation === 1 && targetRotation === 2) srsIdx = 2;
+            else if (originalRotation === 2 && targetRotation === 1) srsIdx = 3;
+            else if (originalRotation === 2 && targetRotation === 3) srsIdx = 4;
+            else if (originalRotation === 3 && targetRotation === 2) srsIdx = 5;
+            else if (originalRotation === 3 && targetRotation === 0) srsIdx = 6;
+            else if (originalRotation === 0 && targetRotation === 3) srsIdx = 7;
+
+            const kicks = shapeId === 1 ? KICK_DATA_I[srsIdx] : KICK_DATA[srsIdx];
+
+            // Try all 5 kick offsets in order
+            for (let i = 0; i < kicks.length; i++) {
+                const ox = kicks[i][0];
+                const oy = kicks[i][1];
+
+                if (!checkCollision(activePiece, ox, oy, rotated)) {
+                    // Valid rotate offset found! Apply rotation
+                    activePiece.matrix = rotated;
+                    activePiece.x += ox;
+                    activePiece.y += oy;
+                    activePiece.rotation = targetRotation;
+                    playSound('rotate');
+                    handleLockDelayReset();
+                    return;
+                }
+            }
+        }
+
+        // Swaps piece with hold box buffer
+        function holdSwap() {
+            if (!isPlaying || isPaused || isGameOver || isCascading || hasHeldThisTurn) return;
+
+            playSound('hold');
+            triggerHaptic(15);
+            hasHeldThisTurn = true;
+            
+            if (lockTimer) {
+                clearTimeout(lockTimer);
+                lockTimer = null;
+            }
+            isTouchingGround = false;
+
+            // Reset active rotation
+            activePiece.rotation = 0;
+            activePiece.matrix = JSON.parse(JSON.stringify(SHAPES[activePiece.id]));
+            
+            // Settle grid centering values
+            activePiece.x = Math.floor((COLS - activePiece.matrix[0].length) / 2);
+            activePiece.y = activePiece.id === 1 ? -1 : 0;
+
+            if (holdPiece === null) {
+                holdPiece = activePiece;
+                activePiece = nextPiece;
+                nextPiece = getNextPieceFromBag();
+            } else {
+                const temp = holdPiece;
+                holdPiece = activePiece;
+                activePiece = temp;
+            }
+
+            lockResets = 0;
+            drawSidePreviews();
+        }
+
+        // --- Lock Delay Handler ---
+        function handleLockDelayReset() {
+            if (checkCollision(activePiece, 0, 1)) {
+                if (!isTouchingGround) {
+                    isTouchingGround = true;
+                    startLockCountdown();
+                } else if (lockResets < MAX_LOCK_RESETS) {
+                    lockResets++;
+                    // Reset lock timer
+                    if (lockTimer) {
+                        clearTimeout(lockTimer);
+                        lockTimer = null;
+                    }
+                    startLockCountdown();
+                }
+            } else {
+                isTouchingGround = false;
+                if (lockTimer) {
+                    clearTimeout(lockTimer);
+                    lockTimer = null;
+                }
+            }
+        }
+
+        function startLockCountdown() {
+            if (lockTimer) return;
+            lockTimer = setTimeout(() => {
+                if (checkCollision(activePiece, 0, 1)) {
+                    lockActivePiece();
+                } else {
+                    isTouchingGround = false;
+                    lockTimer = null;
+                }
+            }, 500); // 500ms Lock Delay grace
+        }
+
+        // --- Render Loops (Canvas Rendering) ---
+
+        function drawBlock(cContext, x, y, colorCode, isGhost = false) {
+            const px = x * BLOCK_SIZE;
+            const py = y * BLOCK_SIZE;
+            const size = BLOCK_SIZE;
+
+            cContext.save();
+            if (isGhost) {
+                cContext.strokeStyle = colorCode;
+                cContext.lineWidth = 2;
+                cContext.strokeRect(px + 2, py + 2, size - 4, size - 4);
+                
+                // Add translucent inner hash
+                cContext.fillStyle = colorCode;
+                cContext.globalAlpha = 0.08;
+                cContext.fillRect(px + 3, py + 3, size - 6, size - 6);
+            } else {
+                // High-fidelity Neon Glassmorphism Grid Block Drawing
+                // Shadow glow
+                cContext.shadowColor = colorCode;
+                cContext.shadowBlur = 10;
+
+                // Base block color
+                cContext.fillStyle = colorCode;
+                cContext.fillRect(px + 1, py + 1, size - 2, size - 2);
+
+                // Overlay light gloss shine (top-left glass layer)
+                cContext.shadowBlur = 0; // turn off shadow for inner gloss
+                cContext.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                cContext.fillRect(px + 2, py + 2, size - 4, 3); // top border highlights
+                cContext.fillRect(px + 2, py + 5, 3, size - 7); // left border highlight
+
+                // Inner dark shading depth
+                cContext.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                cContext.fillRect(px + size - 5, py + 5, 3, size - 7); // right shading
+                cContext.fillRect(px + 5, py + size - 5, size - 7, 3); // bottom shading
+            }
+            cContext.restore();
+        }
+
+        // Draws ghost piece projected landing target
+        function drawGhostPiece() {
+            if (!useGhost || !activePiece) return;
+            
+            let ghostY = activePiece.y;
+            while (!checkCollision(activePiece, 0, ghostY - activePiece.y + 1)) {
+                ghostY++;
+            }
+
+            if (ghostY === activePiece.y) return; // Hide if touching piece
+
+            const mat = activePiece.matrix;
+            const colorCode = COLORS[activePiece.id];
+
+            for (let r = 0; r < mat.length; r++) {
+                for (let c = 0; c < mat[r].length; c++) {
+                    if (mat[r][c] !== 0) {
+                        drawBlock(ctx, activePiece.x + c, ghostY + r, colorCode, true);
+                    }
+                }
+            }
+        }
+
+        function drawBoard() {
+            // Clear playfield
+            ctx.fillStyle = '#03030c';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw subtle cyan grid matrix backdrop
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let c = 1; c < COLS; c++) {
+                ctx.beginPath();
+                ctx.moveTo(c * BLOCK_SIZE, 0);
+                ctx.lineTo(c * BLOCK_SIZE, canvas.height);
+                ctx.stroke();
+            }
+            for (let r = 1; r < ROWS; r++) {
+                ctx.beginPath();
+                ctx.moveTo(0, r * BLOCK_SIZE);
+                ctx.lineTo(canvas.width, r * BLOCK_SIZE);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // Draw settled blocks
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] !== 0) {
+                        drawBlock(ctx, c, r, COLORS[board[r][c]]);
+                    }
+                }
+            }
+
+            // Draw Ghost projection
+            drawGhostPiece();
+
+            // Draw falling active piece
+            if (activePiece && !isCascading) {
+                const mat = activePiece.matrix;
+                const colorCode = COLORS[activePiece.id];
+                for (let r = 0; r < mat.length; r++) {
+                    for (let c = 0; c < mat[r].length; c++) {
+                        if (mat[r][c] !== 0) {
+                            if (activePiece.y + r >= 0) {
+                                drawBlock(ctx, activePiece.x + c, activePiece.y + r, colorCode);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Draw Particles & Sparks
+            drawParticles();
+        }
+
+        function drawParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.08; // light gravity
+                p.life -= p.decay;
+                
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Handles rendering preview containers on Sidebars and Mobile top rows
+        function drawSidePreviews() {
+            const drawOnCanvas = (cCanvas, pieceObj) => {
+                const pCtx = cCanvas.getContext('2d');
+                pCtx.clearRect(0, 0, cCanvas.width, cCanvas.height);
+                if (!pieceObj) return;
+
+                const mat = pieceObj.matrix;
+                const colorCode = COLORS[pieceObj.id];
+                const blockCount = mat.length;
+                
+                // compute size fitting
+                const cellW = cCanvas.width / 4.5;
+                const cellH = cCanvas.height / 4.5;
+                const size = Math.min(cellW, cellH);
+
+                // calculate centering offsets
+                let minX = 9, maxX = -1, minY = 9, maxY = -1;
+                for (let r = 0; r < blockCount; r++) {
+                    for (let c = 0; c < blockCount; c++) {
+                        if (mat[r][c] !== 0) {
+                            if (c < minX) minX = c;
+                            if (c > maxX) maxX = c;
+                            if (r < minY) minY = r;
+                            if (r > maxY) maxY = r;
+                        }
+                    }
+                }
+
+                const shapeW = (maxX - minX + 1) * size;
+                const shapeH = (maxY - minY + 1) * size;
+                const offsetX = (cCanvas.width - shapeW) / 2 - minX * size;
+                const offsetY = (cCanvas.height - shapeH) / 2 - minY * size;
+
+                pCtx.save();
+                for (let r = 0; r < blockCount; r++) {
+                    for (let c = 0; c < blockCount; c++) {
+                        if (mat[r][c] !== 0) {
+                            const px = offsetX + c * size;
+                            const py = offsetY + r * size;
+
+                            pCtx.fillStyle = colorCode;
+                            pCtx.shadowBlur = 8;
+                            pCtx.shadowColor = colorCode;
+                            pCtx.fillRect(px + 1, py + 1, size - 2, size - 2);
+                            pCtx.shadowBlur = 0;
+                            // small shine
+                            pCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                            pCtx.fillRect(px + 1, py + 1, size - 2, 2);
+                        }
+                    }
+                }
+                pCtx.restore();
+            };
+
+            // Draw desktops
+            drawOnCanvas(dNextCanvas, nextPiece);
+            drawOnCanvas(dHoldCanvas, holdPiece);
+            
+            // Draw mobiles
+            drawOnCanvas(mNextCanvas, nextPiece);
+            drawOnCanvas(mHoldCanvas, holdPiece);
+        }
+
+        // Main game animation clock loop
+        function mainLoop(timestamp) {
+            if (!isPlaying) return;
+
+            // Handle Board screen shaking
+            const playfieldContainer = document.getElementById('playfieldContainer');
+            if (screenShakeTime > 0) {
+                const ox = (Math.random() - 0.5) * screenShakeIntensity;
+                const oy = (Math.random() - 0.5) * screenShakeIntensity;
+                playfieldContainer.style.transform = `translate(${ox}px, ${oy}px)`;
+                screenShakeTime -= 16.6; // assuming 60fps
+            } else {
+                playfieldContainer.style.transform = 'translate(0px, 0px)';
+            }
+
+            if (!isPaused && !isGameOver && !isCascading) {
+                // Gravity check
+                if (!lastDropTime) lastDropTime = timestamp;
+                const elapsed = timestamp - lastDropTime;
+                
+                if (elapsed >= dropInterval) {
+                    softDrop();
+                    lastDropTime = timestamp;
+                }
+            }
+
+            // Redraw everything
+            drawBoard();
+
+            // Next frame
+            requestAnimationFrame(mainLoop);
+        }
+
+        // --- Keyboard Controls Hookups ---
+        window.addEventListener('keydown', (e) => {
+            if (!isPlaying || isPaused || isGameOver || isCascading) {
+                if (e.key.toLowerCase() === 'p' || e.key === 'Escape') {
+                    togglePause();
+                }
+                return;
+            }
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    moveLeft();
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    moveRight();
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    softDrop();
+                    break;
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    rotatePiece('CW');
+                    break;
+                case 'z':
+                case 'Z':
+                case 'Control':
+                    rotatePiece('CCW');
+                    break;
+                case ' ':
+                    hardDrop();
+                    break;
+                case 'Shift':
+                case 'c':
+                case 'C':
+                    holdSwap();
+                    break;
+                case 'p':
+                case 'P':
+                case 'Escape':
+                    togglePause();
+                    break;
+            }
+        });
+
+        // --- Mobile Touch Pad buttons hookups ---
+        document.getElementById('btnLeft').addEventListener('pointerdown', (e) => { e.preventDefault(); moveLeft(); });
+        document.getElementById('btnRight').addEventListener('pointerdown', (e) => { e.preventDefault(); moveRight(); });
+        document.getElementById('btnRotateCw').addEventListener('pointerdown', (e) => { e.preventDefault(); rotatePiece('CW'); });
+        document.getElementById('btnRotateCcw').addEventListener('pointerdown', (e) => { e.preventDefault(); rotatePiece('CCW'); });
+        document.getElementById('btnSoftDrop').addEventListener('pointerdown', (e) => { e.preventDefault(); softDrop(); });
+        document.getElementById('btnHardDrop').addEventListener('pointerdown', (e) => { e.preventDefault(); hardDrop(); });
+        document.getElementById('btnHold').addEventListener('pointerdown', (e) => { e.preventDefault(); holdSwap(); });
+
+        // --- Swipe Gestures Engine on Game Board Canvas ---
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchTime = 0;
+        const SWIPE_THRESHOLD = 30; // pixels of swipe movement
+        
+        canvas.addEventListener('touchstart', (e) => {
+            if (isCascading) return;
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            touchTime = performance.now();
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (!isPlaying || isPaused || isGameOver || isCascading) return;
+
+            const touch = e.changedTouches[0];
+            const dx = touch.clientX - touchStartX;
+            const dy = touch.clientY - touchStartY;
+            const duration = performance.now() - touchTime;
+
+            // Check swipe actions
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // Horizontal Swipe
+                if (Math.abs(dx) > SWIPE_THRESHOLD) {
+                    if (dx > 0) moveRight();
+                    else moveLeft();
+                }
+            } else {
+                // Vertical Swipe
+                if (Math.abs(dy) > SWIPE_THRESHOLD) {
+                    if (dy > 0) {
+                        softDrop();
+                    } else {
+                        // Swipe Up = Hard Drop
+                        hardDrop();
+                    }
+                } else if (duration < 250) {
+                    // Quick short tap on board = Rotate Clockwise
+                    rotatePiece('CW');
+                }
+            }
+        });
+
+        // --- Core Game Initialization Actions ---
+
+        function initGame() {
+            score = 0;
+            level = 1;
+            lines = 0;
+            dropInterval = 1000;
+            board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+            bag = [];
+            holdPiece = null;
+            activePiece = getNextPieceFromBag();
+            nextPiece = getNextPieceFromBag();
+            hasHeldThisTurn = false;
+            isGameOver = false;
+            isPaused = false;
+            isCascading = false;
+            lockResets = 0;
+
+            updateHUDStats();
+            drawSidePreviews();
+            
+            // Sync initial Cascade Mode checkbox
+            useCascade = dCascadeToggle.checked || mCascadeToggle.checked;
+
+            // Load Wellbeing Streak if any
+            if (window.GlobalScore) {
+                window.GlobalScore.updateStreak();
+            }
+        }
+
+        function startGame() {
+            initGame();
+            isPlaying = true;
+            overlayScreen.style.opacity = '0';
+            setTimeout(() => overlayScreen.style.display = 'none', 300);
+            
+            playSound('move');
+            lastDropTime = performance.now();
+            requestAnimationFrame(mainLoop);
+        }
+
+        function togglePause() {
+            if (isGameOver) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+                overlayTitle.innerText = "SYSTEM_PAUSED";
+                overlayStats.innerHTML = "Grid construct frozen.<br>Score: <span>" + score + "</span> | Level: <span>" + level + "</span>";
+                btnAction.innerText = "RESUME_SYSTEM";
+                overlayScreen.style.display = 'flex';
+                overlayScreen.style.opacity = '1';
+                playSound('move');
+            } else {
+                overlayScreen.style.opacity = '0';
+                setTimeout(() => overlayScreen.style.display = 'none', 300);
+                playSound('move');
+                // reset drop clock
+                lastDropTime = performance.now();
+            }
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            isGameOver = true;
+            playSound('gameover');
+            triggerHaptic([100, 50, 100]);
+
+            overlayTitle.innerText = "GRID_COLLAPSED";
+            overlayStats.innerHTML = "GAME OVER<br>Final Alignment Score: <span>" + score + "</span><br>Lines Constructed: <span>" + lines + "</span>";
+            btnAction.innerText = "REBOOT_GRID";
+            overlayScreen.style.display = 'flex';
+            overlayScreen.style.opacity = '1';
+        }
+
+        // Overlay screen big boot button hook
+        btnAction.addEventListener('click', () => {
+            if (isGameOver || overlayTitle.innerText === "SYSTEM_INITIALIZED") {
+                startGame();
+            } else {
+                // Pause resume
+                togglePause();
+            }
+        });
+    </script>
+</body>
+
+</html>
