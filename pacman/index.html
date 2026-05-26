@@ -674,6 +674,7 @@
         let isPlaying = false;
         let isPaused = false;
         let isGameOver = false;
+        let gameStarted = false;
 
         // Frightened (power shield) timer
         let shieldTimer = 0; // remaining frames/seconds
@@ -1609,6 +1610,7 @@
 
         function startGame() {
             initGame();
+            gameStarted = true;
             isPlaying = true;
             overlayScreen.style.opacity = '0';
             setTimeout(() => overlayScreen.style.display = 'none', 300);
@@ -1684,9 +1686,9 @@
 
         // Overlay screen big boot button hook
         btnAction.addEventListener('click', () => {
-            if (isGameOver || overlayTitle.innerText === "SYSTEM_INITIALIZED") {
+            if (isGameOver || !gameStarted) {
                 startGame();
-            } else if (overlayTitle.innerText === "SECTOR_CLEARED") {
+            } else if (overlayTitle.innerText.trim() === "SECTOR_CLEARED") {
                 // Settle next level starting positions
                 resetPositions();
                 isPlaying = true;
