@@ -1039,10 +1039,6 @@ window.DefinitionManager = {
     console.log('> Building Tetraflow...');
     copyRecursiveWithLog(path.join(__dirname, 'tetris'), path.join(distDir, 'tetris'));
 
-    // 8k. Build Chomp Core (Static + Assets)
-    console.log('> Building Chomp Core...');
-    copyRecursiveWithLog(path.join(__dirname, 'pacman'), path.join(distDir, 'pacman'));
-
     // 8l. Build GeoSnap (Static + Assets)
     console.log('> Building GeoSnap...');
     copyRecursiveWithLog(path.join(__dirname, 'geopuzzle'), path.join(distDir, 'geopuzzle'));
