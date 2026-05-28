@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="game-id" content="geosnap">
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>GeoSnap - Geometric Puzzle</title>
+    <script src="../timeLimit.js"></script>
+    <script src="../shared/settings.js"></script>
+    <link rel="stylesheet" href="../shared/theme.css">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --bg-color: var(--cyber-bg);
+            --surface-color: var(--cyber-surface);
+            --text-color: var(--cyber-text);
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Roboto', sans-serif;
+            overflow-x: hidden;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100dvh;
+            width: 100vw;
+            position: relative;
+        }
+
+        /* --- Scanlines Backdrop --- */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.8;
+        }
+
+        /* --- HUD Stats Bar --- */
+        .hud-stats-bar {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+            margin: 20px 0 10px 0;
+            padding: 0 15px;
+            z-index: 10;
+        }
+
+        .hud-stats-bar .hud-pill {
+            flex: 1;
+            justify-content: space-between;
+            min-width: 0;
+            padding: 8px 15px;
+        }
+
+        /* --- Configuration Deck --- */
+        .config-deck {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 0 15px;
+            z-index: 10;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            color: var(--cyber-magenta);
+            text-transform: uppercase;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .config-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cyber-select {
+            background: #000;
+            border: 1px solid var(--cyber-cyan);
+            color: var(--cyber-cyan);
+            padding: 6px 12px;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: var(--cyber-border-radius);
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+        }
+
+        .cyber-select:hover {
+            box-shadow: var(--cyber-glow-cyan);
+            border-color: var(--cyber-cyan);
+        }
+
+        /* --- Main Game Layout --- */
+        #game-wrapper {
+            flex: 1;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            z-index: 10;
+        }
+
+        #canvas-container {
+            position: relative;
+            background: rgba(10, 10, 31, 0.45);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            border-radius: 12px;
+            box-shadow: var(--cyber-glass-shadow);
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-width: 600px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        svg#game-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* --- SVG Styling --- */
+        .grid-line {
+            stroke: rgba(0, 243, 255, 0.05);
+            stroke-width: 1;
+        }
+
+        .grid-dot {
+            fill: rgba(0, 243, 255, 0.15);
+        }
+
+        .board-silhouette {
+            fill: rgba(10, 10, 31, 0.6);
+            stroke: var(--cyber-cyan);
+            stroke-width: 2;
+            stroke-dasharray: 6 4;
+            filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.3));
+        }
+
+        .puzzle-piece {
+            fill: url(#piece-grad-0);
+            stroke: rgba(255, 255, 255, 0.7);
+            stroke-width: 1.5;
+            cursor: grab;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+            transform-origin: center;
+            will-change: transform, filter;
+        }
+
+        /* Snap transition animation */
+        .puzzle-piece.snapping {
+            transition: transform 0.15s cubic-bezier(0.25, 1, 0.5, 1), filter 0.15s, stroke-width 0.15s;
+        }
+
+        .puzzle-piece.dragging {
+            cursor: grabbing;
+            stroke: #fff;
+            stroke-width: 2.5;
+            filter: drop-shadow(0 8px 16px rgba(0, 243, 255, 0.6)) !important;
+        }
+
+        .puzzle-piece.solved-placed {
+            stroke: var(--cyber-cyan);
+            stroke-width: 1.5;
+            filter: drop-shadow(0 0 5px rgba(0, 243, 255, 0.3));
+        }
+
+        /* Success Pulse Effect */
+        @keyframes success-glow {
+            0% { filter: drop-shadow(0 0 5px var(--cyber-cyan)); stroke-width: 2.5; }
+            50% { filter: drop-shadow(0 0 20px var(--cyber-cyan)); stroke-width: 4; }
+            100% { filter: drop-shadow(0 0 5px var(--cyber-cyan)); stroke-width: 2.5; }
+        }
+
+        .puzzle-piece.pulse-on-snap {
+            animation: success-glow 0.4s ease-out;
+        }
+
+        /* --- Controls Section --- */
+        .controls-deck {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 25px;
+            padding: 0 15px;
+            z-index: 10;
+        }
+
+        .controls-deck .cyber-btn {
+            flex: 1;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            padding: 12px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* --- FX Canvas Overlay --- */
+        #fx-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* --- Win Overlay --- */
+        #win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: rgba(5, 5, 20, 0.96);
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        #win-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .win-title {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 20px var(--cyber-cyan), 0 0 35px var(--cyber-cyan);
+            margin-bottom: 10px;
+            letter-spacing: 4px;
+            text-align: center;
+        }
+
+        .win-stats {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.15rem;
+            color: var(--cyber-magenta);
+            text-shadow: var(--cyber-glow-magenta);
+            margin-bottom: 35px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .btn-restart {
+            background: linear-gradient(135deg, var(--cyber-magenta), var(--cyber-cyan));
+            border: none;
+            padding: 15px 45px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: white;
+            border-radius: 40px;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .btn-restart:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 35px rgba(255, 0, 255, 0.6);
+        }
+
+        .btn-restart:active {
+            transform: scale(0.95);
+        }
+
+        /* --- Help Overlay --- */
+        .help-panel {
+            background: rgba(10, 10, 31, 0.9);
+            border: 1px solid var(--cyber-cyan);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            margin-bottom: 25px;
+            font-size: 0.85rem;
+            max-width: 600px;
+            width: 100%;
+            line-height: 1.5;
+            color: #b5cbe0;
+            z-index: 10;
+        }
+
+        .help-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--cyber-cyan);
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+        }
+
+        /* Responsive scaling adjustments */
+        @media (min-width: 768px) {
+            .hud-stats-bar {
+                margin: 30px 0 20px 0;
+            }
+            .win-title {
+                font-size: 4rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scanlines"></div>
+    <canvas id="fx-canvas"></canvas>
+
+    <!-- Header -->
+    <header class="cyber-header" style="width: 100%;">
+        <a href="../index.html" class="back-btn" id="btnBack"> &lt; HUB </a>
+        <div class="hud-pill">
+            <span>PROTOCOL</span>
+            <span class="hud-value">GEOSNAP</span>
+        </div>
+        <button class="icon-btn" id="btnSoundToggle" aria-label="Toggle Sound" style="pointer-events: auto;">
+            <span class="material-symbols-outlined" id="soundIcon">volume_up</span>
+        </button>
+    </header>
+
+    <!-- HUD Stats -->
+    <div class="hud-stats-bar">
+        <div class="hud-pill">
+            <span>MOVES</span>
+            <span class="hud-value" id="moveCount">0</span>
+        </div>
+        <div class="hud-pill">
+            <span>TIMER</span>
+            <span class="hud-value" id="gameTimer">00:00</span>
+        </div>
+        <div class="hud-pill">
+            <span>PIECES</span>
+            <span class="hud-value" id="pieceCountDisplay">0 / 0</span>
+        </div>
+    </div>
+
+    <!-- Configuration Panel -->
+    <div class="config-deck">
+        <div class="config-group">
+            <span>BOARD:</span>
+            <select id="shapeSelect" class="cyber-select">
+                <option value="square" selected>Square</option>
+                <option value="hexagon">Hexagon</option>
+                <option value="octagon">Octagon</option>
+                <option value="triangle">Triangle</option>
+                <option value="diamond">Diamond</option>
+            </select>
+        </div>
+        <div class="config-group">
+            <span>GRID SNAP:</span>
+            <select id="snapSelect" class="cyber-select">
+                <option value="10">Fine (10px)</option>
+                <option value="20" selected>Medium (20px)</option>
+                <option value="40">Coarse (40px)</option>
+            </select>
+        </div>
+        <div class="config-group">
+            <span>DIFFICULTY:</span>
+            <select id="diffSelect" class="cyber-select">
+                <option value="easy">Easy (4-5)</option>
+                <option value="medium" selected>Medium (7-8)</option>
+                <option value="hard">Hard (10-12)</option>
+                <option value="expert">Expert (14-16)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Main Game Board Area -->
+    <div id="game-wrapper">
+        <div id="canvas-container">
+            <svg id="game-svg" viewBox="0 0 600 600">
+                <defs>
+                    <!-- Floating piece neon drop-glow filter -->
+                    <filter id="piece-glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.6"/>
+                        <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="rgba(0, 243, 255, 0.4)" id="neonDrop"/>
+                    </filter>
+                    
+                    <!-- Neon piece visual gradients generated dynamically -->
+                    <linearGradient id="piece-grad-0" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#00f3ff" />
+                        <stop offset="100%" stop-color="#0066aa" />
+                    </linearGradient>
+                    <linearGradient id="piece-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ff00ff" />
+                        <stop offset="100%" stop-color="#990099" />
+                    </linearGradient>
+                    <linearGradient id="piece-grad-2" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ffe600" />
+                        <stop offset="100%" stop-color="#aa6600" />
+                    </linearGradient>
+                    <linearGradient id="piece-grad-3" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#00ff66" />
+                        <stop offset="100%" stop-color="#007733" />
+                    </linearGradient>
+                    <linearGradient id="piece-grad-4" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ff6600" />
+                        <stop offset="100%" stop-color="#aa2200" />
+                    </linearGradient>
+                    <linearGradient id="piece-grad-5" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#cc00ff" />
+                        <stop offset="100%" stop-color="#660099" />
+                    </linearGradient>
+                    <linearGradient id="piece-grad-6" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ff0055" />
+                        <stop offset="100%" stop-color="#990022" />
+                    </linearGradient>
+                    <linearGradient id="piece-grad-7" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#00ffff" />
+                        <stop offset="100%" stop-color="#008888" />
+                    </linearGradient>
+                </defs>
+
+                <!-- Grid Visual Overlay -->
+                <g id="grid-dots-group"></g>
+
+                <!-- Board Silhouette -->
+                <polygon id="board-silhouette-poly" class="board-silhouette" points="" />
+
+                <!-- Puzzle Pieces group -->
+                <g id="pieces-group"></g>
+            </svg>
+        </div>
+
+        <!-- Help instructions -->
+        <div class="help-panel">
+            <div class="help-title">SYSTEM_INSTRUCTIONS:</div>
+            Drag and drop the procedurally sliced geometric pieces into the board silhouette.
+            <br>
+            All pieces **snap to the global grid** in real-time. Arrange pieces on the grid steps, align them together, and snap them into the dashed target slot at <b>(0, 0) relative offset</b> to restore structural integrity!
+        </div>
+
+        <!-- Controls panel -->
+        <div class="controls-deck">
+            <button class="cyber-btn" id="btnNew">
+                <span class="material-symbols-outlined" style="font-size: 1.15rem;">cached</span>
+                GENERATE_MAP
+            </button>
+            <button class="cyber-btn" id="btnReset">
+                <span class="material-symbols-outlined" style="font-size: 1.15rem;">replay</span>
+                JUMBLE
+            </button>
+        </div>
+    </div>
+
+    <!-- Win Overlay -->
+    <div id="win-overlay">
+        <div class="win-title">ALIGNMENT_RESTORED</div>
+        <div class="win-stats" id="winStatsText">
+            MAP RESOLVED IN 00:45<br>
+            MOVES LOGGED: 24<br>
+            SYNAPSE XP AWARDED: +250
+        </div>
+        <button class="btn-restart" id="btnWinRestart">REBOOT_GEOMETRY</button>
+    </div>
+
+    <script>
+        // --- Core Game Settings & Preferences ---
+        let baseBoardShape = "square";
+        let gridStep = 20; // snapping step size
+        let difficulty = "medium"; // easy, medium, hard, expert
+        
+        let targetPolygon = []; // vertices {x, y} of the board shape
+        let pieces = []; // array of piece objects: { id, originalPoints: [{x,y}...], dx, dy, solved: false, colorIndex }
+        
+        let draggedPiece = null;
+        let dragStartOffset = { x: 0, y: 0 };
+        let pointerStartPos = { x: 0, y: 0 };
+        let totalMoves = 0;
+        let isSolved = false;
+        
+        // Timer
+        let secondsElapsed = 0;
+        let timerInterval = null;
+
+        // UI references
+        const shapeSelect = document.getElementById("shapeSelect");
+        const snapSelect = document.getElementById("snapSelect");
+        const diffSelect = document.getElementById("diffSelect");
+        
+        const gameTimer = document.getElementById("gameTimer");
+        const moveCount = document.getElementById("moveCount");
+        const pieceCountDisplay = document.getElementById("pieceCountDisplay");
+        
+        const btnNew = document.getElementById("btnNew");
+        const btnReset = document.getElementById("btnReset");
+        const btnBack = document.getElementById("btnBack");
+        const btnSoundToggle = document.getElementById("btnSoundToggle");
+        const soundIcon = document.getElementById("soundIcon");
+        
+        const gameSvg = document.getElementById("game-svg");
+        const piecesGroup = document.getElementById("pieces-group");
+        const gridDotsGroup = document.getElementById("grid-dots-group");
+        const boardSilhouettePoly = document.getElementById("board-silhouette-poly");
+        
+        const winOverlay = document.getElementById("win-overlay");
+        const winStatsText = document.getElementById("winStatsText");
+        const btnWinRestart = document.getElementById("btnWinRestart");
+        
+        const canvas = document.getElementById('fx-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- FX Particle System ---
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function spawnParticles(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 2;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    decay: Math.random() * 0.04 + 0.02,
+                    color: color || '#00f3ff',
+                    size: Math.random() * 3.5 + 2
+                });
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.05; // light gravity
+                p.life -= p.decay;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        requestAnimationFrame(animateParticles);
+
+        // --- Synthetic Audio Core (Web Audio API) ---
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSynthSound(type) {
+            if (window.GameSettings && !window.GameSettings.get().sound) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new AudioCtx();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const now = audioCtx.currentTime;
+
+                if (type === 'snap_generic') {
+                    // Tactile snap: sharp click
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(450, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'snap_solved') {
+                    // solved spot placement chime (slightly higher-tech sound)
+                    const osc1 = audioCtx.createOscillator();
+                    const osc2 = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    
+                    osc1.type = 'triangle';
+                    osc1.frequency.setValueAtTime(600, now);
+                    osc1.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+                    
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(900, now);
+                    osc2.frequency.exponentialRampToValueAtTime(450, now + 0.12);
+                    
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    
+                    osc1.start(now);
+                    osc2.start(now);
+                    osc1.stop(now + 0.12);
+                    osc2.stop(now + 0.12);
+                } else if (type === 'victory') {
+                    // Cyber victory sweep chord arpeggio!
+                    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98]; // C5, E5, G5, C6, E6, G6
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        
+                        o.type = idx % 2 === 0 ? 'triangle' : 'sine';
+                        o.frequency.setValueAtTime(freq, now + idx * 0.06);
+                        o.frequency.exponentialRampToValueAtTime(freq * 1.05, now + idx * 0.06 + 0.4);
+                        
+                        g.gain.setValueAtTime(0.1, now + idx * 0.06);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.4);
+                        
+                        o.start(now + idx * 0.06);
+                        o.stop(now + idx * 0.06 + 0.4);
+                    });
+                }
+            } catch (e) {
+                console.warn("Synth audio blocked or failed", e);
+            }
+        }
+
+        // Shared settings binder
+        function updateSoundIconDisplay() {
+            if (window.GameSettings) {
+                const sOn = window.GameSettings.get().sound;
+                soundIcon.innerText = sOn ? 'volume_up' : 'volume_off';
+                btnSoundToggle.style.color = sOn ? 'var(--cyber-cyan)' : '#666';
+            }
+        }
+        btnSoundToggle.addEventListener('click', () => {
+            if (window.GameSettings) {
+                window.GameSettings.toggle('sound');
+                updateSoundIconDisplay();
+            }
+        });
+        updateSoundIconDisplay();
+
+        // --- Convex Polygon Slicing Core ---
+
+        // Computes the centroid of a polygon
+        function getCentroid(poly) {
+            let xSum = 0, ySum = 0;
+            poly.forEach(pt => {
+                xSum += pt.x;
+                ySum += pt.y;
+            });
+            return { x: xSum / poly.length, y: ySum / poly.length };
+        }
+
+        // Calculates polygon surface area (for sorting selection)
+        function getPolygonArea(poly) {
+            let area = 0;
+            const n = poly.length;
+            for (let i = 0; i < n; i++) {
+                const curr = poly[i];
+                const next = poly[(i + 1) % n];
+                area += (curr.x * next.y - next.x * curr.y);
+            }
+            return Math.abs(area) / 2;
+        }
+
+        // Sutherland-Hodgman convex slicing algorithm
+        function splitPolygon(poly, p1, p2) {
+            const poly1 = [];
+            const poly2 = [];
+            
+            // Linear coefficient formula: A x + B y + C = 0
+            const A = p2.y - p1.y;
+            const B = p1.x - p2.x;
+            const C = p2.x * p1.y - p1.x * p2.y;
+            
+            const getSide = (pt) => {
+                const val = A * pt.x + B * pt.y + C;
+                if (Math.abs(val) < 1e-7) return 0;
+                return val > 0 ? 1 : -1;
+            };
+            
+            const getIntersection = (ptA, ptB) => {
+                const A1 = ptB.y - ptA.y;
+                const B1 = ptA.x - ptB.x;
+                const C1 = ptB.x * ptA.y - ptA.x * ptB.y;
+                
+                const det = A * B1 - A1 * B;
+                if (Math.abs(det) < 1e-7) return null; // parallel
+                
+                const x = (B * C1 - B1 * C) / det;
+                const y = (A1 * C - A * C1) / det;
+                return { x, y };
+            };
+            
+            const n = poly.length;
+            for (let i = 0; i < n; i++) {
+                const curr = poly[i];
+                const next = poly[(i + 1) % n];
+                
+                const sideCurr = getSide(curr);
+                const sideNext = getSide(next);
+                
+                if (sideCurr >= 0) poly1.push(curr);
+                if (sideCurr <= 0) poly2.push(curr);
+                
+                if (sideCurr !== 0 && sideNext !== 0 && sideCurr !== sideNext) {
+                    const intersect = getIntersection(curr, next);
+                    if (intersect) {
+                        poly1.push(intersect);
+                        poly2.push(intersect);
+                    }
+                }
+            }
+            
+            // Deduplicate extremely close vertices
+            const clean = (p) => {
+                const res = [];
+                for (let i = 0; i < p.length; i++) {
+                    const pt = p[i];
+                    const nextPt = p[(i + 1) % p.length];
+                    const dist = Math.hypot(pt.x - nextPt.x, pt.y - nextPt.y);
+                    if (dist > 1e-2) {
+                        res.push(pt);
+                    }
+                }
+                return res;
+            };
+            
+            const cleaned1 = clean(poly1);
+            const cleaned2 = clean(poly2);
+            
+            // Polygons are only valid if they contain at least 3 non-coincident vertices
+            if (cleaned1.length >= 3 && cleaned2.length >= 3) {
+                return [cleaned1, cleaned2];
+            }
+            return null; // split invalid or degenerate
+        }
+
+        // Generates board base polygon points
+        function generateTargetShape(shapeType) {
+            const cx = 300, cy = 300;
+            if (shapeType === "square") {
+                const size = 260;
+                const half = size / 2;
+                return [
+                    { x: cx - half, y: cy - half },
+                    { x: cx + half, y: cy - half },
+                    { x: cx + half, y: cy + half },
+                    { x: cx - half, y: cy + half }
+                ];
+            } else if (shapeType === "hexagon") {
+                const r = 150;
+                const pts = [];
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * 60) * Math.PI / 180;
+                    pts.push({
+                        x: cx + r * Math.cos(angle),
+                        y: cy + r * Math.sin(angle)
+                    });
+                }
+                return pts;
+            } else if (shapeType === "octagon") {
+                const r = 150;
+                const pts = [];
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i * 45 + 22.5) * Math.PI / 180;
+                    pts.push({
+                        x: cx + r * Math.cos(angle),
+                        y: cy + r * Math.sin(angle)
+                    });
+                }
+                return pts;
+            } else if (shapeType === "triangle") {
+                // equilateral triangle nicely centered
+                return [
+                    { x: cx, y: cy - 145 },
+                    { x: cx + 170, y: cy + 130 },
+                    { x: cx - 170, y: cy + 130 }
+                ];
+            } else if (shapeType === "diamond") {
+                const w = 170, h = 170;
+                return [
+                    { x: cx, y: cy - h },
+                    { x: cx + w, y: cy },
+                    { x: cx, y: cy + h },
+                    { x: cx - w, y: cy }
+                ];
+            }
+            return [];
+        }
+
+        // Slices the base polygon into pieces procedurally
+        function sliceBoardProcedurally(basePoly, numPiecesTarget) {
+            let activePolys = [basePoly];
+            let failures = 0;
+            const maxFailures = 150;
+            
+            while (activePolys.length < numPiecesTarget && failures < maxFailures) {
+                // Biased pick: select largest polygon by area to cut to keep sizes relatively equal
+                activePolys.sort((a, b) => getPolygonArea(b) - getPolygonArea(a));
+                const polyToCutIdx = 0;
+                const poly = activePolys[polyToCutIdx];
+                
+                // Get centroid and add a small random translation offset
+                const centroid = getCentroid(poly);
+                const translationRange = 25;
+                const cutOrigin = {
+                    x: centroid.x + (Math.random() - 0.5) * translationRange,
+                    y: centroid.y + (Math.random() - 0.5) * translationRange
+                };
+                
+                // Pick a random line angle
+                const angle = Math.random() * Math.PI;
+                const p1 = cutOrigin;
+                const p2 = {
+                    x: cutOrigin.x + Math.cos(angle),
+                    y: cutOrigin.y + Math.sin(angle)
+                };
+                
+                const splitResults = splitPolygon(poly, p1, p2);
+                if (splitResults) {
+                    // Replace the split polygon with its two sub-polygons
+                    activePolys.splice(polyToCutIdx, 1, splitResults[0], splitResults[1]);
+                    failures = 0;
+                } else {
+                    failures++;
+                }
+            }
+            return activePolys;
+        }
+
+        // --- Rendering Setup ---
+
+        // Grid Background setup
+        function renderDotGrid() {
+            gridDotsGroup.innerHTML = '';
+            
+            // Render nice subtle neon coordinate lines
+            for (let coord = 50; coord < 600; coord += 100) {
+                const lineX = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                lineX.setAttribute("x1", coord);
+                lineX.setAttribute("y1", 0);
+                lineX.setAttribute("x2", coord);
+                lineX.setAttribute("y2", 600);
+                lineX.setAttribute("class", "grid-line");
+                gridDotsGroup.appendChild(lineX);
+
+                const lineY = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                lineY.setAttribute("x1", 0);
+                lineY.setAttribute("y1", coord);
+                lineY.setAttribute("x2", 600);
+                lineY.setAttribute("y2", coord);
+                lineY.setAttribute("class", "grid-line");
+                gridDotsGroup.appendChild(lineY);
+            }
+            
+            // Grid Dots indicating grid intersections
+            const g = gridStep;
+            for (let x = g; x < 600; x += g) {
+                for (let y = g; y < 600; y += g) {
+                    // Only draw dots that are outside the central core slightly, or just all dots softly
+                    if (x % 40 === 0 && y % 40 === 0) {
+                        const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        dot.setAttribute("cx", x);
+                        dot.setAttribute("cy", y);
+                        dot.setAttribute("r", "1.5");
+                        dot.setAttribute("class", "grid-dot");
+                        gridDotsGroup.appendChild(dot);
+                    }
+                }
+            }
+        }
+
+        // Converts points to SVG string format
+        function getPointsString(poly) {
+            return poly.map(pt => `${pt.x},${pt.y}`).join(" ");
+        }
+
+        // Main game generator
+        function startNewGame() {
+            stopTimer();
+            secondsElapsed = 0;
+            totalMoves = 0;
+            isSolved = false;
+            updateHUD();
+            winOverlay.classList.remove("show");
+            
+            baseBoardShape = shapeSelect.value;
+            gridStep = parseInt(snapSelect.value, 10);
+            difficulty = diffSelect.value;
+            
+            // Re-render dot grid
+            renderDotGrid();
+            
+            // Board target shape points
+            targetPolygon = generateTargetShape(baseBoardShape);
+            boardSilhouettePoly.setAttribute("points", getPointsString(targetPolygon));
+            
+            // Pieces target count
+            let targetCount = 7;
+            if (difficulty === "easy") targetCount = 4 + Math.floor(Math.random() * 2);
+            else if (difficulty === "medium") targetCount = 7 + Math.floor(Math.random() * 2);
+            else if (difficulty === "hard") targetCount = 10 + Math.floor(Math.random() * 3);
+            else if (difficulty === "expert") targetCount = 14 + Math.floor(Math.random() * 3);
+            
+            // Slicing
+            const slicedPolygons = sliceBoardProcedurally(targetPolygon, targetCount);
+            
+            // Color distribution
+            pieces = slicedPolygons.map((poly, idx) => {
+                return {
+                    id: `piece-${idx}`,
+                    originalPoints: poly,
+                    dx: 0,
+                    dy: 0,
+                    solved: false,
+                    colorIndex: idx % 8
+                };
+            });
+            
+            jumblePieces();
+            renderPieces();
+            updateHUD();
+            startTimer();
+        }
+
+        // Dynamic Jumble Scattering System (placed on grid around the silhouette)
+        function jumblePieces() {
+            // Screen limits are 20 to 580. Board is strictly in [140, 460] range center.
+            // Allowed scatter cells: we generate a grid of offsets (dx, dy) relative to original position
+            // such that the placed centroid lands in outer zone, away from board center.
+            const g = gridStep;
+            
+            pieces.forEach((piece) => {
+                const centroid = getCentroid(piece.originalPoints);
+                let validFound = false;
+                let attempts = 0;
+                
+                while (!validFound && attempts < 100) {
+                    attempts++;
+                    // Pick a random target coordinate
+                    const targetX = Math.round((40 + Math.random() * 520) / g) * g;
+                    const targetY = Math.round((40 + Math.random() * 520) / g) * g;
+                    
+                    // Centroid check: target must be sufficiently far from board centroid (300, 300)
+                    const distToCenter = Math.hypot(targetX - 300, targetY - 300);
+                    if (distToCenter > 130) {
+                        // Offset required
+                        const dx = targetX - Math.round(centroid.x / g) * g;
+                        const dy = targetY - Math.round(centroid.y / g) * g;
+                        
+                        // Prevent initial offset from being exactly (0, 0)
+                        if (dx !== 0 || dy !== 0) {
+                            piece.dx = dx;
+                            piece.dy = dy;
+                            piece.solved = false;
+                            validFound = true;
+                        }
+                    }
+                }
+                
+                // Fallback scatter if target failed
+                if (!validFound) {
+                    const angles = [45, 135, 225, 315];
+                    const randAngle = angles[Math.floor(Math.random() * angles.length)] * Math.PI / 180;
+                    const scatterDist = 180 + Math.random() * 60;
+                    const destX = 300 + scatterDist * Math.cos(randAngle);
+                    const destY = 300 + scatterDist * Math.sin(randAngle);
+                    
+                    piece.dx = Math.round((destX - centroid.x) / g) * g;
+                    piece.dy = Math.round((destY - centroid.y) / g) * g;
+                    piece.solved = false;
+                }
+            });
+        }
+
+        // Render puzzle piece elements in SVG DOM
+        function renderPieces() {
+            piecesGroup.innerHTML = '';
+            
+            pieces.forEach((piece) => {
+                const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                poly.setAttribute("id", piece.id);
+                poly.setAttribute("points", getPointsString(piece.originalPoints));
+                poly.setAttribute("class", "puzzle-piece");
+                poly.setAttribute("style", `transform: translate(${piece.dx}px, ${piece.dy}px); fill: url(#piece-grad-${piece.colorIndex}); filter: url(#piece-glow);`);
+                
+                // Touch & Mouse Pointer Event Listeners
+                poly.addEventListener("pointerdown", (e) => onPointerDown(e, piece, poly));
+                
+                piecesGroup.appendChild(poly);
+            });
+        }
+
+        // --- Touch Dragging Event Handlers ---
+
+        function onPointerDown(e, piece, element) {
+            if (isSolved) return;
+            e.preventDefault();
+            e.stopPropagation();
+            
+            draggedPiece = { piece, element };
+            element.classList.add("dragging");
+            element.classList.remove("snapping");
+            
+            // Bring dragged element to front in SVG stacking order
+            piecesGroup.appendChild(element);
+            
+            // Capture pointer to track movements outside element boundary
+            element.setPointerCapture(e.pointerId);
+            
+            // Calculate pointer starting coordinates mapped into SVG coordinates
+            const pt = getSVGCoordinates(e);
+            pointerStartPos = pt;
+            
+            // Initial piece displacement offset
+            dragStartOffset = { x: piece.dx, y: piece.dy };
+        }
+
+        window.addEventListener("pointermove", (e) => {
+            if (!draggedPiece) return;
+            e.preventDefault();
+            
+            const pt = getSVGCoordinates(e);
+            const deltaX = pt.x - pointerStartPos.x;
+            const deltaY = pt.y - pointerStartPos.y;
+            
+            // Calculate real-time dragging position
+            const nextDx = dragStartOffset.x + deltaX;
+            const nextDy = dragStartOffset.y + deltaY;
+            
+            draggedPiece.piece.dx = nextDx;
+            draggedPiece.piece.dy = nextDy;
+            
+            // Follow cursor instantly (transition is disabled in CSS for .dragging class)
+            draggedPiece.element.style.transform = `translate(${nextDx}px, ${nextDy}px)`;
+        });
+
+        window.addEventListener("pointerup", (e) => {
+            if (!draggedPiece) return;
+            e.preventDefault();
+            
+            const { piece, element } = draggedPiece;
+            element.releasePointerCapture(e.pointerId);
+            element.classList.remove("dragging");
+            
+            // Snap displacement offset to grid
+            const g = gridStep;
+            const targetDx = Math.round(piece.dx / g) * g;
+            const targetDy = Math.round(piece.dy / g) * g;
+            
+            const diffX = Math.abs(piece.dx - targetDx);
+            const diffY = Math.abs(piece.dy - targetDy);
+            
+            const hadOffsetChange = (piece.dx !== targetDx || piece.dy !== targetDy);
+            
+            piece.dx = targetDx;
+            piece.dy = targetDy;
+            
+            // Smoothly snap using transition
+            element.classList.add("snapping");
+            element.style.transform = `translate(${targetDx}px, ${targetDy}px)`;
+            
+            totalMoves++;
+            
+            // Solved slot snap: offset becomes EXACTLY (0, 0)
+            const wasSolved = piece.solved;
+            const distanceToTarget = Math.hypot(targetDx, targetDy);
+            
+            // If offset is within 1 snap grid step of correct slot (0,0), lock it in!
+            if (distanceToTarget < g * 0.9) {
+                piece.dx = 0;
+                piece.dy = 0;
+                piece.solved = true;
+                element.style.transform = `translate(0px, 0px)`;
+                element.classList.add("solved-placed");
+                
+                // Play snap victory slot sound + pulse animation
+                if (!wasSolved) {
+                    playSynthSound('snap_solved');
+                    element.classList.add("pulse-on-snap");
+                    setTimeout(() => element.classList.remove("pulse-on-snap"), 400);
+                    
+                    // Spawn neon cyber particle burst
+                    const centroid = getCentroid(piece.originalPoints);
+                    const rect = gameSvg.getBoundingClientRect();
+                    const scale = rect.width / 600;
+                    const canvasX = rect.left + centroid.x * scale;
+                    const canvasY = rect.top + centroid.y * scale;
+                    spawnParticles(canvasX, canvasY, 'var(--cyber-cyan)', 15);
+                }
+            } else {
+                piece.solved = false;
+                element.classList.remove("solved-placed");
+                
+                // Standard grid snapping tactile click + particle burst
+                if (hadOffsetChange) {
+                    playSynthSound('snap_generic');
+                    
+                    // Micro snapping particles
+                    const centroid = getCentroid(piece.originalPoints);
+                    const rect = gameSvg.getBoundingClientRect();
+                    const scale = rect.width / 600;
+                    const canvasX = rect.left + (centroid.x + piece.dx) * scale;
+                    const canvasY = rect.top + (centroid.y + piece.dy) * scale;
+                    spawnParticles(canvasX, canvasY, 'var(--cyber-magenta)', 6);
+                }
+            }
+            
+            draggedPiece = null;
+            updateHUD();
+            checkWinCondition();
+        });
+
+        // Maps mouse/touch client coordinates accurately into SVG viewBox coordinate system
+        function getSVGCoordinates(e) {
+            const rect = gameSvg.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width * 600;
+            const y = (e.clientY - rect.top) / rect.height * 600;
+            return { x, y };
+        }
+
+        // --- Scoring & Game State Management ---
+
+        function checkWinCondition() {
+            const solvedCount = pieces.filter(p => p.solved).length;
+            if (solvedCount === pieces.length && !isSolved) {
+                isSolved = true;
+                stopTimer();
+                playSynthSound('victory');
+                
+                // Award XP points (scales dynamically with difficulty)
+                let xp = 200;
+                if (difficulty === "easy") xp = 100;
+                else if (difficulty === "hard") xp = 350;
+                else if (difficulty === "expert") xp = 500;
+                
+                // Register score to hub
+                if (window.GlobalScore) {
+                    window.GlobalScore.add(xp);
+                }
+                
+                // Victory Screen display
+                setTimeout(() => {
+                    winStatsText.innerHTML = `
+                        MAP SHAPE: ${baseBoardShape.toUpperCase()}<br>
+                        TIME ELAPSED: ${formatTime(secondsElapsed)}<br>
+                        MOVES LOGGED: ${totalMoves}<br>
+                        SYNAPSE XP AWARDED: +${xp} XP
+                    `;
+                    winOverlay.classList.add("show");
+                    
+                    // Massive final screen particle confetti
+                    for (let burst = 0; burst < 5; burst++) {
+                        setTimeout(() => {
+                            const px = window.innerWidth * (0.2 + Math.random() * 0.6);
+                            const py = window.innerHeight * (0.3 + Math.random() * 0.4);
+                            const color = burst % 2 === 0 ? 'var(--cyber-cyan)' : 'var(--cyber-magenta)';
+                            spawnParticles(px, py, color, 30);
+                        }, burst * 200);
+                    }
+                }, 500);
+            }
+        }
+
+        // HUD Dashboard updater
+        function updateHUD() {
+            moveCount.innerText = totalMoves;
+            
+            const solved = pieces.filter(p => p.solved).length;
+            pieceCountDisplay.innerText = `${solved} / ${pieces.length}`;
+            
+            if (window.GlobalScore) {
+                const currentLevel = window.GlobalScore.getLevel();
+                const globalLevel = document.getElementById("globalLevel");
+                if (globalLevel) globalLevel.innerText = currentLevel;
+            }
+        }
+
+        // --- Core Timer Utilities ---
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                gameTimer.innerText = formatTime(secondsElapsed);
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function formatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // --- Listeners & Initiations ---
+
+        shapeSelect.addEventListener("change", startNewGame);
+        snapSelect.addEventListener("change", () => {
+            gridStep = parseInt(snapSelect.value, 10);
+            startNewGame();
+        });
+        diffSelect.addEventListener("change", startNewGame);
+        
+        btnNew.addEventListener("click", startNewGame);
+        btnReset.addEventListener("click", () => {
+            totalMoves = 0;
+            jumblePieces();
+            renderPieces();
+            updateHUD();
+            // brief jumble particles
+            const rect = gameSvg.getBoundingClientRect();
+            spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--cyber-magenta)', 20);
+        });
+        
+        btnWinRestart.addEventListener("click", startNewGame);
+
+        // Standard setup trigger
+        window.addEventListener("load", () => {
+            startNewGame();
+        });
+
+    </script>
+</body>
+
+</html>

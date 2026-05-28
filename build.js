@@ -1043,6 +1043,11 @@ window.DefinitionManager = {
     console.log('> Building Chomp Core...');
     copyRecursiveWithLog(path.join(__dirname, 'pacman'), path.join(distDir, 'pacman'));
 
+    // 8l. Build GeoSnap (Static + Assets)
+    console.log('> Building GeoSnap...');
+    copyRecursiveWithLog(path.join(__dirname, 'geopuzzle'), path.join(distDir, 'geopuzzle'));
+
+
     // 9. Copy Shared Scripts/Assets
     console.log('> Copying Shared Assets...');
     copyRecursiveWithLog(path.join(__dirname, 'shared'), path.join(distDir, 'shared'));
