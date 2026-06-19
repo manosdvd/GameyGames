@@ -463,18 +463,44 @@ function setupEventHandlers() {
         initializeNewGame();
     });
 
-    // Keyboard Events routed through hidden-input for virtual keyboard compatibility
+    // ---- Word-Input Overlay setup ----
     const hiddenInput = document.getElementById('hidden-input');
     if (hiddenInput) {
         hiddenInput.value = " ";
         hiddenInput.addEventListener('keydown', handleKeyboardControlKeys);
         hiddenInput.addEventListener('input', handleMobileTextAndBackspace);
-        
-        // Clicking anywhere in the grid container should focus the input to keep the keyboard visible
-        document.getElementById('crossword-grid').addEventListener('click', () => {
-            hiddenInput.focus();
-        });
     }
+
+    // Close overlay via X button
+    document.getElementById('btn-close-overlay').addEventListener('click', () => {
+        closeWordOverlay();
+    });
+
+    // Close overlay when tapping the dark backdrop (not the panel itself)
+    document.getElementById('word-input-overlay').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('word-input-overlay')) {
+            closeWordOverlay();
+        }
+    });
+
+    // Clicking a letter box in the overlay moves the cursor to that cell
+    document.getElementById('word-input-boxes').addEventListener('click', (e) => {
+        const box = e.target.closest('.word-input-box');
+        if (!box) return;
+        const idx = parseInt(box.dataset.index, 10);
+        if (!isNaN(idx) && activeWordCells[idx]) {
+            selectCell(activeWordCells[idx].r, activeWordCells[idx].c);
+        }
+    });
+
+    // Desktop: direct keydown on the page (when overlay is NOT open)
+    document.addEventListener('keydown', (e) => {
+        const overlay = document.getElementById('word-input-overlay');
+        if (!overlay.classList.contains('hidden')) return; // overlay handles it
+        if (document.getElementById('modal-help').open || document.getElementById('modal-victory').open) return;
+        handleKeyboardControlKeys(e);
+        handleDesktopKey(e);
+    });
 }
 
 // Generate and setup game states
@@ -718,12 +744,8 @@ function selectCell(r, c) {
     updateHighlightDOM();
     updateActiveClueBar();
 
-    // Trigger virtual mobile keyboard focus and space buffer
-    const hiddenInput = document.getElementById('hidden-input');
-    if (hiddenInput) {
-        hiddenInput.value = " ";
-        hiddenInput.focus();
-    }
+    // Open the word-entry overlay (it also focuses the hidden input on mobile)
+    openWordOverlay();
 }
 
 // Switch direction on click or toggle trigger
@@ -838,6 +860,7 @@ function togglePause() {
     const pauseBtn = document.getElementById('btn-pause');
     
     if (isPaused) {
+        closeWordOverlay();
         pauseScreen.classList.remove('hidden');
         pauseBtn.querySelector('.pause-icon').classList.add('hidden');
         pauseBtn.querySelector('.play-icon').classList.remove('hidden');
@@ -845,47 +868,159 @@ function togglePause() {
         pauseScreen.classList.add('hidden');
         pauseBtn.querySelector('.pause-icon').classList.remove('hidden');
         pauseBtn.querySelector('.play-icon').classList.add('hidden');
-        
-        // Refocus active cell to bring mobile keyboard back up
-        if (activeCell.r !== -1) {
-            const hiddenInput = document.getElementById('hidden-input');
-            if (hiddenInput) {
-                hiddenInput.focus();
-            }
+        // Re-open overlay for the active cell after unpausing
+        if (activeCell.r !== -1) openWordOverlay();
+    }
+}
+
+// ---- Word-Input Overlay helpers ----
+
+function openWordOverlay() {
+    if (activeCell.r === -1 || activeCell.c === -1) return;
+    if (isPaused || isSolved) return;
+
+    const cell = cellsData[activeCell.r][activeCell.c];
+    if (!cell) return;
+    const word = activeDir === 'across' ? cell.acrossWord : cell.downWord;
+    if (!word) return;
+
+    // Populate clue bar
+    document.getElementById('overlay-clue-label').innerText =
+        `${word.number}-${word.dir.toUpperCase()}`;
+    document.getElementById('overlay-clue-text').innerText = word.def;
+
+    // Render letter boxes
+    renderOverlayBoxes(word);
+
+    // Show overlay
+    document.getElementById('word-input-overlay').classList.remove('hidden');
+
+    // Focus the off-screen hidden input so the mobile keyboard opens
+    const hiddenInput = document.getElementById('hidden-input');
+    if (hiddenInput) {
+        hiddenInput.value = " ";
+        // Small delay lets the overlay render first, preventing layout shift
+        requestAnimationFrame(() => hiddenInput.focus());
+    }
+}
+
+function closeWordOverlay() {
+    document.getElementById('word-input-overlay').classList.add('hidden');
+    // Blur the hidden input so the keyboard closes on mobile
+    const hiddenInput = document.getElementById('hidden-input');
+    if (hiddenInput) hiddenInput.blur();
+}
+
+function renderOverlayBoxes(word) {
+    const container = document.getElementById('word-input-boxes');
+    container.innerHTML = '';
+
+    const dr = word.dir === 'down' ? 1 : 0;
+    const dc = word.dir === 'across' ? 1 : 0;
+    const len = word.word.length;
+
+    // Use compact sizing for long words
+    container.classList.toggle('compact', len > 9);
+
+    for (let i = 0; i < len; i++) {
+        const r = word.r + dr * i;
+        const c = word.c + dc * i;
+        const cellData = cellsData[r][c];
+
+        const box = document.createElement('div');
+        box.className = 'word-input-box';
+        box.dataset.index = i;
+        box.dataset.row = r;
+        box.dataset.col = c;
+
+        const letter = cellData ? cellData.input : '';
+        box.innerText = letter;
+
+        if (letter) box.classList.add('prefilled');
+        if (cellData && cellData.state) box.classList.add(cellData.state);
+
+        // Mark current cursor position
+        if (r === activeCell.r && c === activeCell.c) {
+            box.classList.add('cursor-box');
+        }
+
+        container.appendChild(box);
+    }
+}
+
+// Sync overlay boxes after any letter entry or cursor move
+function syncOverlayBoxes() {
+    const overlay = document.getElementById('word-input-overlay');
+    if (overlay.classList.contains('hidden')) return;
+    const cell = cellsData[activeCell.r]?.[activeCell.c];
+    if (!cell) return;
+    const word = activeDir === 'across' ? cell.acrossWord : cell.downWord;
+    if (word) renderOverlayBoxes(word);
+}
+
+// ---- Keyboard handlers ----
+
+// Arrow keys, Tab, Space/Enter — shared by hidden-input keydown and desktop keydown
+function handleKeyboardControlKeys(e) {
+    if (isPaused || isSolved) return;
+    if (activeCell.r === -1 || activeCell.c === -1) return;
+    if (document.getElementById('modal-help').open || document.getElementById('modal-victory').open) return;
+
+    if (e.key === 'ArrowRight') {
+        e.preventDefault(); moveCursor(0, 1);
+    } else if (e.key === 'ArrowLeft') {
+        e.preventDefault(); moveCursor(0, -1);
+    } else if (e.key === 'ArrowDown') {
+        e.preventDefault(); moveCursor(1, 0);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault(); moveCursor(-1, 0);
+    } else if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault(); toggleActiveDirection(); syncOverlayBoxes();
+    } else if (e.key === 'Tab') {
+        e.preventDefault(); navigateClues(e.shiftKey ? -1 : 1);
+    } else if (e.key === 'Escape') {
+        closeWordOverlay();
+    }
+}
+
+// Desktop direct-typing handler (fires when overlay is closed and a letter key is pressed)
+function handleDesktopKey(e) {
+    if (isPaused || isSolved) return;
+    if (activeCell.r === -1 || activeCell.c === -1) return;
+
+    const r = activeCell.r;
+    const c = activeCell.c;
+    const cell = cellsData[r][c];
+    if (!cell) return;
+
+    if (/^[a-zA-Z]$/.test(e.key)) {
+        e.preventDefault();
+        const char = e.key.toUpperCase();
+        const cellEl = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
+        cell.input = char;
+        cell.state = '';
+        cellEl.classList.remove('correct', 'error', 'revealed');
+        cellEl.querySelector('.cell-input').innerText = char;
+        sound.playClick();
+        moveCursorInActiveWord(1);
+        updateCluesCompletion();
+        checkCompletion();
+    } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        const cellEl = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
+        if (cell.input) {
+            cell.input = '';
+            cell.state = '';
+            cellEl.classList.remove('correct', 'error', 'revealed');
+            cellEl.querySelector('.cell-input').innerText = '';
+            updateCluesCompletion();
+        } else {
+            moveCursorInActiveWord(-1);
         }
     }
 }
 
-// Keyboard control keys Router (arrow keys, tab, enter, space)
-function handleKeyboardControlKeys(e) {
-    if (isPaused || isSolved) return;
-    if (activeCell.r === -1 || activeCell.c === -1) return;
-
-    // Ignore keypresses if help modal is open
-    if (document.getElementById('modal-help').open || document.getElementById('modal-victory').open) return;
-
-    if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        moveCursor(0, 1);
-    } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        moveCursor(0, -1);
-    } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        moveCursor(1, 0);
-    } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        moveCursor(-1, 0);
-    } else if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        toggleActiveDirection();
-    } else if (e.key === 'Tab') {
-        e.preventDefault();
-        navigateClues(e.shiftKey ? -1 : 1);
-    }
-}
-
-// Text and Backspace Router supporting virtual keyboard inputs on mobile
+// Mobile virtual keyboard — space-buffer trick via the hidden-input input event
 function handleMobileTextAndBackspace(e) {
     if (isPaused || isSolved) return;
     if (activeCell.r === -1 || activeCell.c === -1) return;
@@ -899,32 +1034,35 @@ function handleMobileTextAndBackspace(e) {
     const cell = cellsData[r][c];
 
     if (val.length > 1) {
-        // Character added after the initial space
-        const char = val.charAt(1).toUpperCase();
+        // A character was appended after our space buffer
+        const char = val.charAt(val.length - 1).toUpperCase();
         if (/^[A-Z]$/.test(char)) {
             const cellEl = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
             cell.input = char;
             cell.state = '';
             cellEl.classList.remove('correct', 'error', 'revealed');
             cellEl.querySelector('.cell-input').innerText = char;
-
             sound.playClick();
             moveCursorInActiveWord(1);
             updateCluesCompletion();
             checkCompletion();
         }
-        hiddenInput.value = " "; // Reset to space buffer
+        hiddenInput.value = " ";
+        syncOverlayBoxes();
     } else if (val.length === 0) {
-        // Space deleted (Backspace pressed on virtual/physical keyboard)
+        // Backspace deleted the space buffer
         const cellEl = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
-        cell.input = '';
-        cell.state = '';
-        cellEl.classList.remove('correct', 'error', 'revealed');
-        cellEl.querySelector('.cell-input').innerText = '';
-
-        moveCursorInActiveWord(-1);
-        updateCluesCompletion();
-        hiddenInput.value = " "; // Reset to space buffer
+        if (cell.input) {
+            cell.input = '';
+            cell.state = '';
+            cellEl.classList.remove('correct', 'error', 'revealed');
+            cellEl.querySelector('.cell-input').innerText = '';
+            updateCluesCompletion();
+        } else {
+            moveCursorInActiveWord(-1);
+        }
+        hiddenInput.value = " ";
+        syncOverlayBoxes();
     }
 }
 

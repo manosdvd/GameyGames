@@ -832,16 +832,175 @@ body {
     }
 }
 
-/* Hidden input for mobile keyboard support */
-.hidden-input {
-    position: absolute;
+
+/* ============================================================
+   WORD INPUT OVERLAY  (replaces the hidden-input scroll hack)
+   ============================================================ */
+
+/* The hidden input is placed far off-screen so focusing it opens
+   the keyboard without triggering any browser scroll-into-view */
+.hidden-input-offscreen {
+    position: fixed;
+    left: -9999px;
+    top: 50%;
+    width: 1px;
+    height: 1px;
     opacity: 0;
-    pointer-events: none;
-    width: 0;
-    height: 0;
-    font-size: 16px;
+    font-size: 16px;   /* prevents iOS auto-zoom */
     border: none;
     background: transparent;
     outline: none;
-    z-index: -1;
+    pointer-events: none;
+}
+
+/* Full-screen backdrop — clicking outside closes the overlay */
+.word-input-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background: rgba(5, 3, 10, 0.5);
+    backdrop-filter: blur(3px);
+    transition: opacity 0.2s ease;
+}
+
+.word-input-overlay.hidden {
+    display: none;
+}
+
+/* Slide-up panel */
+.word-input-panel {
+    background: #0f0b21;
+    border-top: 2px solid var(--neon-cyan);
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    border-radius: 16px 16px 0 0;
+    padding: 18px 20px 24px;
+    box-shadow: 0 -8px 40px rgba(0, 240, 255, 0.2);
+    animation: slideUp 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    /* Critically: never let the panel itself scroll */
+    max-height: 60vh;
+    overflow: hidden;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* Clue bar inside the overlay */
+.word-input-clue-bar {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.word-input-label {
+    background: var(--neon-cyan);
+    color: #000;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    font-family: var(--font-orbitron);
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.word-input-clue-text {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: #fff;
+    flex: 1;
+    line-height: 1.4;
+}
+
+.word-input-close {
+    margin-left: auto;
+    background: none;
+    border: 1px solid rgba(226, 217, 243, 0.25);
+    color: rgba(226, 217, 243, 0.7);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.word-input-close:hover {
+    background: rgba(255, 0, 127, 0.15);
+    border-color: var(--neon-pink);
+    color: var(--neon-pink);
+}
+
+/* Letter boxes row */
+.word-input-boxes {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Individual letter box */
+.word-input-box {
+    width: 42px;
+    height: 52px;
+    border: 2px solid var(--cell-border);
+    border-radius: 5px;
+    background: var(--cell-playable-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--cell-text-color);
+    text-transform: uppercase;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+}
+
+/* Cursor — the box the user is typing into */
+.word-input-box.cursor-box {
+    border-color: var(--neon-yellow) !important;
+    background: rgba(255, 240, 0, 0.15) !important;
+    box-shadow: 0 0 10px rgba(255, 240, 0, 0.4), inset 0 0 6px rgba(255, 240, 0, 0.2);
+}
+
+/* A box that was already filled before the overlay opened */
+.word-input-box.prefilled {
+    color: var(--cell-text-color);
+    border-color: rgba(0, 240, 255, 0.35);
+}
+
+/* Correct / Error states mirrored from grid */
+.word-input-box.correct {
+    border-color: var(--neon-green) !important;
+    color: var(--neon-green);
+}
+.word-input-box.error {
+    border-color: var(--neon-red) !important;
+    color: var(--neon-red);
+}
+.word-input-box.revealed {
+    color: var(--neon-cyan);
+}
+
+/* Smaller boxes when there are many letters */
+.word-input-boxes.compact .word-input-box {
+    width: 34px;
+    height: 44px;
+    font-size: 18px;
+    gap: 4px;
 }

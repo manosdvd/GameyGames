@@ -175,8 +175,23 @@
         </div>
     </dialog>
 
-    <!-- Hidden input to trigger virtual mobile keyboard and capture keyboard events -->
-    <input type="text" id="hidden-input" class="hidden-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" aria-hidden="true" tabindex="-1">
+    <!-- Word Input Overlay — slides up from bottom on mobile tap / keyboard focus -->
+    <div id="word-input-overlay" class="word-input-overlay hidden" role="dialog" aria-label="Word entry">
+        <div class="word-input-panel">
+            <div class="word-input-clue-bar">
+                <span class="word-input-label" id="overlay-clue-label">1-ACROSS</span>
+                <span class="word-input-clue-text" id="overlay-clue-text"></span>
+                <button class="word-input-close" id="btn-close-overlay" aria-label="Close word entry">✕</button>
+            </div>
+            <div class="word-input-boxes" id="word-input-boxes" aria-label="Letter entry boxes"></div>
+            <!-- Hidden input physically positioned off-screen so the keyboard opens but the page never scrolls to it -->
+            <input type="text" id="hidden-input"
+                class="hidden-input-offscreen"
+                autocomplete="off" autocapitalize="characters" autocorrect="off"
+                spellcheck="false" inputmode="text"
+                aria-hidden="true" tabindex="-1">
+        </div>
+    </div>
 
     <script src="../shared/dictionary.js"></script>
     <script src="game.js"></script>
