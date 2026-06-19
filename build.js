@@ -480,6 +480,10 @@ window.DefinitionManager = {
     console.log('> Building GeoSnap...');
     copyRecursiveWithLog(path.join(__dirname, 'geopuzzle'), path.join(distDir, 'geopuzzle'));
 
+    // 8m. Build Cyber Crossword (Static + Assets)
+    console.log('> Building Cyber Crossword...');
+    copyRecursiveWithLog(path.join(__dirname, 'crossword'), path.join(distDir, 'crossword'));
+
     // 9. Copy Shared Scripts/Assets
     console.log('> Copying Shared Assets...');
     copyRecursiveWithLog(path.join(__dirname, 'shared'), path.join(distDir, 'shared'));

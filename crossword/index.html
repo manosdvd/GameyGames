@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Crossword - GameyGames</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto+Mono:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation Header -->
+        <header class="game-header">
+            <div class="brand">
+                <a href="../" class="back-link" id="btn-back"><span>&larr;</span> HUB</a>
+                <h1 class="glitch-text" data-text="CYBER CROSSWORD">CYBER CROSSWORD</h1>
+            </div>
+            
+            <div class="header-controls">
+                <div class="control-group">
+                    <label for="theme-select" class="mono-label">THEME:</label>
+                    <select id="theme-select" class="cyber-select">
+                        <option value="general">GENERAL CORE</option>
+                        <option value="pop_culture">POP CULTURE</option>
+                        <option value="star_trek">STAR TREK</option>
+                        <option value="slang">SLANG / DIALECT</option>
+                    </select>
+                </div>
+
+                <div class="timer-container" id="timer-box">
+                    <span id="timer-display" class="timer-text">00:00</span>
+                    <button class="icon-btn" id="btn-pause" aria-label="Pause timer">
+                        <svg class="pause-icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <svg class="play-icon hidden" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                </div>
+
+                <button class="cyber-btn primary" id="btn-new-game">NEW RUN</button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="game-layout">
+            <!-- Active Clue Bar -->
+            <div class="active-clue-bar" id="active-clue-display">
+                <span class="clue-label" id="active-clue-label">1-ACROSS</span>
+                <span class="clue-text" id="active-clue-text">Select a cell to begin solving.</span>
+            </div>
+
+            <div class="workspace-grid">
+                <!-- Left: Board Grid -->
+                <div class="board-column">
+                    <div class="board-wrapper">
+                        <!-- Grid Overlay for Pause State -->
+                        <div class="pause-overlay hidden" id="pause-screen">
+                            <div class="pause-content">
+                                <h2 class="orbitron-text">RUN PAUSED</h2>
+                                <p class="cyan-glow-text">System is currently in stasis.</p>
+                                <button class="cyber-btn" id="btn-resume">RESUME SOLVING</button>
+                            </div>
+                        </div>
+
+                        <!-- Main Playable Grid -->
+                        <div class="crossword-grid-container">
+                            <div id="crossword-grid" class="crossword-grid" role="grid" aria-label="Crossword Grid">
+                                <!-- Cells generated programmatically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Action Toolbar -->
+                    <div class="action-toolbar">
+                        <div class="toolbar-section">
+                            <span class="toolbar-label">CHECK</span>
+                            <div class="btn-group">
+                                <button class="cyber-btn compact" id="btn-check-letter">LETTER</button>
+                                <button class="cyber-btn compact" id="btn-check-word">WORD</button>
+                                <button class="cyber-btn compact" id="btn-check-grid">GRID</button>
+                            </div>
+                        </div>
+                        <div class="toolbar-section">
+                            <span class="toolbar-label">REVEAL</span>
+                            <div class="btn-group">
+                                <button class="cyber-btn compact" id="btn-reveal-letter">LETTER</button>
+                                <button class="cyber-btn compact" id="btn-reveal-word">WORD</button>
+                                <button class="cyber-btn compact" id="btn-reveal-grid">GRID</button>
+                            </div>
+                        </div>
+                        <div class="toolbar-section flex-end">
+                            <button class="cyber-btn compact danger" id="btn-reset">RESET</button>
+                            <button class="cyber-btn compact info" id="btn-help-trigger">HELP</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Clues List Column -->
+                <div class="clues-column">
+                    <div class="clues-card scrollable-panel">
+                        <div class="clues-header across-theme">
+                            <h3 class="orbitron-text">ACROSS</h3>
+                        </div>
+                        <ul class="clue-list" id="clues-across" aria-label="Across clues">
+                            <!-- Populated programmatically -->
+                        </ul>
+                    </div>
+                    <div class="clues-card scrollable-panel">
+                        <div class="clues-header down-theme">
+                            <h3 class="orbitron-text">DOWN</h3>
+                        </div>
+                        <ul class="clue-list" id="clues-down" aria-label="Down clues">
+                            <!-- Populated programmatically -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Help / Instructions Modal -->
+    <dialog id="modal-help" class="cyber-modal" closedby="any" aria-labelledby="help-title">
+        <div class="modal-header">
+            <h2 id="help-title" class="orbitron-text">INTERFACE MANUAL</h2>
+            <button class="close-btn" id="btn-close-help" aria-label="Close modal">&times;</button>
+        </div>
+        <div class="modal-body font-mono">
+            <h3>SOLVING CONTROLS</h3>
+            <ul>
+                <li><strong>Click / Tap:</strong> Selects a cell and sets the active word. Click the same cell again to toggle direction between Across and Down.</li>
+                <li><strong>Keyboard Inputs [A-Z]:</strong> Enters letters into cells and auto-advances the cursor in the active direction.</li>
+                <li><strong>Backspace:</strong> Deletes the current cell's letter and moves the cursor backward.</li>
+                <li><strong>Arrow Keys:</strong> Navigate freely between intersecting grid spaces.</li>
+                <li><strong>Space / Enter:</strong> Rotate word input direction between Across and Down.</li>
+                <li><strong>Tab / Shift+Tab:</strong> Jump to the next or previous clue in sequence.</li>
+            </ul>
+            <h3>SYSTEM STATUS</h3>
+            <p>Select different themes to generate new crossword runs. The timer tracks your solving speed. Use CHECK to verify inputs, or REVEAL if you hit an unresolvable sector.</p>
+        </div>
+    </dialog>
+
+    <!-- Victory Modal -->
+    <dialog id="modal-victory" class="cyber-modal win-modal" closedby="any" aria-labelledby="victory-title">
+        <div class="modal-content-wrapper text-center">
+            <div class="pulse-ring"></div>
+            <h2 id="victory-title" class="victory-title orbitron-text glow-text">SYSTEM RESTORED</h2>
+            <div class="victory-details font-mono">
+                <p class="summary-line">All data sectors have been successfully defragmented.</p>
+                <div class="stat-box">
+                    <span class="stat-label">SOLVE TIME:</span>
+                    <span class="stat-val" id="win-time-display">00:00</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">THEME:</span>
+                    <span class="stat-val" id="win-theme-display">GENERAL</span>
+                </div>
+            </div>
+            <div class="victory-actions">
+                <button class="cyber-btn primary large" id="btn-win-new-game">INITIALIZE NEW RUN</button>
+            </div>
+        </div>
+    </dialog>
+
+    <script src="game.js"></script>
+</body>
+</html>

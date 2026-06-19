@@ -152,6 +152,7 @@ h1, h2, h3 {
 .bg-spelling { background: radial-gradient(circle, #4a3500 0%, #03030c 80%); }
 .bg-tetris { background: radial-gradient(circle, #220055 0%, #03030c 80%); }
 .bg-geosnap { background: radial-gradient(circle, #004d4d 0%, #03030c 80%); }
+.bg-crossword { background: radial-gradient(circle, #2d004d 0%, #03030c 80%); }
 
 
 .card-content {
