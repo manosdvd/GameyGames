@@ -29,6 +29,15 @@
                     </select>
                 </div>
 
+                <div class="control-group">
+                    <label for="difficulty-select" class="mono-label">DIFFICULTY:</label>
+                    <select id="difficulty-select" class="cyber-select">
+                        <option value="easy">EASY</option>
+                        <option value="medium" selected>MEDIUM</option>
+                        <option value="hard">HARD</option>
+                    </select>
+                </div>
+
                 <div class="timer-container" id="timer-box">
                     <span id="timer-display" class="timer-text">00:00</span>
                     <button class="icon-btn" id="btn-pause" aria-label="Pause timer">
@@ -155,6 +164,10 @@
                     <span class="stat-label">THEME:</span>
                     <span class="stat-val" id="win-theme-display">GENERAL</span>
                 </div>
+                <div class="stat-box">
+                    <span class="stat-label">DIFFICULTY:</span>
+                    <span class="stat-val" id="win-difficulty-display">MEDIUM</span>
+                </div>
             </div>
             <div class="victory-actions">
                 <button class="cyber-btn primary large" id="btn-win-new-game">INITIALIZE NEW RUN</button>
@@ -162,6 +175,10 @@
         </div>
     </dialog>
 
+    <!-- Hidden input to trigger virtual mobile keyboard and capture keyboard events -->
+    <input type="text" id="hidden-input" class="hidden-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" aria-hidden="true" tabindex="-1">
+
+    <script src="../shared/dictionary.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

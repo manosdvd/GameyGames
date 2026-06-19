@@ -90,11 +90,10 @@ class SoundController {
 
 // Crossword Generation Algorithm
 class CrosswordGenerator {
-    constructor(gridSize = 13) {
-        this.gridSize = gridSize;
-    }
+    constructor() {}
 
-    generate(wordMap, maxWords = 14) {
+    generate(wordMap, gridSize = 13, maxWords = 14) {
+        this.gridSize = gridSize;
         const words = Object.keys(wordMap);
         if (words.length < 5) return null;
 
@@ -276,6 +275,31 @@ class CrosswordGenerator {
     }
 }
 
+// Difficulty Level Parameters
+const DIFFICULTY_SETTINGS = {
+    easy: {
+        gridSize: 9,
+        maxWords: 8,
+        minLen: 3,
+        maxLen: 6,
+        maxRarity: 0.70 // highly common words
+    },
+    medium: {
+        gridSize: 13,
+        maxWords: 12,
+        minLen: 3,
+        maxLen: 8,
+        maxRarity: 0.88 // moderately common words
+    },
+    hard: {
+        gridSize: 15,
+        maxWords: 16,
+        minLen: 4,
+        maxLen: 11,
+        maxRarity: 1.01 // allow all vocabulary complexity
+    }
+};
+
 // Global Game Variables
 let themesData = null;
 let currentGrid = null;
@@ -288,30 +312,33 @@ let timerInterval = null;
 let timeElapsed = 0;
 let isPaused = false;
 let isSolved = false;
+let gridSize = 13;
 
-const GRID_SIZE = 13;
 const sound = new SoundController();
-const generator = new CrosswordGenerator(GRID_SIZE);
+const generator = new CrosswordGenerator();
 
 // Initialize Game elements on page load
 document.addEventListener('DOMContentLoaded', async () => {
     setupThemeSelector();
+    setupDifficultySelector();
     setupEventHandlers();
     
-    // Load local themes
+    // Load local themes & dictionary metadata in parallel
     try {
-        const res = await fetch('themes.json');
-        themesData = await res.json();
+        const [themesRes] = await Promise.all([
+            fetch('themes.json'),
+            window.DefinitionManager ? window.DefinitionManager.load() : Promise.resolve()
+        ]);
+        themesData = await themesRes.json();
         initializeNewGame();
     } catch (e) {
-        console.error("Failed to load themes.json:", e);
+        console.error("Failed to load themes or dictionary meta:", e);
     }
 });
 
 // Selector settings
 function setupThemeSelector() {
     const select = document.getElementById('theme-select');
-    // Load stored theme if any
     const saved = localStorage.getItem('cyber_crossword_theme');
     if (saved) {
         select.value = saved;
@@ -321,6 +348,61 @@ function setupThemeSelector() {
         localStorage.setItem('cyber_crossword_theme', select.value);
         initializeNewGame();
     });
+}
+
+function setupDifficultySelector() {
+    const select = document.getElementById('difficulty-select');
+    const saved = localStorage.getItem('cyber_crossword_difficulty');
+    if (saved) {
+        select.value = saved;
+    }
+    
+    select.addEventListener('change', () => {
+        localStorage.setItem('cyber_crossword_difficulty', select.value);
+        initializeNewGame();
+    });
+}
+
+// Filter words based on chosen difficulty constraints
+function filterWordsByDifficulty(themeWords, difficulty) {
+    const settings = DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.medium;
+    const metaData = (window.DefinitionManager && window.DefinitionManager.meta) || {};
+    
+    const words = Object.keys(themeWords);
+    let filtered = [];
+
+    for (const w of words) {
+        const lowerW = w.toLowerCase();
+        const meta = metaData[lowerW] || { rarity: 0.5 };
+        const rarity = meta.rarity;
+        const len = w.length;
+
+        if (len >= settings.minLen && len <= settings.maxLen && rarity <= settings.maxRarity) {
+            filtered.push({ word: w, def: themeWords[w] });
+        }
+    }
+
+    // Fallback: If filter is too strict and returns too few candidates, relax the rarity filter
+    if (filtered.length < 15) {
+        filtered = [];
+        for (const w of words) {
+            const len = w.length;
+            if (len >= settings.minLen && len <= settings.maxLen) {
+                filtered.push({ word: w, def: themeWords[w] });
+            }
+        }
+    }
+
+    // Fallback 2: If still too small, relax all length filters
+    if (filtered.length < 10) {
+        filtered = words.map(w => ({ word: w, def: themeWords[w] }));
+    }
+
+    const result = {};
+    filtered.forEach(item => {
+        result[item.word] = item.def;
+    });
+    return result;
 }
 
 // Set up UI listeners
@@ -381,8 +463,18 @@ function setupEventHandlers() {
         initializeNewGame();
     });
 
-    // Keyboard Events on Grid
-    document.addEventListener('keydown', handleKeyboardInput);
+    // Keyboard Events routed through hidden-input for virtual keyboard compatibility
+    const hiddenInput = document.getElementById('hidden-input');
+    if (hiddenInput) {
+        hiddenInput.value = " ";
+        hiddenInput.addEventListener('keydown', handleKeyboardControlKeys);
+        hiddenInput.addEventListener('input', handleMobileTextAndBackspace);
+        
+        // Clicking anywhere in the grid container should focus the input to keep the keyboard visible
+        document.getElementById('crossword-grid').addEventListener('click', () => {
+            hiddenInput.focus();
+        });
+    }
 }
 
 // Generate and setup game states
@@ -390,12 +482,18 @@ function initializeNewGame() {
     if (!themesData) return;
     
     const themeName = document.getElementById('theme-select').value;
-    const themeWords = themesData[themeName];
+    const difficultyName = document.getElementById('difficulty-select').value;
     
-    const result = generator.generate(themeWords, 12);
+    const settings = DIFFICULTY_SETTINGS[difficultyName] || DIFFICULTY_SETTINGS.medium;
+    gridSize = settings.gridSize;
+
+    // Filter the selected theme's words based on difficulty parameters
+    const filteredWords = filterWordsByDifficulty(themesData[themeName], difficultyName);
+
+    const result = generator.generate(filteredWords, settings.gridSize, settings.maxWords);
     if (!result) {
         // Fallback retry
-        console.warn("Failed to generate, retrying...");
+        console.warn("Failed to generate, retrying with relaxed bounds...");
         setTimeout(initializeNewGame, 50);
         return;
     }
@@ -435,8 +533,8 @@ function initializeNewGame() {
 }
 
 function focusFirstCell() {
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
+    for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
             if (cellsData[r][c] !== null) {
                 selectCell(r, c);
                 return;
@@ -513,11 +611,11 @@ function renderGridBoard() {
     board.innerHTML = '';
     
     // Set custom grid template columns dynamically
-    board.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
-    board.style.gridTemplateRows = `repeat(${GRID_SIZE}, 1fr)`;
+    board.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+    board.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
 
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
+    for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
             const cell = cellsData[r][c];
             const div = document.createElement('div');
             div.className = 'grid-cell';
@@ -552,6 +650,10 @@ function renderGridBoard() {
                         toggleActiveDirection();
                     } else {
                         selectCell(r, c);
+                    }
+                    const hiddenInput = document.getElementById('hidden-input');
+                    if (hiddenInput) {
+                        hiddenInput.focus();
                     }
                 });
             }
@@ -599,7 +701,7 @@ function renderCluesList() {
 
 // Select cell and calculate highlight sets
 function selectCell(r, c) {
-    if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) return;
+    if (r < 0 || r >= gridSize || c < 0 || c >= gridSize) return;
     const cell = cellsData[r][c];
     if (cell === null) return;
 
@@ -615,6 +717,13 @@ function selectCell(r, c) {
     calculateActiveWordCells();
     updateHighlightDOM();
     updateActiveClueBar();
+
+    // Trigger virtual mobile keyboard focus and space buffer
+    const hiddenInput = document.getElementById('hidden-input');
+    if (hiddenInput) {
+        hiddenInput.value = " ";
+        hiddenInput.focus();
+    }
 }
 
 // Switch direction on click or toggle trigger
@@ -736,22 +845,25 @@ function togglePause() {
         pauseScreen.classList.add('hidden');
         pauseBtn.querySelector('.pause-icon').classList.remove('hidden');
         pauseBtn.querySelector('.play-icon').classList.add('hidden');
+        
+        // Refocus active cell to bring mobile keyboard back up
+        if (activeCell.r !== -1) {
+            const hiddenInput = document.getElementById('hidden-input');
+            if (hiddenInput) {
+                hiddenInput.focus();
+            }
+        }
     }
 }
 
-// Keyboard input Router
-function handleKeyboardInput(e) {
+// Keyboard control keys Router (arrow keys, tab, enter, space)
+function handleKeyboardControlKeys(e) {
     if (isPaused || isSolved) return;
     if (activeCell.r === -1 || activeCell.c === -1) return;
 
     // Ignore keypresses if help modal is open
     if (document.getElementById('modal-help').open || document.getElementById('modal-victory').open) return;
 
-    const r = activeCell.r;
-    const c = activeCell.c;
-    const cell = cellsData[r][c];
-
-    // Navigation keys
     if (e.key === 'ArrowRight') {
         e.preventDefault();
         moveCursor(0, 1);
@@ -770,40 +882,49 @@ function handleKeyboardInput(e) {
     } else if (e.key === 'Tab') {
         e.preventDefault();
         navigateClues(e.shiftKey ? -1 : 1);
-    } else if (e.key === 'Backspace') {
-        e.preventDefault();
-        
-        // Clear active cell state & input
+    }
+}
+
+// Text and Backspace Router supporting virtual keyboard inputs on mobile
+function handleMobileTextAndBackspace(e) {
+    if (isPaused || isSolved) return;
+    if (activeCell.r === -1 || activeCell.c === -1) return;
+
+    const hiddenInput = document.getElementById('hidden-input');
+    if (!hiddenInput) return;
+
+    const val = hiddenInput.value;
+    const r = activeCell.r;
+    const c = activeCell.c;
+    const cell = cellsData[r][c];
+
+    if (val.length > 1) {
+        // Character added after the initial space
+        const char = val.charAt(1).toUpperCase();
+        if (/^[A-Z]$/.test(char)) {
+            const cellEl = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
+            cell.input = char;
+            cell.state = '';
+            cellEl.classList.remove('correct', 'error', 'revealed');
+            cellEl.querySelector('.cell-input').innerText = char;
+
+            sound.playClick();
+            moveCursorInActiveWord(1);
+            updateCluesCompletion();
+            checkCompletion();
+        }
+        hiddenInput.value = " "; // Reset to space buffer
+    } else if (val.length === 0) {
+        // Space deleted (Backspace pressed on virtual/physical keyboard)
         const cellEl = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
         cell.input = '';
         cell.state = '';
         cellEl.classList.remove('correct', 'error', 'revealed');
         cellEl.querySelector('.cell-input').innerText = '';
 
-        // Move cursor backward
         moveCursorInActiveWord(-1);
         updateCluesCompletion();
-    } else if (/^[A-Za-z]$/.test(e.key)) {
-        e.preventDefault();
-        const letter = e.key.toUpperCase();
-
-        // Put letter in cell
-        const cellEl = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
-        cell.input = letter;
-        // Clear verified status on manual edit
-        cell.state = '';
-        cellEl.classList.remove('correct', 'error', 'revealed');
-        cellEl.querySelector('.cell-input').innerText = letter;
-
-        // Sound effect on key typing
-        sound.playClick();
-
-        // Move cursor forward
-        moveCursorInActiveWord(1);
-
-        // Check if solved
-        updateCluesCompletion();
-        checkCompletion();
+        hiddenInput.value = " "; // Reset to space buffer
     }
 }
 
@@ -826,7 +947,7 @@ function moveCursor(dr, dc) {
     let currC = activeCell.c + dc;
 
     // Scan in direction for playable cell
-    while (currR >= 0 && currR < GRID_SIZE && currC >= 0 && currC < GRID_SIZE) {
+    while (currR >= 0 && currR < gridSize && currC >= 0 && currC < gridSize) {
         if (cellsData[currR][currC] !== null) {
             selectCell(currR, currC);
             return;
@@ -919,8 +1040,8 @@ function checkSolveState(scope) {
             processCell(cellsData[coords.r][coords.c]);
         });
     } else if (scope === 'grid') {
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
+        for (let r = 0; r < gridSize; r++) {
+            for (let c = 0; c < gridSize; c++) {
                 processCell(cellsData[r][c]);
             }
         }
@@ -958,8 +1079,8 @@ function revealState(scope) {
             revealCell(cellsData[coords.r][coords.c]);
         });
     } else if (scope === 'grid') {
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
+        for (let r = 0; r < gridSize; r++) {
+            for (let c = 0; c < gridSize; c++) {
                 revealCell(cellsData[r][c]);
             }
         }
@@ -974,8 +1095,8 @@ function revealState(scope) {
 function resetBoardInputs() {
     sound.playClick();
     
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
+    for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
             const cell = cellsData[r][c];
             if (cell) {
                 cell.input = '';
@@ -994,8 +1115,8 @@ function resetBoardInputs() {
 
 // Success Win checks
 function checkCompletion() {
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
+    for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
             const cell = cellsData[r][c];
             if (cell) {
                 if (cell.input.toUpperCase() !== cell.letter.toUpperCase()) {
@@ -1018,6 +1139,9 @@ function checkCompletion() {
     
     const themeName = document.getElementById('theme-select').value;
     document.getElementById('win-theme-display').innerText = themeName.toUpperCase().replace('_', ' ');
+
+    const difficultyName = document.getElementById('difficulty-select').value;
+    document.getElementById('win-difficulty-display').innerText = difficultyName.toUpperCase();
 
     // Open victory modal with delayed buffer to enjoy visual completion
     setTimeout(() => {

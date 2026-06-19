@@ -94,6 +94,7 @@ export default function App() {
     const [tickRate, setTickRate] = useState(1200);
     const [previewIndex, setPreviewIndex] = useState(0);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const justDroppedRef = useRef(false);
 
     // --- Helpers ---
     const triggerHaptic = (pattern: number | number[]) => {
@@ -176,6 +177,7 @@ export default function App() {
         setFloatingTexts([]);
         setComboChain(0);
         setIsPaused(false);
+        justDroppedRef.current = false;
     };
 
     const createExplosion = (r: number, c: number, color: string) => {
@@ -265,6 +267,7 @@ export default function App() {
                 return nb;
             });
             triggerHaptic(50);
+            justDroppedRef.current = true;
             return Array(8).fill(null);
         });
     };
@@ -278,7 +281,7 @@ export default function App() {
     useEffect(() => {
         if (!gameStarted || gameOver || isPaused) return;
         const int = setTimeout(() => {
-            applyGravity();
+            const moved = applyGravity();
             let res = checkMatches(board);
             if (res.matched && res.board && res.points) {
                 playMatchSound(comboChain); triggerHaptic([30, 30]);
@@ -287,6 +290,8 @@ export default function App() {
                 setLevelScore(s => s + res.points!);
                 setComboChain(c => c + 1);
                 setShake(true); setTimeout(() => setShake(false), 300);
+            } else if (!moved) {
+                justDroppedRef.current = false;
             }
         }, 65);
         return () => clearTimeout(int);
@@ -351,7 +356,11 @@ export default function App() {
             let mult = 1;
             [...hRuns, ...vRuns].forEach(run => { if (run.length === 4) mult = Math.max(mult, 2); if (run.length >= 5) mult = Math.max(mult, 3); });
             let bonus = (comboChain > 0) ? (comboChain * 0.5) + 1 : 1;
-            let pts = Math.floor(matches.size * 10 * mult * bonus);
+            
+            // Check if this match was arranged on drop
+            const isDropCombo = justDroppedRef.current;
+            const dropMultiplier = isDropCombo ? 5 : 1;
+            let pts = Math.floor(matches.size * 10 * mult * bonus * dropMultiplier);
 
             let cr = 0, cc = 0;
             if (hRuns[0]) { cr = hRuns[0][0].r; cc = hRuns[0][0].c; }
@@ -360,7 +369,10 @@ export default function App() {
             let txt = `+${pts}`;
             if (comboChain > 1) txt += ` x${Math.floor(bonus)}`;
             if (mult > 1) txt = (mult === 2 ? "4-MATCH! " : "MEGA! ") + txt;
-            showFloatingText(cr, cc, txt, '#FBBF24');
+            if (isDropCombo) {
+                txt = "ARRANGED DROP! " + txt;
+            }
+            showFloatingText(cr, cc, txt, isDropCombo ? '#EC4899' : '#FBBF24');
 
             matches.forEach(k => {
                 const [r, c] = k.split(',').map(Number);
@@ -382,6 +394,7 @@ export default function App() {
             setSelectedBlock({ r, c });
             playTone(500, 'sine', 0.05, 0.1);
             triggerHaptic(10);
+            justDroppedRef.current = false; // Reset drop flag when player interacts
         } else {
             if (selectedBlock.r === r && selectedBlock.c === c) { setSelectedBlock(null); return; }
 
@@ -398,6 +411,7 @@ export default function App() {
             }
 
             playSwapSound(); triggerHaptic(30);
+            justDroppedRef.current = false; // Reset drop flag when player interacts/swaps
 
             const res = checkMatches(nb);
             if (res.matched && res.board && res.points) {
